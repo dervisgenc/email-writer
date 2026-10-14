@@ -1,0 +1,65 @@
+/*
+ * Tasarım değişkenleri panel kökünde tanımlanır. Global `body`, `button` veya
+ * Outlook sınıflarına stil uygulanmaz; bütün kurallar `.ew-root` altındadır.
+ */
+.ew-root {
+  --ew-font: 'Segoe UI', system-ui, -apple-system, 'Noto Sans', sans-serif;
+  --ew-font-size: 14px;
+  --ew-line-height: 1.45;
+  --ew-radius: 8px;
+  --ew-radius-small: 4px;
+  --ew-space-1: 4px;
+  --ew-space-2: 8px;
+  --ew-space-3: 12px;
+  --ew-space-4: 16px;
+  --ew-panel-width: 440px;
+  --ew-shadow: 0 8px 28px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.12);
+
+  --ew-color-bg: #ffffff;
+  --ew-color-surface: #f6f7f9;
+  --ew-color-border: #d4d7dd;
+  --ew-color-text: #1b1d22;
+  --ew-color-muted: #5b616e;
+  --ew-color-accent: #0f6cbd;
+  --ew-color-accent-text: #ffffff;
+  --ew-color-warning-bg: #fff4ce;
+  --ew-color-warning-text: #5c4400;
+  --ew-color-error: #b3261e;
+  --ew-color-success: #0e7a0d;
+  --ew-color-focus: #0f6cbd;
+  --ew-color-sample: #8a3ffc;
+}
+
+.ew-root[data-theme='dark'] {
+  --ew-color-bg: #1f2125;
+  --ew-color-surface: #2a2d33;
+  --ew-color-border: #454a53;
+  --ew-color-text: #eceef2;
+  --ew-color-muted: #a8aeb9;
+  --ew-color-accent: #4aa3f0;
+  --ew-color-accent-text: #0b1520;
+  --ew-color-warning-bg: #4a3b0c;
+  --ew-color-warning-text: #ffe8a3;
+  --ew-color-error: #ff8a80;
+  --ew-color-success: #7ed67b;
+  --ew-color-focus: #4aa3f0;
+  --ew-color-sample: #c6a5ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ew-root[data-theme='system'] {
+    --ew-color-bg: #1f2125;
+    --ew-color-surface: #2a2d33;
+    --ew-color-border: #454a53;
+    --ew-color-text: #eceef2;
+    --ew-color-muted: #a8aeb9;
+    --ew-color-accent: #4aa3f0;
+    --ew-color-accent-text: #0b1520;
+    --ew-color-warning-bg: #4a3b0c;
+    --ew-color-warning-text: #ffe8a3;
+    --ew-color-error: #ff8a80;
+    --ew-color-success: #7ed67b;
+    --ew-color-focus: #4aa3f0;
+    --ew-color-sample: #c6a5ff;
+  }
+}

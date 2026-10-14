@@ -1,0 +1,419 @@
+@import './tokens.css';
+
+.ew-root {
+  font-family: var(--ew-font);
+  font-size: var(--ew-font-size);
+  line-height: var(--ew-line-height);
+  color: var(--ew-color-text);
+}
+
+.ew-root *,
+.ew-root *::before,
+.ew-root *::after {
+  box-sizing: border-box;
+}
+
+.ew-root :focus-visible {
+  outline: 2px solid var(--ew-color-focus);
+  outline-offset: 2px;
+}
+
+/* Panel: sağda açılır, sayfayı engellemez, görünüm alanına sığar. */
+.ew-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: min(var(--ew-panel-width), calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--ew-color-bg);
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius);
+  box-shadow: var(--ew-shadow);
+  overflow: hidden;
+  z-index: 2147483000;
+}
+
+.ew-panel:focus {
+  outline: none;
+}
+
+.ew-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ew-space-3) var(--ew-space-4);
+  border-bottom: 1px solid var(--ew-color-border);
+}
+
+.ew-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ew-panel__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--ew-space-3) var(--ew-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ew-space-3);
+}
+
+.ew-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ew-label {
+  display: block;
+  margin-bottom: var(--ew-space-1);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ew-target,
+.ew-apply__scope {
+  margin: 0;
+}
+
+.ew-muted {
+  margin: 0;
+  color: var(--ew-color-muted);
+  font-size: 12px;
+}
+
+.ew-warning {
+  margin: 0;
+  padding: var(--ew-space-2);
+  border-radius: var(--ew-radius-small);
+  background: var(--ew-color-warning-bg);
+  color: var(--ew-color-warning-text);
+  font-size: 13px;
+}
+
+.ew-field-error {
+  margin: var(--ew-space-1) 0 0;
+  color: var(--ew-color-error);
+  font-size: 12px;
+}
+
+.ew-field-meta {
+  margin: var(--ew-space-1) 0 0;
+  color: var(--ew-color-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.ew-badge {
+  display: inline-block;
+  margin-left: var(--ew-space-1);
+  padding: 0 var(--ew-space-1);
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-small);
+  font-size: 11px;
+  color: var(--ew-color-muted);
+}
+
+.ew-badge--sample {
+  border-color: var(--ew-color-sample);
+  color: var(--ew-color-sample);
+  font-weight: 600;
+}
+
+/* Form öğeleri */
+.ew-textarea,
+.ew-select {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: var(--ew-color-surface);
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-small);
+  padding: var(--ew-space-2);
+}
+
+.ew-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.ew-textarea[aria-invalid='true'],
+.ew-select[aria-invalid='true'] {
+  border-color: var(--ew-color-error);
+}
+
+.ew-button,
+.ew-icon-button,
+.ew-link,
+.ew-operations__item,
+.ew-launcher button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.ew-button {
+  padding: var(--ew-space-1) var(--ew-space-3);
+  border: 1px solid var(--ew-color-accent);
+  border-radius: var(--ew-radius-small);
+  background: var(--ew-color-bg);
+  color: var(--ew-color-accent);
+  font-weight: 600;
+}
+
+.ew-button--primary {
+  background: var(--ew-color-accent);
+  color: var(--ew-color-accent-text);
+}
+
+.ew-button--secondary {
+  border-color: var(--ew-color-border);
+  color: var(--ew-color-text);
+}
+
+.ew-button--small {
+  padding: 0 var(--ew-space-2);
+  font-size: 12px;
+}
+
+.ew-button:disabled,
+.ew-link:disabled,
+.ew-operations__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ew-icon-button {
+  display: inline-flex;
+  padding: var(--ew-space-1);
+  border: 0;
+  border-radius: var(--ew-radius-small);
+  background: transparent;
+  color: var(--ew-color-muted);
+}
+
+.ew-icon-button:hover {
+  background: var(--ew-color-surface);
+}
+
+.ew-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ew-color-accent);
+  text-decoration: underline;
+  font-size: 12px;
+}
+
+/* İşlem seçimi */
+.ew-operations {
+  display: flex;
+  gap: var(--ew-space-1);
+  padding: 2px;
+  background: var(--ew-color-surface);
+  border-radius: var(--ew-radius);
+}
+
+.ew-operations__item {
+  flex: 1 1 0;
+  padding: var(--ew-space-1) var(--ew-space-2);
+  border: 0;
+  border-radius: var(--ew-radius-small);
+  background: transparent;
+  color: var(--ew-color-text);
+}
+
+.ew-operations__item[aria-checked='true'] {
+  background: var(--ew-color-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  font-weight: 600;
+}
+
+.ew-source__meta,
+.ew-context__header,
+.ew-preview__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ew-space-2);
+  margin-bottom: var(--ew-space-1);
+}
+
+.ew-source__origin {
+  font-size: 12px;
+  color: var(--ew-color-muted);
+}
+
+.ew-source__actions,
+.ew-context__actions {
+  display: inline-flex;
+  gap: var(--ew-space-2);
+}
+
+.ew-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ew-space-2);
+  margin-bottom: var(--ew-space-2);
+  padding: var(--ew-space-2);
+  border-radius: var(--ew-radius-small);
+  background: var(--ew-color-warning-bg);
+  color: var(--ew-color-warning-text);
+  font-size: 12px;
+}
+
+.ew-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ew-space-3);
+  align-items: flex-end;
+}
+
+.ew-options__field {
+  flex: 1 1 160px;
+}
+
+.ew-options__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ew-space-1);
+  font-size: 13px;
+}
+
+/* Bağlam denetleyicisi */
+.ew-context {
+  padding: var(--ew-space-2) var(--ew-space-3);
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-small);
+}
+
+.ew-context__notices,
+.ew-context__messages,
+.ew-context__omitted {
+  margin: var(--ew-space-1) 0 0;
+  padding-left: var(--ew-space-4);
+  font-size: 12px;
+}
+
+.ew-context__messages {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ew-context__message {
+  padding: var(--ew-space-2) 0;
+  border-top: 1px solid var(--ew-color-border);
+}
+
+.ew-context__choice {
+  display: flex;
+  gap: var(--ew-space-2);
+  align-items: baseline;
+}
+
+.ew-context__sender {
+  font-weight: 600;
+}
+
+.ew-context__preview {
+  margin: var(--ew-space-1) 0;
+  overflow-wrap: anywhere;
+  color: var(--ew-color-muted);
+}
+
+.ew-context__body {
+  max-height: 200px;
+  overflow: auto;
+  margin: var(--ew-space-1) 0;
+  padding: var(--ew-space-2);
+  background: var(--ew-color-surface);
+  border-radius: var(--ew-radius-small);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+
+.ew-prepare,
+.ew-apply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ew-space-2);
+}
+
+.ew-apply__buttons,
+.ew-apply__bind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ew-space-2);
+}
+
+/* Durum satırı */
+.ew-status {
+  display: flex;
+  gap: var(--ew-space-2);
+  align-items: center;
+  min-height: 0;
+  padding: 0 var(--ew-space-4);
+  font-size: 13px;
+}
+
+.ew-status:not([data-kind='none']) {
+  padding: var(--ew-space-2) var(--ew-space-4);
+  border-top: 1px solid var(--ew-color-border);
+}
+
+.ew-status[data-kind='error'] {
+  color: var(--ew-color-error);
+}
+
+.ew-status[data-kind='success'] {
+  color: var(--ew-color-success);
+}
+
+/* Başlatıcı */
+.ew-launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ew-space-1);
+  padding: 2px;
+  border: 1px solid var(--ew-color-border);
+  border-radius: 999px;
+  background: var(--ew-color-bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+.ew-launcher__open {
+  display: inline-flex;
+  padding: var(--ew-space-1);
+  border: 0;
+  border-radius: 999px;
+  background: var(--ew-color-accent);
+  color: var(--ew-color-accent-text);
+}
+
+.ew-launcher__quick {
+  padding: 2px var(--ew-space-2);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ew-color-text);
+  font-size: 12px;
+}
+
+.ew-launcher__quick:hover {
+  background: var(--ew-color-surface);
+}
+
+@media (max-width: 520px) {
+  .ew-panel {
+    top: 8px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+}
