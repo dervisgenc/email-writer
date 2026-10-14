@@ -1,0 +1,13 @@
+node_modules/
+.output/
+.wxt/
+dist/
+coverage/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+web-ext-artifacts/
+
+# Kişisel tarayıcı çalıştırma ayarları (profil yolları, tarayıcı konumu)
+web-ext.config.ts

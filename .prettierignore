@@ -1,0 +1,8 @@
+node_modules
+.output
+.wxt
+pnpm-lock.yaml
+test-results
+playwright-report
+*.md
+tests/fixtures/**/*.html
