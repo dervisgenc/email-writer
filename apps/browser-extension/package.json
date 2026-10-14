@@ -1,0 +1,31 @@
+{
+  "name": "@email-writer/browser-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chromium ve Firefox için Email Writer tarayıcı eklentisi",
+  "scripts": {
+    "dev": "wxt -b chrome --mv3",
+    "dev:firefox": "wxt -b firefox --mv3",
+    "build:chrome": "wxt build -b chrome --mv3",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "build:all": "pnpm build:chrome && pnpm build:firefox",
+    "build:test": "wxt build -b chrome --mv3 --mode test && wxt build -b firefox --mv3 --mode test",
+    "zip:all": "wxt zip -b chrome --mv3 && wxt zip -b firefox --mv3",
+    "typecheck": "vue-tsc -p tsconfig.json",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@wxt-dev/module-vue": "^1.0.3",
+    "web-ext": "^10.7.0",
+    "wxt": "^0.21.4"
+  },
+  "dependencies": {
+    "@email-writer/contracts": "workspace:*",
+    "@email-writer/core": "workspace:*",
+    "@email-writer/outlook-web": "workspace:*",
+    "@email-writer/ui": "workspace:*",
+    "vue": "^3.5.43",
+    "zod": "^4.6.7"
+  }
+}
