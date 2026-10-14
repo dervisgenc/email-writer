@@ -1,0 +1,125 @@
+<!--
+  SENTETİK ÖRNEK — gerçek Outlook sayfasından alınmamıştır ve gerçek hesapla
+  doğrulanmamıştır. Bütün adlar, adresler ve içerikler uydurmadır.
+
+  Yapının dayandığı kaynaklar (Ekim 2026 araştırması, ayrıntı:
+  docs/outlook-web-dogrulama.md):
+  - KANITI GÜÇLÜ: #ReadingPaneContainerId; div#UniqueMessageBody_N[role="document"];
+    gösterilen e-posta HTML'inde `x_` ön ekli kimlikler (x_Signature, x_divRplyFwdMsg);
+    yanıt editöründe #Signature → #appendonsend → hr → #divRplyFwdMsg sırası;
+    div[role="textbox"][contenteditable="true"][aria-multiline="true"] editörü;
+    [id^="docking_InitVisiblePart"] yerleşik yanıt bölgesi; #MailList satırlarında data-convid.
+  - KANITSIZ ADAY (gerçek sayfada belirlenecek): mesaj kapsayıcısı ([role="listitem"]),
+    kapalı mesaj satırı ([aria-expanded="false"]), gönderen (span[title*="@"]) ve
+    tarih (time[datetime]) elemanları.
+-->
+<div id="MainModule">
+  <div id="owa-me-control-container">
+    <button aria-label="Deneme Kullanıcı">DK</button>
+  </div>
+
+  <div role="search">
+    <div contenteditable="true" role="textbox" aria-multiline="true">arama kutusu</div>
+  </div>
+
+  <div id="MailList">
+    <div role="listbox" aria-label="İleti listesi">
+      <div role="option" aria-selected="false" data-convid="AAQkOTHER">Başka konuşma</div>
+      <div role="option" aria-selected="true" data-convid="AAQkCONV1">Proje toplantısı</div>
+    </div>
+  </div>
+
+  <div data-app-section="MailReadCompose">
+    <div id="ReadingPaneContainerId">
+      <div id="ConversationReadingPaneContainer">
+        <div role="heading" aria-level="2" title="Proje toplantısı"><span>Proje toplantısı</span></div>
+
+        <div role="listitem" aria-expanded="false" tabindex="-1">
+          <span title="zeynep@example.test">Zeynep Ak</span>
+          <span>Kapalı mesajın önizleme satırı</span>
+        </div>
+
+        <div role="listitem" aria-expanded="true" tabindex="-1">
+          <span title="mehmet@example.test">Mehmet Demir</span>
+          <time datetime="2026-10-10T08:00:00Z">Cum 10.10.2026 11:00</time>
+          <div role="document">
+            <div id="UniqueMessageBody_1" aria-label="İleti gövdesi">
+              <div class="rps_ab12">
+                <div>Merhaba Ayşe,</div>
+                <div><br /></div>
+                <div>Perşembe 14:00 toplantısını teyit edebilir misin?</div>
+                <div id="x_Signature" class="x_elementToProof">
+                  <div>Saygılarımla,</div>
+                  <div>Mehmet Demir</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div role="listitem" aria-expanded="true" tabindex="-1">
+          <span title="ayse@example.test">Ayşe Kaya</span>
+          <span>Dün 12:30</span>
+          <div id="UniqueMessageBody_2" role="document" aria-label="İleti gövdesi" tabindex="0">
+            <div class="rps_cd34">
+              <div>Hi Mehmet,</div>
+              <p>Thursday works for me. Could we also review the invoice?</p>
+              <table>
+                <tr>
+                  <td>Tutar</td>
+                  <td>1.250,00 TL</td>
+                </tr>
+                <tr>
+                  <td>Vade</td>
+                  <td>15.10.2026</td>
+                </tr>
+              </table>
+              <ul>
+                <li>Gündem</li>
+                <li>Fatura</li>
+              </ul>
+              <div style="display: none">gizli önizleme metni</div>
+              <script>
+                window.__fixtureScriptRan = true;
+              </script>
+              <style>
+                .x_hidden {
+                  color: red;
+                }
+              </style>
+              <input value="form değeri" />
+              <hr style="display: inline-block; width: 98%" />
+              <div id="x_divRplyFwdMsg">
+                <b>From:</b> Mehmet Demir<br /><b>Sent:</b> Friday, October 10, 2026 11:00 AM
+              </div>
+              <div>Merhaba Ayşe,</div>
+              <div>Perşembe 14:00 toplantısını teyit edebilir misin?</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="docking_InitVisiblePart_0">
+          <div class="toolbar"><button>Gönder</button></div>
+          <div
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-label="İleti gövdesi"
+            data-fixture="reply-editor"
+          >
+            <div>Toplantı yarın olsun mu, toplantı odası hazır.</div>
+            <div>İkinci satır burada.</div>
+            <div id="Signature" class="elementToProof">
+              <div>--</div>
+              <div>Deneme Kullanıcı</div>
+            </div>
+            <div id="appendonsend"></div>
+            <hr style="display: inline-block; width: 98%" />
+            <div id="divRplyFwdMsg"><b>From:</b> Ayşe Kaya</div>
+            <div>Hi Mehmet, Thursday works for me.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

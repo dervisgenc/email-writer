@@ -1,0 +1,16 @@
+{
+  "name": "@email-writer/outlook-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Outlook Web sayfasını okuma, izleme ve taslağa kontrollü yazma bağlantısı",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@email-writer/contracts": "workspace:*"
+  }
+}
