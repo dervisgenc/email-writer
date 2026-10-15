@@ -11,7 +11,7 @@ const outputs = {
   firefox: resolve(root, 'apps/browser-extension/.output/firefox-mv3'),
 };
 
-const ALLOWED_PERMISSIONS = ['storage'];
+const ALLOWED_PERMISSIONS = ['nativeMessaging', 'storage'];
 const FORBIDDEN_PERMISSIONS = [
   '<all_urls>',
   'tabs',
@@ -24,7 +24,6 @@ const FORBIDDEN_PERMISSIONS = [
   'clipboardRead',
   'history',
   'bookmarks',
-  'nativeMessaging',
 ];
 const SUPPORTED_MATCHES = [
   'https://outlook.live.com/*',

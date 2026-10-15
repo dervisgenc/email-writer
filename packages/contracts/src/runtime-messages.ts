@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
 import { ERROR_CODES } from './errors';
+import { aiCommandSchema, aiInputSchema, aiStatusSchema, aiSummarySchema } from './ai';
 import { settingsChangesSchema, settingsV1Schema } from './settings';
 
 /**
- * Yalnızca eklenti ortamları arasında gerçekten geçmesi gereken küçük mesajlar.
- * E-posta ve önizleme içeriği bu protokole dahil değildir; `OPEN_PANEL`
- * doğrudan yazma işlemi yapamaz.
+ * Ortamlar arası şema doğrulamalı mesajlar. AI_GENERATE yalnızca kullanıcının
+ * üretim için seçtiği metni taşır. Hesap yönetimi eklenti sayfalarıyla sınırlı;
+ * OPEN_PANEL ve OPEN_OPTIONS doğrudan yazma veya üretim başlatamaz.
  */
 export const PROTOCOL_VERSION = 1 as const;
 
@@ -18,6 +19,24 @@ const envelope = {
 const emptyPayload = z.object({}).strict();
 
 export const runtimeRequestSchema = z.discriminatedUnion('type', [
+  z.object({ ...envelope, type: z.literal('AI_STATUS'), payload: emptyPayload }).strict(),
+  z.object({ ...envelope, type: z.literal('AI_SUMMARY'), payload: emptyPayload }).strict(),
+  z.object({ ...envelope, type: z.literal('AI_COMMAND'), payload: aiCommandSchema }).strict(),
+  z
+    .object({
+      ...envelope,
+      type: z.literal('AI_GENERATE'),
+      payload: z.object({ generationId: z.string().uuid(), input: aiInputSchema }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...envelope,
+      type: z.literal('AI_CANCEL'),
+      payload: z.object({ generationId: z.string().uuid() }).strict(),
+    })
+    .strict(),
+  z.object({ ...envelope, type: z.literal('OPEN_OPTIONS'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('GET_PAGE_STATUS'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('OPEN_PANEL'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('GET_SELECTOR_REPORT'), payload: emptyPayload }).strict(),
@@ -41,6 +60,12 @@ export type RuntimeRequestType = RuntimeRequest['type'];
 
 /** Hangi mesajın hangi ortama gönderilebileceği. Alıcı bu tabloya göre reddeder. */
 export const RUNTIME_ROUTES = {
+  AI_STATUS: 'background',
+  AI_SUMMARY: 'background',
+  AI_COMMAND: 'background',
+  AI_GENERATE: 'background',
+  AI_CANCEL: 'background',
+  OPEN_OPTIONS: 'background',
   GET_PAGE_STATUS: 'content-script',
   OPEN_PANEL: 'content-script',
   GET_SELECTOR_REPORT: 'content-script',
@@ -95,6 +120,12 @@ export const patchSettingsResultSchema = z.discriminatedUnion('status', [
 
 /** Her istek türünün yanıt şeması. */
 export const RUNTIME_RESPONSE_PAYLOADS = {
+  AI_STATUS: aiStatusSchema,
+  AI_SUMMARY: aiSummarySchema,
+  AI_COMMAND: aiStatusSchema,
+  AI_GENERATE: z.object({ text: z.string().min(1).max(30_000) }).strict(),
+  AI_CANCEL: z.object({ cancelled: z.boolean() }).strict(),
+  OPEN_OPTIONS: z.object({ opened: z.boolean() }).strict(),
   GET_PAGE_STATUS: pageStatusSchema,
   OPEN_PANEL: openPanelResultSchema,
   GET_SELECTOR_REPORT: selectorReportSchema,

@@ -1,4 +1,5 @@
 import { browser } from '#imports';
+import { NATIVE_HOST_NAME } from '@email-writer/contracts';
 
 import type { MessageSender } from './runtime-messaging';
 import type { SettingsStorageArea } from './settings-store';
@@ -46,10 +47,22 @@ const extensionOrigin = () => browser.runtime.getURL('/');
 export function isOwnExtensionPage(sender: MessageSender): boolean {
   return (
     sender.id === browser.runtime.id &&
-    sender.tab === undefined &&
     typeof sender.url === 'string' &&
     sender.url.startsWith(extensionOrigin())
   );
+}
+
+export function connectAiHost() {
+  const port = browser.runtime.connectNative(NATIVE_HOST_NAME);
+  // Read lastError only to acknowledge browser failures; never log native messages.
+  port.onDisconnect.addListener(() => {
+    void browser.runtime.lastError;
+  });
+  return port;
+}
+
+export function extensionId(): string {
+  return browser.runtime.id;
 }
 
 export function addRuntimeMessageListener(

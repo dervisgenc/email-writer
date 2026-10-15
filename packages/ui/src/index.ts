@@ -15,3 +15,5 @@ export type { IconName } from './components/icons';
 export { describeNotice, provideUiText, useUiText } from './i18n';
 export type { UiText } from './i18n';
 export type * from './view-model';
+export type { AiText } from './ai-text';
+export { default as AiConnectionSettings } from './components/AiConnectionSettings.vue';

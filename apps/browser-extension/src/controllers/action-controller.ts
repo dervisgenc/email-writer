@@ -33,7 +33,7 @@ export type LoadSourceResult = 'loaded' | 'nothing-selected' | 'failed' | 'busy'
 export interface ActionControllerDependencies {
   readonly store: SessionStore;
   readonly connector: MailConnector;
-  /** Bu aşamanın normal derlemesinde metin işleme bağlantısı yoktur (`null`). */
+  /** Metin işleme sınırı; bağlantı bulunmayan gömülü ortamlarda null olabilir. */
   readonly processor: TextProcessor | null;
   /** Sayfa oturumunda okunan mesajlar; ilgili olanlar varsayılan olarak bağlama girer. */
   readonly history: MessageHistoryStore;

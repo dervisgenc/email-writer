@@ -2,3 +2,5 @@ packages:
   - apps/*
   - packages/*
   - packages/mail-connectors/*
+allowBuilds:
+  esbuild: true

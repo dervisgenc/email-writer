@@ -5,9 +5,8 @@ import type { AbortSignalLike, Result } from './result';
 /**
  * Hazırlanmış işlemi alıp aynı işleme ait düz metin sonucu döndüren sınır.
  *
- * Bu aşamada yalnızca geliştirme derlemesindeki örnek sonuç kaynağı bu
- * arayüzü uygular. AI bağlantıları sonraki aşamada aynı sınırdan bağlanacak;
- * ortak iş mantığı ve arayüz bu değişiklikten etkilenmeyecek.
+ * Gerçek bağlantı, metni arka plan/yerel AI modülüne gönderir. Test derlemesi
+ * aynı sınırda örnek sonuç kullanır. Sağlayıcı ayrıntıları iş mantığına sızmaz.
  */
 export interface TextProcessor {
   readonly kind: 'development-sample' | 'connected';

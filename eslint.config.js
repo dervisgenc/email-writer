@@ -13,6 +13,7 @@ const INTERNAL_PACKAGES = [
   '@email-writer/core',
   '@email-writer/ui',
   '@email-writer/outlook-web',
+  '@email-writer/ai-openai',
 ];
 
 const deepImportBan = {
@@ -191,9 +192,27 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/ai-openai/src/**/*.ts', 'apps/ai-companion/src/**/*.ts'],
+    languageOptions: { globals: { ...globals.node } },
+    rules: {
+      'no-restricted-globals': ['error', ...browserGlobals],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: restrictImports(
+            ['vue', 'wxt', '#imports', '@email-writer/core', '@email-writer/ui', '@email-writer/outlook-web'],
+            'AI modules do not depend on the UI or mailbox.',
+          ),
+          patterns: [deepImportBan],
+        },
+      ],
+    },
+  },
+  {
     files: [
       'tests/**/*.{ts,mjs}',
       'scripts/**/*.{js,mjs}',
+      'apps/ai-companion/scripts/*.mjs',
       '*.config.{js,ts}',
       'apps/browser-extension/*.config.ts',
     ],

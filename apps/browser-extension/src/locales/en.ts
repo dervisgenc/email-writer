@@ -1,9 +1,11 @@
+import { aiEn } from './ai-en';
 import type { ExtensionText } from './extension-text';
 
 const count = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
 
 export const en: ExtensionText = {
   ui: {
+    ai: aiEn,
     panelTitle: 'Writing assistant',
     close: 'Close',
     threadLauncher: {
@@ -198,6 +200,37 @@ export const en: ExtensionText = {
       EXTENSION_RELOADED: 'The extension was updated. Reload the page to continue.',
       PROCESSING_UNAVAILABLE:
         'Text processing is not connected yet. This version does not revise, translate or draft replies.',
+      AI_HOST_UNAVAILABLE: 'The local AI connection is unavailable. Open AI settings for setup instructions.',
+      AI_NOT_CONNECTED: 'The AI session is missing or expired. Reconnect in AI settings.',
+      AI_AUTH_FAILED: 'ChatGPT sign-in could not be verified or timed out. Try again.',
+      AI_AUTH_EXCHANGE_FAILED:
+        'OpenAI did not accept the sign-in code. Start a new attempt with Continue with ChatGPT; do not reload the old callback tab.',
+      AI_AUTH_TOKEN_INVALID:
+        'The OpenAI response is missing required session data or has an unexpected format. The account was not connected (AI_AUTH_TOKEN_INVALID).',
+      AI_AUTH_IDENTITY_FAILED:
+        'The OpenAI identity response could not be securely verified. The account was not connected (AI_AUTH_IDENTITY_FAILED).',
+      AI_AUTH_CANCELLED: 'ChatGPT sign-in was cancelled.',
+      AI_POLICY_DENIED:
+        'Organization policy blocks this ChatGPT connection. Ask your workspace administrator to check Sign in with ChatGPT access and plan eligibility; Plugins permission alone does not enable it.',
+      AI_WORKSPACE_MISMATCH:
+        'This connection belongs to a different ChatGPT account or workspace. Continue with the account that created it, or select Add a different account or workspace.',
+      AI_ACCOUNT_NAME_TAKEN: 'Another connection already uses this name. Choose a distinct name.',
+      AI_PLAN_REQUIRED:
+        'This connection has no ChatGPT plan permission. Generation requires an eligible Plus/Pro account and plan permission; signing in with a free account is not sufficient.',
+      AI_NOT_ELIGIBLE:
+        'OpenAI denied ChatGPT plan usage for this account (subscription_sharing_user_not_eligible). If your Plus/Pro subscription is active, contact OpenAI support with this code.',
+      AI_ACCESS_DENIED:
+        'OpenAI denied access to this request. Check app permissions, connection configuration or regional restrictions; this error alone does not establish subscription eligibility.',
+      AI_LIMIT_REACHED:
+        'Usage limit reached. For ChatGPT, open Manage usage; for API keys, check your OpenAI API limits.',
+      AI_UNAVAILABLE: 'The AI service is currently unavailable. Your connection is kept; try again later.',
+      AI_NETWORK: 'Could not reach the AI service. Check your internet connection and try again.',
+      AI_MODEL_UNAVAILABLE: 'The selected model is unavailable. Refresh models in AI settings.',
+      AI_RESPONSE_INCOMPLETE:
+        'The response did not complete. No partial text was applied; you can try again.',
+      AI_REVOKE_UNCONFIRMED:
+        'Signed out locally; OpenAI revocation could not be confirmed. Disconnect the app in ChatGPT settings.',
+      AI_BUSY: 'An AI connection operation is in progress. Wait for it or cancel sign-in.',
       CONTENT_SCRIPT_UNREACHABLE:
         'The extension cannot reach this tab. Check site access or reload the page.',
       MESSAGE_REJECTED: 'An invalid extension message was rejected.',
@@ -233,7 +266,7 @@ export const en: ExtensionText = {
     saved: 'Settings saved.',
     saving: 'Saving…',
     storageNote:
-      'Your preferences are stored only on this device. Emails you open are kept in memory only while the page is open, so related messages can be suggested as context. Mail content, panel text and previews are not stored permanently and are not sent to any external service in this version.',
+      'Your preferences are stored only on this device. Emails you open are kept in memory only while the page is open, so related messages can be suggested as context. Mail content, panel text and previews are not stored permanently When you request generation, your text and selected context are sent to OpenAI.',
     defaultsNote: 'Default language and tone do not change open work; they apply to the next work.',
   },
 };

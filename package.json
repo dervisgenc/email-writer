@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "pnpm --filter @email-writer/browser-extension dev",
     "dev:firefox": "pnpm --filter @email-writer/browser-extension dev:firefox",
-    "build": "pnpm --filter @email-writer/browser-extension build:all",
+    "build": "pnpm --filter @email-writer/ai-companion build && pnpm --filter @email-writer/browser-extension build:all",
+    "ai:build": "pnpm --filter @email-writer/ai-companion build",
+    "ai:install": "pnpm --filter @email-writer/ai-companion install-host",
     "build:test": "pnpm --filter @email-writer/browser-extension build:test",
     "typecheck": "pnpm -r --parallel typecheck && vue-tsc -p tests/tsconfig.json",
     "lint": "eslint .",
@@ -27,6 +29,8 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {
+    "@email-writer/ai-openai": "workspace:*",
+    "jose": "^6.1.0",
     "@email-writer/contracts": "workspace:*",
     "@email-writer/core": "workspace:*",
     "@email-writer/outlook-web": "workspace:*",

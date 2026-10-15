@@ -4,6 +4,7 @@ import { toRef, type Ref } from 'vue';
 
 import { usePanelSession, type PanelSessionDependencies } from '../composables/use-panel-session';
 import type { Appearance } from './appearance';
+import AiConnectionIndicator from './AiConnectionIndicator.vue';
 
 const props = defineProps<{
   session: PanelSessionDependencies;
@@ -45,6 +46,8 @@ const isOpen = toRef(() => props.open.value);
       @bind-target="handlers.bindTarget"
       @retry="handlers.retry"
       @dismiss="handlers.dismiss"
-    />
+    >
+      <template #connection><AiConnectionIndicator /></template>
+    </WriterPanel>
   </div>
 </template>

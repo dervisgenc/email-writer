@@ -1,9 +1,11 @@
+import { aiTr } from './ai-tr';
 import type { ExtensionText } from './extension-text';
 
 const plural = (count: number, word: string) => `${count} ${word}`;
 
 export const tr: ExtensionText = {
   ui: {
+    ai: aiTr,
     panelTitle: 'Yazma yardımcısı',
     close: 'Kapat',
     threadLauncher: {
@@ -190,6 +192,37 @@ export const tr: ExtensionText = {
       EXTENSION_RELOADED: 'Eklenti güncellendi. Devam etmek için sayfayı yenileyin.',
       PROCESSING_UNAVAILABLE:
         'Metin işleme henüz bağlanmadı. Bu sürümde düzeltme, çeviri ve yanıt üretilmez.',
+      AI_HOST_UNAVAILABLE: 'Yerel AI bağlantısına ulaşılamadı. AI ayarlarından kurulum adımlarını izleyin.',
+      AI_NOT_CONNECTED: 'AI oturumu açık değil veya süresi doldu. AI ayarlarından yeniden bağlanın.',
+      AI_AUTH_FAILED: 'ChatGPT girişi doğrulanamadı veya zaman aşımına uğradı. Yeniden deneyin.',
+      AI_AUTH_EXCHANGE_FAILED:
+        'OpenAI giriş kodunu kabul etmedi. Continue with ChatGPT ile yeni bir giriş başlatın; eski dönüş sekmesini yenilemeyin.',
+      AI_AUTH_TOKEN_INVALID:
+        'OpenAI yanıtında gerekli oturum bilgileri eksik veya beklenen biçimde değil. Hesap bağlanmadı (AI_AUTH_TOKEN_INVALID).',
+      AI_AUTH_IDENTITY_FAILED:
+        'OpenAI kimlik yanıtı güvenli biçimde doğrulanamadı. Hesap bağlanmadı (AI_AUTH_IDENTITY_FAILED).',
+      AI_AUTH_CANCELLED: 'ChatGPT girişi iptal edildi.',
+      AI_POLICY_DENIED:
+        'Kuruluş politikası bu uygulamayla ChatGPT bağlantısını engelliyor. Çalışma alanı yöneticisiyle Sign in with ChatGPT erişimini ve plan uygunluğunu kontrol edin; Plugins izni bunu tek başına açmaz.',
+      AI_WORKSPACE_MISMATCH:
+        'Bu bağlantı kaydı farklı bir ChatGPT hesabına veya çalışma alanına ait. Kaydın oluşturulduğu hesapla devam edin ya da Farklı hesap veya çalışma alanı ekle seçeneğini kullanın.',
+      AI_ACCOUNT_NAME_TAKEN: 'Bu ad başka bir bağlantıda kullanılıyor. Ayırt edilebilir bir ad seçin.',
+      AI_PLAN_REQUIRED:
+        'Bu bağlantıda ChatGPT plan kullanım izni yok. Üretim için uygun bir Plus/Pro hesabı ve plan izni gerekir; ücretsiz hesapla giriş yapmak yeterli değildir.',
+      AI_NOT_ELIGIBLE:
+        'OpenAI bu hesap için ChatGPT planıyla üretime izin vermedi (subscription_sharing_user_not_eligible). Plus/Pro aboneliğiniz aktifse bu kodla OpenAI desteğine başvurun.',
+      AI_ACCESS_DENIED:
+        'OpenAI isteğe erişim izni vermedi. Uygulama izinleri, bağlantı yapılandırması veya bölge kısıtlaması kontrol edilmeli; bu hata tek başına aboneliğinizin uygun olmadığını göstermez.',
+      AI_LIMIT_REACHED:
+        'Kullanım limitine ulaşıldı. ChatGPT kullanıyorsanız Kullanımı yönet bağlantısını açın; API kullanıyorsanız OpenAI API limitlerinizi kontrol edin.',
+      AI_UNAVAILABLE: 'AI hizmeti şu anda kullanılamıyor. Bağlantınız korunuyor; daha sonra tekrar deneyin.',
+      AI_NETWORK: 'AI hizmetine ulaşılamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.',
+      AI_MODEL_UNAVAILABLE: 'Seçili model kullanılamıyor. AI ayarlarında model listesini yenileyin.',
+      AI_RESPONSE_INCOMPLETE:
+        'Yanıt tamamlanamadı. Yarım metin taslağa uygulanmadı; yeniden deneyebilirsiniz.',
+      AI_REVOKE_UNCONFIRMED:
+        'Yerel oturum kapatıldı; OpenAI bağlantısının iptali doğrulanamadı. ChatGPT ayarlarından uygulama erişimini kaldırın.',
+      AI_BUSY: 'Bir AI bağlantı işlemi sürüyor. Tamamlanmasını bekleyin veya girişi iptal edin.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Eklenti bu sekmeye ulaşamıyor. Site erişimini kontrol edin veya sayfayı yenileyin.',
       MESSAGE_REJECTED: 'Geçersiz bir eklenti mesajı reddedildi.',
@@ -225,7 +258,7 @@ export const tr: ExtensionText = {
     saved: 'Ayarlar kaydedildi.',
     saving: 'Kaydediliyor…',
     storageNote:
-      'Tercihleriniz yalnızca bu cihazda saklanır. Açtığınız e-postalar, bağlam önerebilmek için yalnızca sayfa açıkken bellekte tutulur. E-posta içerikleri, panel metinleri ve önizlemeler kalıcı olarak kaydedilmez ve bu sürümde hiçbir harici servise gönderilmez.',
+      'Tercihleriniz yalnızca bu cihazda saklanır. Açtığınız e-postalar, bağlam önerebilmek için yalnızca sayfa açıkken bellekte tutulur. E-posta içerikleri, panel metinleri ve önizlemeler kalıcı olarak kaydedilmez. Üretim istediğinizde metin ve seçilen bağlam OpenAI’a gönderilir.',
     defaultsNote: 'Varsayılan dil ve ton, açık bir çalışmayı değiştirmez; sonraki çalışmalarda kullanılır.',
   },
 };

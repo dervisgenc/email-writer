@@ -8,15 +8,17 @@ import { createExtensionSession } from '../src/bootstrap/create-extension-sessio
 import { OWN_UI_SELECTOR } from '../src/bootstrap/mail-provider';
 import { OUTLOOK_WEB_MATCHES } from '../src/bootstrap/supported-sites';
 import { reportDiagnostic } from '../src/platform/diagnostics';
+import { createConnectedProcessor } from '../src/platform/connected-processor';
+import { sendToBackground } from '../src/platform/extension-browser';
 
 /**
- * Normal derlemede metin işleme bağlantısı yoktur. Geliştirme ve test
- * derlemesinde, açıkça etiketlenmiş örnek sonuç kaynağı bağlanır; üretim
- * paketinde bu dal ve modül derleme sırasında tamamen çıkarılır.
+ * Normal ve geliştirme derlemeleri gerçek AI bağlantısını kullanır.
+ * Yalnızca test derlemesinde etiketli örnek sonuçlar vardır; bu modül
+ * üretim paketinden derleme sırasında çıkarılır.
  */
 async function loadTextProcessor(): Promise<TextProcessor | null> {
-  if (import.meta.env.MODE === 'production') {
-    return null;
+  if (import.meta.env.MODE !== 'test') {
+    return createConnectedProcessor(sendToBackground);
   }
   const { createFixtureProcessor } = await import('../src/development/fixture-results');
   return createFixtureProcessor();

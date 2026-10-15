@@ -133,6 +133,7 @@ function onEscape(event: KeyboardEvent): void {
         <AppIcon name="close" />
       </button>
     </header>
+    <slot name="connection" />
 
     <!-- Yanıtlanan mesaj ekrandan güvenle anlaşılamadıysa tahmin edilmez; kullanıcı panelde seçer. -->
     <div

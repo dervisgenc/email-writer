@@ -1,4 +1,4 @@
-import type { SettingsChanges } from '@email-writer/contracts';
+import type { AiCommand, SettingsChanges } from '@email-writer/contracts';
 import { MatchPattern } from '#imports';
 
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from '../bootstrap/supported-sites';
@@ -10,6 +10,19 @@ import { createRequest, sendRequest } from './runtime-messaging';
  * etkin sekmenin content script'ine gönderdiği istekler.
  */
 const requestId = () => crypto.randomUUID();
+
+export function fetchAiStatus() {
+  return sendRequest(sendToBackground, createRequest('AI_STATUS', {}, requestId()));
+}
+export function fetchAiSummary() {
+  return sendRequest(sendToBackground, createRequest('AI_SUMMARY', {}, requestId()));
+}
+export function runAiCommand(command: AiCommand) {
+  return sendRequest(sendToBackground, createRequest('AI_COMMAND', command, requestId()));
+}
+export function requestOpenOptions() {
+  return sendRequest(sendToBackground, createRequest('OPEN_OPTIONS', {}, requestId()));
+}
 
 export function fetchSettings() {
   return sendRequest(sendToBackground, createRequest('GET_SETTINGS', {}, requestId()));

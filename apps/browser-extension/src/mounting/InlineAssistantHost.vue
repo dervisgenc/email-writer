@@ -2,6 +2,7 @@
 import { InlineAssistant } from '@email-writer/ui';
 
 import { usePanelSession, type PanelSessionDependencies } from '../composables/use-panel-session';
+import AiConnectionIndicator from './AiConnectionIndicator.vue';
 
 const props = defineProps<{
   session: PanelSessionDependencies;
@@ -23,5 +24,7 @@ const { view, handlers } = usePanelSession(props.session);
     @undo="handlers.undo"
     @retry="handlers.retry"
     @dismiss="handlers.dismiss"
-  />
+  >
+    <template #connection><AiConnectionIndicator /></template>
+  </InlineAssistant>
 </template>

@@ -8,6 +8,7 @@ import type {
   Tone,
 } from '@email-writer/contracts';
 import { inject, provide, type InjectionKey, type Ref } from 'vue';
+import type { AiText } from './ai-text';
 
 type CountedNotice = Extract<ContextNotice, { count: number }>['kind'];
 type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
@@ -17,6 +18,7 @@ type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
  * `locales/` dosyalarından sağlanır.
  */
 export interface UiText {
+  readonly ai: AiText;
   readonly panelTitle: string;
   readonly close: string;
   /** Okuma bölmesindeki "Yanıt hazırla" düğmesi. */

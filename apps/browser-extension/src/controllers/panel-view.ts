@@ -29,7 +29,14 @@ import type {
 } from '@email-writer/ui';
 
 const PREVIEW_LENGTH = 160;
-const RETRYABLE: readonly ErrorCode[] = ['READ_TIMEOUT', 'PAGE_NOT_READY', 'THREAD_CHANGED'];
+const RETRYABLE: readonly ErrorCode[] = [
+  'READ_TIMEOUT',
+  'PAGE_NOT_READY',
+  'THREAD_CHANGED',
+  'AI_NETWORK',
+  'AI_UNAVAILABLE',
+  'AI_RESPONSE_INCOMPLETE',
+];
 
 const STALE_NOTICES: Record<StaleReason, ErrorCode> = {
   'composer-changed': 'TARGET_CHANGED',

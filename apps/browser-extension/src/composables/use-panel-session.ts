@@ -152,8 +152,11 @@ export function usePanelSession(deps: PanelSessionDependencies) {
       }
     },
     retry: () => {
+      const phase = store.getState().phase;
+      const retryGeneration = phase.status === 'error' && phase.error.code.startsWith('AI_');
       store.dispatch({ type: 'error-dismissed' });
-      void actions.readThread();
+      if (retryGeneration) void actions.prepare();
+      else void actions.readThread();
     },
     dismiss: () => store.dispatch({ type: 'error-dismissed' }),
   };

@@ -126,6 +126,7 @@ function onToneChange(event: Event): void {
         @operation-change="emit('operation-change', $event)"
       />
     </div>
+    <slot name="connection" />
 
     <div class="ew-panel__body">
       <p v-if="view.staleNotice !== null" class="ew-alert ew-alert--warning" role="alert">

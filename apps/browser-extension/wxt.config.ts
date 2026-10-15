@@ -7,7 +7,7 @@ import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/suppor
  * için Manifest V3 paketleri üretilir. WXT'de Firefox varsayılanı MV2 olduğu
  * için komutlarda `--mv3` açıkça verilir (bkz. package.json).
  *
- * İzinler bilinçli olarak dardır: yalnızca `storage` ve desteklenen Outlook
+ * İzinler bilinçli olarak dardır: `storage`, `nativeMessaging` ve desteklenen Outlook
  * adreslerine statik content script eşleşmeleri. `<all_urls>`, `tabs`,
  * `scripting`, `activeTab`, `cookies`, `webRequest`, `clipboardRead` istenmez.
  */
@@ -18,7 +18,7 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: 'Email Writer',
     description: 'Outlook Web içinde e-posta metnini düzeltme, çevirme ve yanıt hazırlama yardımcısı.',
-    permissions: ['storage'],
+    permissions: ['storage', 'nativeMessaging'],
     action: { default_title: 'Email Writer' },
     ...(browser === 'firefox'
       ? {
@@ -28,9 +28,8 @@ export default defineConfig({
               id: 'email-writer@example.invalid',
               // Yerleşik veri paylaşımı beyanı Firefox 140 ile geldi.
               strict_min_version: '140.0',
-              // Bu aşamada eklenti hiçbir veriyi dışarı aktarmaz; beyan bunu yansıtır.
-              // Metin işleme bağlantısı eklendiğinde bu beyan güncellenmek zorundadır.
-              data_collection_permissions: { required: ['none'] },
+              // Yalnızca kullanıcı üretim istediğinde seçilen metin OpenAI'a gönderilir.
+              data_collection_permissions: { required: ['personalCommunications', 'authenticationInfo'] },
             },
             gecko_android: { strict_min_version: '142.0' },
           },

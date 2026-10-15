@@ -28,7 +28,7 @@ import type { MailPageProvider } from './mail-provider';
 export interface ExtensionSessionOptions {
   readonly ctx: ContentScriptContext;
   readonly provider: MailPageProvider;
-  /** Bu aşamanın normal derlemesinde `null`; geliştirmede örnek sonuç kaynağı. */
+  /** Gerçek AI bağlantısı veya test derlemesindeki örnek sonuç kaynağı. */
   readonly processor: TextProcessor | null;
 }
 
