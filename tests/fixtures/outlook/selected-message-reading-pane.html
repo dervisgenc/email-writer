@@ -1,0 +1,209 @@
+<!--
+  ANONİMLEŞTİRİLMİŞ GERÇEK YAPI — Outlook Web, iş hesabı, İngilizce arayüz,
+  Firefox 157 (macOS), konuşma görünümü açık, okuma bölmesinde yalnızca seçili
+  mesaj (#ItemReadingPaneContainer). 15 Ekim 2026.
+
+  Etiketler, roller, kimlik biçimleri (MSG_<öğe>_FROM, CONV_<konuşma>_SUBJECT,
+  UniqueMessageBody_N), data-testid değerleri ve iç içe düzen gerçek sayfadan
+  `pnpm outlook:inspect structure` ile maskeli olarak çıkarıldı. Bütün metinler,
+  adlar, adresler ve kimlikler uydurmadır. Üretilmiş CSS sınıfları ve yapısal
+  önemi olmayan sarmalayıcılar çıkarıldı.
+
+  Gözlenenler:
+  - Gönderen metni "Ad <adres>" biçiminde; alıcılar (TO/CC) adresleri aria-label
+    içinde taşıyor.
+  - Tarih yalnızca biçimlendirilmiş metin; time[datetime] yok.
+  - Gövdenin başında, ilk hücresi boş iki hücreli bir uyarı tablosu ve gövde
+    içinde Outlook'un kendi düğmesi var.
+-->
+<div id="owa-me-control-container">
+  <button aria-label="Account manager for Deniz Yılmaz">DY</button>
+</div>
+
+<div id="MailList" tabindex="-1">
+  <div role="region">
+    <div tabindex="-1" role="listbox" aria-label="Message list">
+      <div data-testid="virtuoso-item-list">
+        <div data-index="0">
+          <div id="groupHeaderToday" role="button" tabindex="-1" aria-label="Today" aria-expanded="true">
+            <div title="Today">Today</div>
+          </div>
+          <div
+            id="row-1"
+            data-convid="AAQkConvFirst"
+            tabindex="0"
+            aria-selected="true"
+            aria-setsize="2"
+            aria-posinset="1"
+            role="option"
+            aria-label="Deniz Yılmaz; Ece Kara RE: Teklif revizyonu"
+            data-focusable-row="true"
+          >
+            <div role="group">
+              <button aria-expanded="false" aria-label="Expand conversation" tabindex="-1"></button>
+              <div role="checkbox" aria-label="Select a conversation" tabindex="-1"></div>
+              <span>Deniz Yılmaz; Ece Kara</span>
+              <span>RE: Teklif revizyonu</span>
+            </div>
+          </div>
+        </div>
+        <div data-index="1">
+          <div
+            id="row-2"
+            data-convid="AAQkConvSecond"
+            tabindex="-1"
+            aria-selected="false"
+            role="option"
+            aria-label="Burak Can Haftalık rapor"
+            data-focusable-row="true"
+          >
+            <div role="group"><span>Burak Can</span><span>Haftalık rapor</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ReadingPaneContainerId">
+  <div id="ItemReadingPaneContainer">
+    <div class="allowTextSelection">
+      <span title="RE: Teklif revizyonu" role="heading" aria-level="3" id="CONV_c0nv/Ab1=_SUBJECT"
+        >RE: Teklif revizyonu</span
+      >
+      <div><button><span data-shimmer-text="Summarize this email">Summarize this email</span></button></div>
+    </div>
+
+    <div data-app-section="ItemContainer" tabindex="-1" data-is-scrollable="true">
+      <div class="wide-content-host">
+        <div data-fixture="message-container">
+          <span id="MSG_Itm0001_SUBJECT" aria-labelledby="CONV_c0nv/Ab1=_SUBJECT" role="heading" aria-level="3"></span>
+          <div>
+            <div>
+              <span aria-label="Opens card for Deniz Yılmaz" tabindex="-1" role="button" aria-haspopup="dialog">
+                <span role="img" aria-label=""><span>DY</span></span>
+              </span>
+            </div>
+            <div>
+              <span role="heading" aria-level="3" id="MSG_Itm0001_FROM">
+                <div>
+                  <span
+                    aria-label="From: Deniz Yılmaz"
+                    data-lpc-hover-target-id="lpc-react-target-2"
+                    tabindex="0"
+                    role="button"
+                    aria-haspopup="dialog"
+                  >
+                    <div><span>Deniz Yılmaz &lt;deniz.yilmaz@example.test&gt;</span></div>
+                  </span>
+                </div>
+              </span>
+            </div>
+            <div role="toolbar">
+              <button aria-label="Reactions" aria-expanded="false"></button>
+              <div role="menuitem" tabindex="0" aria-label="Reply"><span>Reply</span></div>
+              <div role="menuitem" tabindex="0" aria-label="Reply all"><span>Reply all</span></div>
+              <div role="menuitem" tabindex="0" aria-label="Forward"><span>Forward</span></div>
+            </div>
+            <div data-testid="RecipientWell">
+              <div id="MSG_Itm0001_TO" role="heading" aria-level="3">
+                <div role="presentation" aria-multiline="true" aria-label="To: Ece Kara" tabindex="-1">
+                  <span contenteditable="false"><label>To:</label></span>
+                  <span contenteditable="false">
+                    <span aria-label="Ece Kara" tabindex="0" role="button" aria-haspopup="dialog">
+                      <span aria-hidden="true"><span>Ece Kara</span></span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <div id="MSG_Itm0001_CC" role="heading" aria-level="3">
+                <div role="presentation" aria-multiline="true" aria-label="Cc: Ali Demir <ali.demir@example.test>" tabindex="-1">
+                  <span contenteditable="false"><label>Cc:</label></span>
+                  <span contenteditable="false">
+                    <span aria-label="Ali Demir <ali.demir@example.test>" tabindex="0" role="button" aria-haspopup="dialog">
+                      <span aria-hidden="true"><span title="ali.demir@example.test">Ali Demir &lt;ali.demir@example.test&gt;</span></span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div data-testid="SentReceivedSavedTime" role="heading" aria-level="3" id="MSG_Itm0001_DATETIME">
+                Wed 15-Oct-26 9:12 AM
+              </div>
+              <div data-testid="ReactionsWell"></div>
+            </div>
+            <div class="infoBarDivClass">
+              <div role="group" aria-labelledby="info-1">
+                <div id="info-1">You replied to this message on Wed 15-Oct-26 10:02 AM</div>
+                <button tabindex="0" role="button" aria-describedby="info-1">Show message</button>
+              </div>
+            </div>
+          </div>
+
+          <div data-test-id="mailMessageBodyContainer">
+            <div class="allowTextSelection">
+              <div tabindex="0" aria-label="Message body" role="document" id="UniqueMessageBody_3">
+                <div>
+                  <style>
+                    <!-- @font-face { font-family: 'Cambria Math'; } -->
+                  </style>
+                  <div class="rps_ab12">
+                    <div>
+                      <div>
+                        <div><button title="Show original size" aria-label="Show original size"></button></div>
+                        <table>
+                          <tbody>
+                            <tr>
+                              <td></td>
+                              <td>
+                                <div>
+                                  <span>External Sender:</span> This e-mail originated outside the organization.
+                                  <strong>Do not open links</strong> unless you recognize the sender.
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <br />
+                      <div>
+                        <div class="x_WordSection1">
+                          <p class="x_MsoNormal"><span>Merhaba Ece,</span></p>
+                          <p class="x_MsoNormal"><span></span></p>
+                          <p class="x_MsoNormal"><span>Revize teklifi ekte paylaşıyorum. Toplam tutar 48.500 TL.</span></p>
+                          <p class="x_MsoNormal"><span>İyi çalışmalar,</span></p>
+                          <p class="x_MsoNormal"><span>Deniz</span></p>
+                          <div class="x_MsoNormal"><span><hr /></span></div>
+                          <div id="x_divRplyFwdMsg">
+                            <p class="x_MsoNormal">
+                              <b>From:</b> Ece Kara &lt;ece.kara@example.test&gt;<br />
+                              <b>Sent:</b> Tuesday, October 14, 2026 4:40 PM<br />
+                              <b>To:</b> Deniz Yılmaz &lt;deniz.yilmaz@example.test&gt;<br />
+                              <b>Subject:</b> Teklif revizyonu
+                            </p>
+                          </div>
+                          <p class="x_MsoNormal"><span>Deniz Bey merhaba, teklifi güncelleyebilir misiniz?</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div tabindex="-1" role="toolbar" aria-label="Quick actions">
+            <button aria-label="Reply" role="menuitem">Reply</button>
+            <button aria-label="Reply all" role="menuitem">Reply all</button>
+            <button aria-label="Forward" role="menuitem">Forward</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div role="alert" id="notificationBarText"></div>
+</div>

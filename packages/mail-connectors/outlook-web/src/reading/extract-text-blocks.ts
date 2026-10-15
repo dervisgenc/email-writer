@@ -130,6 +130,23 @@ function isHidden(element: Element): boolean {
   return false;
 }
 
+/** Metnin sonundaki satır sonu sayısı (en fazla iki); satır sonları ayrı parçalarda olabilir. */
+function trailingBreaks(parts: readonly string[]): number {
+  let count = 0;
+  for (let index = parts.length - 1; index >= 0 && count < 2; index -= 1) {
+    const part = parts[index] ?? '';
+    let position = part.length - 1;
+    while (position >= 0 && part.charAt(position) === '\n' && count < 2) {
+      count += 1;
+      position -= 1;
+    }
+    if (position >= 0) {
+      break;
+    }
+  }
+  return count;
+}
+
 function isPreformatted(element: Element): boolean {
   return element.tagName === 'PRE' || /white-space:\s*pre/i.test(element.getAttribute('style') ?? '');
 }
@@ -157,6 +174,11 @@ class BlockWriter {
     const block = this.current(kind);
     const lastPart = block.parts[block.parts.length - 1];
     return block.length === 0 || lastPart === undefined || lastPart.endsWith('\n');
+  }
+
+  /** Şimdiye kadar yazılan karakter sayısı (yapay metin dahil). */
+  get written(): number {
+    return this.totalLength;
   }
 
   requestBreak(count = 1): void {
@@ -214,11 +236,29 @@ class BlockWriter {
     if (block.length === 0) {
       return;
     }
-    const lastPart = block.parts[block.parts.length - 1] ?? '';
-    const existing = lastPart.endsWith('\n\n') ? 2 : lastPart.endsWith('\n') ? 1 : 0;
+    const existing = trailingBreaks(block.parts);
     if (breaks > existing) {
       this.append(kind, '\n'.repeat(breaks - existing), null, 0);
     }
+  }
+
+  /**
+   * Satır sonundan hemen önceki tek boşluk görünmez; metne alınmaz. Boşluk
+   * dizileri her zaman ayrı bir `' '` parçası olarak yazıldığı için yalnızca o
+   * parça ve eşlemesi geri alınır. Eşlenmeyen boşluktaki seçim noktası, seçim
+   * eşlemesinde en yakın metne yaslanır.
+   */
+  private dropTrailingSpace(block: BlockWriter['blocks'][number]): void {
+    if (block.parts[block.parts.length - 1] !== ' ') {
+      return;
+    }
+    block.parts.pop();
+    const lastSegment = block.segments[block.segments.length - 1];
+    if (lastSegment !== undefined && lastSegment.end === block.length) {
+      block.segments.pop();
+    }
+    block.length -= 1;
+    this.totalLength -= 1;
   }
 
   private append(kind: TextBlockKind, text: string, node: Text | null, nodeOffset: number): void {
@@ -227,6 +267,9 @@ class BlockWriter {
       return;
     }
     const block = this.current(kind);
+    if (text.startsWith('\n')) {
+      this.dropTrailingSpace(block);
+    }
     if (node !== null) {
       block.segments.push({ node, nodeOffset, start: block.length, end: block.length + text.length });
     }
@@ -243,6 +286,8 @@ class BlockWriter {
  */
 export function extractTextBlocks(root: Node, options: ExtractOptions = {}): ExtractionResult {
   const writer = new BlockWriter(options.maxLength ?? Number.POSITIVE_INFINITY);
+  /** Her tablo satırına girildiğinde yazılmış karakter sayısı. */
+  const rowStarts = new Map<Element, number>();
   let mode: 'body' | 'quote' = 'body';
   let stopped = false;
 
@@ -304,7 +349,13 @@ export function extractTextBlocks(root: Node, options: ExtractOptions = {}): Ext
           : '- ';
       writer.writeSynthetic(childKind(), marker);
     }
-    if ((tag === 'TD' || tag === 'TH') && element.previousElementSibling !== null) {
+    if (tag === 'TR') {
+      rowStarts.set(element, writer.written);
+    }
+    // Hücre ayırıcı yalnızca aynı satırda önceki hücrelerden metin yazıldıysa
+    // eklenir; e-posta şablonlarındaki boş renk/boşluk hücreleri ayırıcı üretmez.
+    const rowStart = element.parentElement === null ? undefined : rowStarts.get(element.parentElement);
+    if ((tag === 'TD' || tag === 'TH') && rowStart !== undefined && writer.written > rowStart) {
       writer.writeSynthetic(childKind(), TABLE_CELL_SEPARATOR);
     }
 

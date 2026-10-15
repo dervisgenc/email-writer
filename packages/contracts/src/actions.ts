@@ -4,8 +4,16 @@ import type { ContextSnapshot } from './context';
 import type { LanguageCode } from './languages';
 import type { ComposerRef } from './mail';
 
-export const OPERATIONS = ['revise', 'translate', 'reply'] as const;
+export const OPERATIONS = ['revise', 'translate', 'reply', 'compose'] as const;
 export type Operation = (typeof OPERATIONS)[number];
+
+/**
+ * Kaynağı kullanıcının talimatı olan işlemler: konuşmaya yanıt (`reply`) ve
+ * bağlamsız yeni e-posta metni (`compose`). Diğerleri mevcut metni işler.
+ */
+export function isInstructionOperation(operation: Operation): operation is 'reply' | 'compose' {
+  return operation === 'reply' || operation === 'compose';
+}
 
 export const TONES = ['neutral', 'formal', 'friendly'] as const;
 export type Tone = (typeof TONES)[number];

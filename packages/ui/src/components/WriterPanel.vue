@@ -6,6 +6,7 @@ import { computed, onMounted, useId, useTemplateRef } from 'vue';
 import { useUiText } from '../i18n';
 import { inputChecked, inputValue } from '../input-value';
 import type { PanelView, SourceReloadKind } from '../view-model';
+import AppIcon from './AppIcon.vue';
 import ApplyControls from './ApplyControls.vue';
 import ContextInspector from './ContextInspector.vue';
 import OperationSelector from './OperationSelector.vue';
@@ -29,6 +30,7 @@ const emit = defineEmits<{
   'tone-change': [tone: Tone];
   'use-conversation-change': [enabled: boolean];
   'context-selection-change': [messageKey: string, included: boolean];
+  'context-text-change': [messageKey: string, text: string | null];
   'block-include': [messageKey: string, blockIndex: number];
   'reply-target-change': [messageKey: string];
   'refresh-context': [];
@@ -40,20 +42,26 @@ const emit = defineEmits<{
   'bind-target': [mode: 'replace-existing-reply' | 'use-open-composer'];
   retry: [];
   dismiss: [];
-  'start-new-work': [];
 }>();
 
 const text = useUiText();
 const root = useTemplateRef<HTMLElement>('root');
 const titleId = useId();
+const languageId = useId();
+const toneId = useId();
 
 // Açılışta odak panele taşınır; işlem sırasında bir düğme devre dışı kalsa da
 // odak panelin içinde kalır ve Escape çalışır.
 onMounted(() => root.value?.focus({ preventScroll: true }));
-const languageId = useId();
-const toneId = useId();
 
 const isBusy = computed(() => props.view.status.kind === 'busy' && props.view.status.activity !== 'reading');
+const canPrepare = computed(() => props.view.prepare.canPrepare && !props.view.prepare.isPreparing);
+const hasOptions = computed(
+  () =>
+    props.view.options.showTargetLanguage ||
+    props.view.options.showTone ||
+    props.view.options.showUseConversation,
+);
 
 const targetLabel = computed(() => {
   const { target } = props.view;
@@ -92,39 +100,38 @@ function onToneChange(event: Event): void {
     @keydown.escape="emit('close')"
   >
     <header class="ew-panel__header">
-      <h2 :id="titleId" class="ew-panel__title">{{ text.panelTitle }}</h2>
+      <span class="ew-brand-mark" aria-hidden="true"><AppIcon name="sparkle" :size="18" /></span>
+      <div class="ew-panel__heading">
+        <h2 :id="titleId" class="ew-panel__title">{{ text.panelTitle }}</h2>
+        <p class="ew-panel__subtitle">
+          <span class="ew-visually-hidden">{{ text.target.label }}: </span>{{ targetLabel }}
+        </p>
+      </div>
       <button
         type="button"
-        class="ew-icon-button"
+        class="ew-btn ew-btn--subtle ew-btn--icon"
         :aria-label="text.close"
         :title="text.close"
         @click="emit('close')"
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16">
-          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
+        <AppIcon name="close" />
       </button>
     </header>
 
-    <div class="ew-panel__body">
-      <p class="ew-target">
-        <strong>{{ text.target.label }}:</strong> {{ targetLabel }}
-      </p>
-      <p v-if="view.staleNotice !== null" class="ew-warning" role="alert">
-        {{ text.errors[view.staleNotice] }}
-      </p>
-      <div v-if="view.canStartNewWork" class="ew-confirm">
-        <span>{{ text.newWork.offer }}</span>
-        <button type="button" class="ew-button ew-button--small" @click="emit('start-new-work')">
-          {{ text.newWork.start }}
-        </button>
-      </div>
-
+    <div class="ew-panel__tabs">
       <OperationSelector
         :operation="view.operation"
+        :write-operation="view.writeOperation"
         :disabled="isBusy"
         @operation-change="emit('operation-change', $event)"
       />
+    </div>
+
+    <div class="ew-panel__body">
+      <p v-if="view.staleNotice !== null" class="ew-alert ew-alert--warning" role="alert">
+        <AppIcon name="warning" />
+        <span>{{ text.errors[view.staleNotice] }}</span>
+      </p>
 
       <SourceEditor
         :operation="view.operation"
@@ -139,7 +146,7 @@ function onToneChange(event: Event): void {
         @cancel-reload="emit('cancel-reload')"
       />
 
-      <div class="ew-options">
+      <div v-if="hasOptions" class="ew-options">
         <div v-if="view.options.showTargetLanguage" class="ew-options__field">
           <label class="ew-label" :for="languageId">{{ text.options.targetLanguage }}</label>
           <select
@@ -169,6 +176,7 @@ function onToneChange(event: Event): void {
         </div>
         <label v-if="view.options.showUseConversation" class="ew-options__toggle">
           <input
+            class="ew-checkbox"
             type="checkbox"
             :checked="view.options.useConversation"
             :disabled="isBusy"
@@ -183,41 +191,47 @@ function onToneChange(event: Event): void {
         :context="view.context"
         :disabled="isBusy"
         @context-selection-change="(key, included) => emit('context-selection-change', key, included)"
+        @context-text-change="(key, value) => emit('context-text-change', key, value)"
         @block-include="(key, index) => emit('block-include', key, index)"
         @reply-target-change="emit('reply-target-change', $event)"
         @refresh-context="emit('refresh-context')"
       />
 
-      <div class="ew-prepare">
+      <ResultPreview
+        v-if="view.preview !== null"
+        :preview="view.preview"
+        :error="view.fieldErrors.preview ?? null"
+        :disabled="view.apply.isApplying"
+        :can-regenerate="canPrepare"
+        @preview-change="emit('preview-change', $event)"
+        @regenerate="emit('prepare')"
+      />
+    </div>
+
+    <footer class="ew-panel__footer">
+      <StatusNotice :status="view.status" @retry="emit('retry')" @dismiss="emit('dismiss')" />
+      <ApplyControls
+        v-if="view.preview !== null"
+        :apply="view.apply"
+        @apply="emit('apply')"
+        @copy="emit('copy')"
+        @undo="emit('undo')"
+        @bind-target="emit('bind-target', $event)"
+      />
+      <div v-else class="ew-prepare">
         <button
           type="button"
-          class="ew-button ew-button--primary"
-          :disabled="!view.prepare.canPrepare || view.prepare.isPreparing"
+          class="ew-btn ew-btn--primary ew-btn--block"
+          :disabled="!canPrepare"
           @click="emit('prepare')"
         >
+          <span v-if="view.prepare.isPreparing" class="ew-spinner" aria-hidden="true" />
+          <AppIcon v-else name="sparkle" />
           {{ text.prepareButton[view.operation] }}
         </button>
         <!-- Metin işleme bağlı değilse düğmenin neden kullanılamadığı açıklanır. -->
         <p v-if="view.prepare.blocker !== null" class="ew-muted">{{ text.errors[view.prepare.blocker] }}</p>
       </div>
-
-      <template v-if="view.preview !== null">
-        <ResultPreview
-          :preview="view.preview"
-          :error="view.fieldErrors.preview ?? null"
-          :disabled="view.apply.isApplying"
-          @preview-change="emit('preview-change', $event)"
-        />
-        <ApplyControls
-          :apply="view.apply"
-          @apply="emit('apply')"
-          @copy="emit('copy')"
-          @undo="emit('undo')"
-          @bind-target="emit('bind-target', $event)"
-        />
-      </template>
-    </div>
-
-    <StatusNotice :status="view.status" @retry="emit('retry')" @dismiss="emit('dismiss')" />
+    </footer>
   </div>
 </template>

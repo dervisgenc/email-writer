@@ -6,19 +6,40 @@ export const en: ExtensionText = {
   ui: {
     panelTitle: 'Writing assistant',
     close: 'Close',
-    newWork: {
-      offer:
-        'This work belongs to another conversation. You can copy your text or start new work with the open conversation.',
-      start: 'Start new work with this conversation',
+    threadLauncher: {
+      label: 'Draft reply',
+      tooltip: 'Draft a reply to this conversation and review the context',
     },
-    launcher: {
-      label: 'Open writing assistant',
-      tooltip: 'Open writing assistant',
-      quickRevise: 'Revise',
-      quickTranslate: 'Translate',
+    compose: {
+      toolbarLabel: 'Email Writer',
+      reply: 'Write reply',
+      replyTooltip: 'Write a reply draft for this conversation from your instruction',
+      write: 'Write',
+      writeTooltip: 'Describe what you want to say and get the email text',
+      revise: 'Revise',
+      reviseTooltip: 'Revise the selected text or the draft while keeping its meaning',
+      translate: 'Translate',
+      translateTooltip: (language) => `Translate into ${language}`,
+      chooseLanguage: 'Choose translation language',
+      openPanel: 'Open the writing assistant panel',
     },
-    operations: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply' },
-    prepareButton: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply' },
+    inline: {
+      titles: {
+        reply: 'Reply draft',
+        revise: 'Suggested revision',
+        translate: 'Translation',
+        compose: 'Email draft',
+      },
+      instructionLabel: 'What would you like to say?',
+      instructionPlaceholder: 'e.g. Thank them and say Thursday 2 pm works',
+      write: 'Write',
+      contextChip: (n) => `Context · ${count(n, 'message', 'messages')}`,
+      contextReading: 'Reading context…',
+      openPanel: 'Open in panel',
+      translatedTo: (language) => `${language}`,
+    },
+    operations: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply', compose: 'Write' },
+    prepareButton: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply', compose: 'Write text' },
     target: {
       label: 'Target',
       none: 'No draft selected — the result can only be copied',
@@ -29,6 +50,7 @@ export const en: ExtensionText = {
     source: {
       textLabel: 'Text',
       instructionLabel: 'Reply instruction',
+      composeInstructionLabel: 'What do you want to write?',
       originLabel: 'Source',
       origins: {
         panel: 'Text typed here',
@@ -41,6 +63,7 @@ export const en: ExtensionText = {
         revise: 'Type the text to revise or take it from the draft',
         translate: 'Type the text to translate or take it from the draft',
         reply: 'e.g. Calmly explain that this is not the case and suggest a meeting tomorrow',
+        compose: 'e.g. Propose a short project meeting to the team on Thursday at 2 pm',
       },
       loadDraft: 'Take draft',
       loadSelection: 'Take selected text',
@@ -59,8 +82,7 @@ export const en: ExtensionText = {
     },
     context: {
       title: 'Context',
-      inspect: 'Inspect',
-      hide: 'Hide',
+      summary: (included, total) => `Using ${included} of ${total} messages`,
       refresh: 'Re-read conversation',
       read: 'Read conversation',
       reading: 'Reading conversation…',
@@ -71,8 +93,19 @@ export const en: ExtensionText = {
         'Choose the message to reply to. It could not be determined reliably from the screen.',
       replyTarget: 'Reply to this message',
       unknownSender: 'Sender could not be read',
+      currentGroup: 'This conversation',
+      otherGroup: (n) => `Other opened emails (${n})`,
+      otherHint: 'Emails you opened in other conversations. Check one to add it to the context.',
+      includeMessage: (sender) => `Use the message from ${sender} in the context`,
+      replyTargetBadge: 'Replying to',
+      editedBadge: 'Edited',
       showBody: 'Show text',
       hideBody: 'Hide text',
+      edit: 'Edit',
+      editLabel: 'Text used in the context',
+      save: 'Save',
+      cancelEdit: 'Cancel',
+      resetEdit: 'Restore original',
       omittedBlock: { signature: 'Signature removed', quote: 'Repeated quote removed' },
       includeBlock: 'Include again',
       counted: {
@@ -80,6 +113,9 @@ export const en: ExtensionText = {
         'collapsed-unread': (n) =>
           `${count(n, 'message is', 'messages are')} collapsed; content was not read.`,
         'user-excluded': (n) => `You removed ${count(n, 'message', 'messages')} from the context.`,
+        'other-conversations': (n) =>
+          `${count(n, 'message was', 'messages were')} added from other conversations.`,
+        'user-edited': (n) => `You edited the text of ${count(n, 'message', 'messages')}.`,
         'message-limited': (n) =>
           `${count(n, 'older message was', 'older messages were')} left out due to the message limit.`,
         'size-limited': (n) =>
@@ -100,7 +136,9 @@ export const en: ExtensionText = {
     },
     preview: {
       title: 'Result',
+      regenerate: 'Regenerate',
       sampleLabel: 'Sample result — development mode',
+      sampleShort: 'Sample',
       stale: 'The source changed. This preview can be copied but not applied to the draft.',
       unchanged: 'No changes in the text.',
     },
@@ -189,13 +227,13 @@ export const en: ExtensionText = {
     targetLanguage: 'Default target language',
     tone: 'Default tone',
     theme: 'Theme',
-    themes: { system: 'System', light: 'Light', dark: 'Dark' },
+    themes: { system: 'Automatic (same as Outlook)', light: 'Light', dark: 'Dark' },
     siteEnabled: 'Show the writing assistant on Outlook Web',
     save: 'Save',
     saved: 'Settings saved.',
     saving: 'Saving…',
     storageNote:
-      'Your preferences are stored only on this device. Mail content, panel text and previews are not stored permanently and are not sent to any external service in this version.',
+      'Your preferences are stored only on this device. Emails you open are kept in memory only while the page is open, so related messages can be suggested as context. Mail content, panel text and previews are not stored permanently and are not sent to any external service in this version.',
     defaultsNote: 'Default language and tone do not change open work; they apply to the next work.',
   },
 };

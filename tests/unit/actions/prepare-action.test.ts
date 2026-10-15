@@ -1,4 +1,4 @@
-import type { ApplyTarget } from '@email-writer/contracts';
+import { DEFAULT_CONTEXT_SELECTION, type ApplyTarget } from '@email-writer/contracts';
 import { buildContext, prepareAction, validatePreviewCandidate, type ActionDraft } from '@email-writer/core';
 import { describe, expect, it } from 'vitest';
 
@@ -35,7 +35,7 @@ function replyContext() {
     {
       expectedThread: threadA,
       snapshot: meetingThread(),
-      selection: { mode: 'automatic' },
+      selection: DEFAULT_CONTEXT_SELECTION,
       includedBlocks: [],
     },
     testDependencies(),

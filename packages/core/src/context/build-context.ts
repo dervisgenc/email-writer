@@ -1,10 +1,12 @@
 import {
   appError,
   err,
+  isSameScope,
   isSameThread,
   ok,
   type AppError,
   type BlockRef,
+  type ContextEdit,
   type ContextMessage,
   type ContextOmission,
   type ContextSelection,
@@ -18,6 +20,7 @@ import {
 import type { Clock, IdGenerator } from '../dependencies';
 import { deepFreeze } from '../immutability';
 import { DEFAULT_CONTEXT_POLICY, type ContextPolicy } from './context-policy';
+import { isRelatedEntry, type HistoryEntry } from './message-history';
 import { normalizeContextText } from './normalize-text';
 import { orderMessages } from './order-messages';
 import { isDuplicateQuote, quotableLineSequences } from './remove-duplicate-quotes';
@@ -25,10 +28,19 @@ import { isDuplicateQuote, quotableLineSequences } from './remove-duplicate-quot
 export interface BuildContextInput {
   /** Oturumun bağlı olduğu konuşma. Snapshot başka bir kapsama aitse işlem durur. */
   readonly expectedThread: ThreadRef;
+  /** Açık konuşmanın son okuması; aktif mesaj ve kapsam bilgisi buradan gelir. */
   readonly snapshot: ThreadSnapshot;
+  /**
+   * Bu sayfa oturumunda daha önce okunan mesajlar. Aynı konuşmadan veya aynı
+   * konudan olanlar varsayılan olarak bağlama girer; diğerleri yalnızca
+   * kullanıcı eklerse girer. Başka hesabın mesajları hiç kullanılmaz.
+   */
+  readonly history?: readonly HistoryEntry[];
   readonly selection: ContextSelection;
   /** Kullanıcının otomatik çıkarılan imza/alıntı bloklarından geri dahil ettikleri. */
   readonly includedBlocks: readonly BlockRef[];
+  /** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metinleri. */
+  readonly edits?: readonly ContextEdit[];
   /**
    * Bağlantı modülü aktif mesajı tanıyamadığında kullanıcının açıkça seçtiği
    * yanıt hedefi. Snapshot'ın kendi aktif mesajı varsa o önceliklidir.
@@ -44,6 +56,18 @@ export interface BuildContextDependencies {
 
 const BLOCK_SEPARATOR = '\n\n';
 
+/** Bağlama girebilecek bir mesaj ve hangi konuşmadan geldiği. */
+interface Candidate {
+  readonly message: MessageSnapshot;
+  readonly subject: string | null;
+  readonly conversation: ContextMessage['conversation'];
+}
+
+interface RenderOptions {
+  readonly reincluded: ReadonlySet<string>;
+  readonly edits: ReadonlyMap<string, string>;
+}
+
 interface RenderedSet {
   readonly messages: ContextMessage[];
   readonly omissions: ContextOmission[];
@@ -57,47 +81,56 @@ function blockKey(messageKey: string, blockIndex: number): string {
 /**
  * Seçili mesaj kümesini bağlam metnine çevirir. Tekrar alıntı kararı kümedeki
  * diğer mesajlara göre verilir; böylece dışarıda kalan bir mesajın alıntısı
- * "zaten bağlamda" sayılıp silinmez.
+ * "zaten bağlamda" sayılıp silinmez. Kullanıcının düzenlediği metin olduğu
+ * gibi (normalize edilerek) alınır.
  */
-function renderMessages(messages: readonly MessageSnapshot[], reincluded: ReadonlySet<string>): RenderedSet {
+function renderMessages(candidates: readonly Candidate[], options: RenderOptions): RenderedSet {
   const sequencesByMessage = new Map(
-    messages.map((message) => [message.messageKey, quotableLineSequences(message)] as const),
+    candidates.map(({ message }) => [message.messageKey, quotableLineSequences(message)] as const),
   );
   const rendered: ContextMessage[] = [];
   const omissions: ContextOmission[] = [];
   let totalLength = 0;
 
-  for (const message of messages) {
-    const otherSequences = messages
-      .filter((other) => other.messageKey !== message.messageKey)
-      .flatMap((other) => sequencesByMessage.get(other.messageKey) ?? []);
-    const kept: string[] = [];
-
-    message.blocks.forEach((block, blockIndex) => {
-      const isReincluded = reincluded.has(blockKey(message.messageKey, blockIndex));
-      if (!isReincluded && block.certainty === 'certain') {
-        if (block.kind === 'signature') {
-          omissions.push({ messageKey: message.messageKey, blockIndex, reason: 'signature' });
-          return;
+  for (const { message, subject, conversation } of candidates) {
+    const edited = options.edits.get(message.messageKey);
+    let text: string;
+    if (edited !== undefined) {
+      text = normalizeContextText(edited).trim();
+    } else {
+      const otherSequences = candidates
+        .filter(({ message: other }) => other.messageKey !== message.messageKey)
+        .flatMap(({ message: other }) => sequencesByMessage.get(other.messageKey) ?? []);
+      const kept: string[] = [];
+      message.blocks.forEach((block, blockIndex) => {
+        const isReincluded = options.reincluded.has(blockKey(message.messageKey, blockIndex));
+        if (!isReincluded && block.certainty === 'certain') {
+          if (block.kind === 'signature') {
+            omissions.push({ messageKey: message.messageKey, blockIndex, reason: 'signature' });
+            return;
+          }
+          if (block.kind === 'quote' && isDuplicateQuote(block.text, otherSequences)) {
+            omissions.push({ messageKey: message.messageKey, blockIndex, reason: 'duplicate-quote' });
+            return;
+          }
         }
-        if (block.kind === 'quote' && isDuplicateQuote(block.text, otherSequences)) {
-          omissions.push({ messageKey: message.messageKey, blockIndex, reason: 'duplicate-quote' });
-          return;
+        const blockText = normalizeContextText(block.text);
+        if (blockText.length > 0) {
+          kept.push(blockText);
         }
-      }
-      const text = normalizeContextText(block.text);
-      if (text.length > 0) {
-        kept.push(text);
-      }
-    });
+      });
+      text = kept.join(BLOCK_SEPARATOR);
+    }
 
-    const text = kept.join(BLOCK_SEPARATOR);
     totalLength += text.length;
     rendered.push({
       messageKey: message.messageKey,
       senderLabel: message.senderLabel,
       sentAt: message.sentAt,
       sentAtText: message.sentAtText,
+      subject,
+      conversation,
+      edited: edited !== undefined,
       text,
     });
   }
@@ -123,91 +156,139 @@ function removeDuplicateMessages(messages: readonly MessageSnapshot[]): {
   return { unique, omissions };
 }
 
+/**
+ * Açık konuşmanın mesajlarını ve geçmişteki mesajları tek listede toplar.
+ * Aynı mesaj iki kaynakta varsa güncel okuma kullanılır. Sıra: geçmişteki ilk
+ * okunma sırası, ardından henüz geçmişte olmayan güncel mesajların ekran sırası.
+ */
+function collectCandidates(
+  snapshot: ThreadSnapshot,
+  unique: readonly MessageSnapshot[],
+  history: readonly HistoryEntry[],
+): Candidate[] {
+  const current = new Set(unique.map((message) => message.messageKey));
+  const sameAccount = history.filter((entry) => isSameScope(entry.threadRef.scope, snapshot.ref.scope));
+  const historyOrder = new Map(sameAccount.map((entry) => [entry.message.messageKey, entry.order]));
+  const afterHistory = Math.max(-1, ...historyOrder.values()) + 1;
+
+  const ranked = [
+    ...unique.map((message) => ({
+      rank: historyOrder.get(message.messageKey) ?? afterHistory + message.displayOrder,
+      candidate: { message, subject: snapshot.subject, conversation: 'current' as const },
+    })),
+    ...sameAccount
+      .filter((entry) => !current.has(entry.message.messageKey))
+      .map((entry) => ({
+        rank: entry.order,
+        candidate: {
+          message: entry.message,
+          subject: entry.subject,
+          conversation: isRelatedEntry(entry, snapshot.ref, snapshot.subject)
+            ? ('current' as const)
+            : ('other' as const),
+        },
+      })),
+  ].sort((a, b) => a.rank - b.rank);
+
+  // Farklı okumalardaki ekran sıraları karşılaştırılamaz; ortak sıra yeniden numaralanır.
+  return ranked.map(({ candidate }, displayOrder) => ({
+    ...candidate,
+    message: { ...candidate.message, displayOrder },
+  }));
+}
+
+/** Sentetik veya gerçek tarihlere göre sıralar; aday bilgisi korunur. */
+function orderCandidates(candidates: readonly Candidate[]) {
+  const byMessage = new Map(candidates.map((candidate) => [candidate.message, candidate]));
+  const { ordered, ordering } = orderMessages(candidates.map((candidate) => candidate.message));
+  return {
+    ordered: ordered.flatMap((message) => byMessage.get(message) ?? []),
+    ordering,
+  };
+}
+
 /** Aktif mesajı en başa, ardından yakından uzağa önce eski sonra yeni mesajları koyar. */
-function rankByProximity(ordered: readonly MessageSnapshot[], activeMessageKey: string | null) {
-  const activeIndex = ordered.findIndex((message) => message.messageKey === activeMessageKey);
+function rankByProximity(ordered: readonly Candidate[], activeMessageKey: string | null): Candidate[] {
+  const activeIndex = ordered.findIndex(({ message }) => message.messageKey === activeMessageKey);
   const anchor = activeIndex >= 0 ? activeIndex : ordered.length - 1;
   return [...ordered.slice(0, anchor + 1).reverse(), ...ordered.slice(anchor + 1)];
 }
 
-function selectAutomatically(
-  ranked: readonly MessageSnapshot[],
-  policy: ContextPolicy,
-  reincluded: ReadonlySet<string>,
-): Result<{ included: MessageSnapshot[]; omissions: ContextOmission[] }, AppError> {
-  const included: MessageSnapshot[] = [];
-  const omissions: ContextOmission[] = [];
+function tooLarge(details: Record<string, number>): AppError {
+  return appError('CONTEXT_TOO_LARGE', { field: 'context', details });
+}
 
-  for (const [index, message] of ranked.entries()) {
+/**
+ * Seçimi uygular ve sınırları denetler. Kullanıcının başka konuşmalardan
+ * açıkça eklediği mesajlar habersizce daraltılmaz (sığmazsa hata döner).
+ * Varsayılan olarak giren mesajlar aktif mesaja yakınlığa göre sınıra kadar alınır.
+ */
+function selectCandidates(
+  ordered: readonly Candidate[],
+  input: { selection: ContextSelection; activeMessageKey: string | null; policy: ContextPolicy },
+  options: RenderOptions,
+): Result<{ included: Candidate[]; omissions: ContextOmission[] }, AppError> {
+  const excluded = new Set(input.selection.excluded);
+  const added = new Set(input.selection.included);
+  const omissions: ContextOmission[] = [];
+  const explicit: Candidate[] = [];
+  const defaults: Candidate[] = [];
+
+  for (const candidate of ordered) {
+    const key = candidate.message.messageKey;
+    if (excluded.has(key)) {
+      if (candidate.conversation === 'current') {
+        omissions.push({ messageKey: key, reason: 'user-excluded' });
+      }
+    } else if (candidate.conversation === 'current') {
+      defaults.push(candidate);
+    } else if (added.has(key)) {
+      explicit.push(candidate);
+    }
+  }
+
+  if (explicit.length === 0 && defaults.length === 0) {
+    return err(appError('CONTEXT_REQUIRED', { field: 'context' }));
+  }
+  const { policy } = input;
+  if (explicit.length > policy.maxMessages) {
+    return err(tooLarge({ limit: policy.maxMessages, count: explicit.length }));
+  }
+  const explicitLength = renderMessages(explicit, options).totalLength;
+  if (explicitLength > policy.maxTotalLength) {
+    return err(tooLarge({ limit: policy.maxTotalLength, length: explicitLength }));
+  }
+
+  const included = [...explicit];
+  const ranked = rankByProximity(defaults, input.activeMessageKey);
+  for (const [index, candidate] of ranked.entries()) {
     if (included.length >= policy.maxMessages) {
       for (const rest of ranked.slice(index)) {
-        omissions.push({ messageKey: rest.messageKey, reason: 'message-limit' });
+        omissions.push({ messageKey: rest.message.messageKey, reason: 'message-limit' });
       }
       break;
     }
-    const trial = [...included, message];
-    const { totalLength } = renderMessages(trial, reincluded);
+    const { totalLength } = renderMessages([...included, candidate], options);
     if (totalLength > policy.maxTotalLength) {
       if (included.length === 0) {
         // Aktif mesaj tek başına sığmıyor: sessizce kırpılmaz.
-        return err(
-          appError('CONTEXT_TOO_LARGE', {
-            field: 'context',
-            details: { limit: policy.maxTotalLength, length: totalLength },
-          }),
-        );
+        return err(tooLarge({ limit: policy.maxTotalLength, length: totalLength }));
       }
       for (const rest of ranked.slice(index)) {
-        omissions.push({ messageKey: rest.messageKey, reason: 'size-limit' });
+        omissions.push({ messageKey: rest.message.messageKey, reason: 'size-limit' });
       }
       break;
     }
-    included.push(message);
+    included.push(candidate);
   }
 
-  return ok({ included, omissions });
-}
-
-function selectManually(
-  ordered: readonly MessageSnapshot[],
-  messageKeys: readonly string[],
-  policy: ContextPolicy,
-  reincluded: ReadonlySet<string>,
-): Result<{ included: MessageSnapshot[]; omissions: ContextOmission[] }, AppError> {
-  const chosen = new Set(messageKeys);
-  const included = ordered.filter((message) => chosen.has(message.messageKey));
-  const omissions: ContextOmission[] = ordered
-    .filter((message) => !chosen.has(message.messageKey))
-    .map((message) => ({ messageKey: message.messageKey, reason: 'user-excluded' as const }));
-
-  if (included.length === 0) {
-    return err(appError('CONTEXT_REQUIRED', { field: 'context' }));
-  }
-  // Kullanıcının açık seçimi habersizce daraltılmaz.
-  if (included.length > policy.maxMessages) {
-    return err(
-      appError('CONTEXT_TOO_LARGE', {
-        field: 'context',
-        details: { limit: policy.maxMessages, count: included.length },
-      }),
-    );
-  }
-  const { totalLength } = renderMessages(included, reincluded);
-  if (totalLength > policy.maxTotalLength) {
-    return err(
-      appError('CONTEXT_TOO_LARGE', {
-        field: 'context',
-        details: { limit: policy.maxTotalLength, length: totalLength },
-      }),
-    );
-  }
   return ok({ included, omissions });
 }
 
 /**
- * Bir konuşma snapshot'ından, seçim ve politikaya göre değişmez bir bağlam
- * üretir. Ağ isteği yapmaz, yeni cümle üretmez. Kimlik ve saat dışarıdan
- * verildiği için aynı girdi aynı içerik sonucunu üretir.
+ * Açık konuşma ve oturumda okunan ilgili mesajlardan, seçim ve politikaya
+ * göre değişmez bir bağlam üretir. Ağ isteği yapmaz, yeni cümle üretmez.
+ * Kimlik ve saat dışarıdan verildiği için aynı girdi aynı içerik sonucunu üretir.
  */
 export function buildContext(
   input: BuildContextInput,
@@ -221,26 +302,28 @@ export function buildContext(
   }
 
   const { unique, omissions: duplicateOmissions } = removeDuplicateMessages(snapshot.messages);
-  if (unique.length === 0) {
+  const candidates = collectCandidates(snapshot, unique, input.history ?? []);
+  if (candidates.length === 0) {
     return err(appError('CONTEXT_REQUIRED', { field: 'context' }));
   }
 
   const activeMessageKey = snapshot.activeMessageKey ?? input.replyTargetKey ?? null;
-  const reincluded = new Set(
-    input.includedBlocks.map((block) => blockKey(block.messageKey, block.blockIndex)),
+  const options: RenderOptions = {
+    reincluded: new Set(input.includedBlocks.map((block) => blockKey(block.messageKey, block.blockIndex))),
+    edits: new Map((input.edits ?? []).map((edit) => [edit.messageKey, edit.text])),
+  };
+  const selection = selectCandidates(
+    orderCandidates(candidates).ordered,
+    { selection: input.selection, activeMessageKey, policy },
+    options,
   );
-  const { ordered: chronological } = orderMessages(unique);
-  const selection =
-    input.selection.mode === 'manual'
-      ? selectManually(chronological, input.selection.messageKeys, policy, reincluded)
-      : selectAutomatically(rankByProximity(chronological, activeMessageKey), policy, reincluded);
   if (!selection.ok) {
     return selection;
   }
 
-  const { ordered, ordering } = orderMessages(selection.value.included);
-  const rendered = renderMessages(ordered, reincluded);
-  const includedKeys = new Set(ordered.map((message) => message.messageKey));
+  const { ordered, ordering } = orderCandidates(selection.value.included);
+  const rendered = renderMessages(ordered, options);
+  const includedKeys = new Set(ordered.map(({ message }) => message.messageKey));
 
   return ok(
     deepFreeze({

@@ -2,16 +2,17 @@
   SENTETİK ÖRNEK — gerçek Outlook sayfasından alınmamıştır ve gerçek hesapla
   doğrulanmamıştır. Bütün adlar, adresler ve içerikler uydurmadır.
 
-  Yapının dayandığı kaynaklar (Ekim 2026 araştırması, ayrıntı:
-  docs/outlook-web-dogrulama.md):
-  - KANITI GÜÇLÜ: #ReadingPaneContainerId; div#UniqueMessageBody_N[role="document"];
-    gösterilen e-posta HTML'inde `x_` ön ekli kimlikler (x_Signature, x_divRplyFwdMsg);
-    yanıt editöründe #Signature → #appendonsend → hr → #divRplyFwdMsg sırası;
-    div[role="textbox"][contenteditable="true"][aria-multiline="true"] editörü;
-    [id^="docking_InitVisiblePart"] yerleşik yanıt bölgesi; #MailList satırlarında data-convid.
-  - KANITSIZ ADAY (gerçek sayfada belirlenecek): mesaj kapsayıcısı ([role="listitem"]),
-    kapalı mesaj satırı ([aria-expanded="false"]), gönderen (span[title*="@"]) ve
-    tarih (time[datetime]) elemanları.
+  Yapının dayandığı kaynaklar (ayrıntı: docs/outlook-web-dogrulama.md):
+  - GERÇEK SAYFADA DOĞRULANDI (15 Ekim 2026, seçili mesaj görünümü): #ReadingPaneContainerId;
+    div#UniqueMessageBody_N[role="document"]; #MailList satırlarında data-convid; ileti
+    başlığında MSG_<öğe>_FROM / MSG_<öğe>_DATETIME (data-testid="SentReceivedSavedTime");
+    CONV_<konuşma>_SUBJECT konu başlığı; gelen iletide x_divRplyFwdMsg alıntı başlangıcı.
+    Gerçek yapının anonim örneği: selected-message-reading-pane.html.
+  - KANITI GÜÇLÜ (araştırma): yanıt editöründe #Signature → #appendonsend → hr → #divRplyFwdMsg
+    sırası; div[role="textbox"][contenteditable="true"][aria-multiline="true"] editörü;
+    [id^="docking_InitVisiblePart"] yerleşik yanıt bölgesi.
+  - KANITSIZ ADAY: konuşma görünümünde çok mesajlı düzen ve kapalı mesaj satırı
+    ([role="listitem"][aria-expanded="false"]).
 -->
 <div id="MainModule">
   <div id="owa-me-control-container">
@@ -32,7 +33,7 @@
   <div data-app-section="MailReadCompose">
     <div id="ReadingPaneContainerId">
       <div id="ConversationReadingPaneContainer">
-        <div role="heading" aria-level="2" title="Proje toplantısı"><span>Proje toplantısı</span></div>
+        <span role="heading" aria-level="3" id="CONV_c1_SUBJECT" title="Proje toplantısı">Proje toplantısı</span>
 
         <div role="listitem" aria-expanded="false" tabindex="-1">
           <span title="zeynep@example.test">Zeynep Ak</span>
@@ -40,8 +41,8 @@
         </div>
 
         <div role="listitem" aria-expanded="true" tabindex="-1">
-          <span title="mehmet@example.test">Mehmet Demir</span>
-          <time datetime="2026-10-10T08:00:00Z">Cum 10.10.2026 11:00</time>
+          <span id="MSG_m1_FROM" role="heading" aria-level="3"><span>Mehmet Demir &lt;mehmet@example.test&gt;</span></span>
+          <div id="MSG_m1_DATETIME" data-testid="SentReceivedSavedTime" role="heading" aria-level="3">Cum 10.10.2026 11:00</div>
           <div role="document">
             <div id="UniqueMessageBody_1" aria-label="İleti gövdesi">
               <div class="rps_ab12">
@@ -58,7 +59,7 @@
         </div>
 
         <div role="listitem" aria-expanded="true" tabindex="-1">
-          <span title="ayse@example.test">Ayşe Kaya</span>
+          <span id="MSG_m2_FROM" role="heading" aria-level="3"><span>Ayşe Kaya</span></span>
           <span>Dün 12:30</span>
           <div id="UniqueMessageBody_2" role="document" aria-label="İleti gövdesi" tabindex="0">
             <div class="rps_cd34">

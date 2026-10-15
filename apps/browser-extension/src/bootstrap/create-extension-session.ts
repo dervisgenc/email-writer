@@ -5,9 +5,11 @@ import type { ContentScriptContext } from '#imports';
 
 import { createActionController } from '../controllers/action-controller';
 import { createApplyController } from '../controllers/apply-controller';
+import { createMessageHistory } from '../controllers/message-history';
 import { createPanelController } from '../controllers/panel-controller';
 import { createSessionStore } from '../controllers/session-store';
 import { textFor } from '../locales';
+import { resolveAppearance } from '../mounting/appearance';
 import { createLauncherMounter } from '../mounting/mount-launchers';
 import { mountPanel } from '../mounting/mount-panel';
 import { copyText } from '../platform/clipboard';
@@ -42,6 +44,8 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   const settingsStore = createSettingsStore(localSettingsArea);
   const settings = shallowRef((await settingsStore.read()).settings);
 
+  const siteEnabled = computed(() => settings.value.siteEnabled[provider.siteId]);
+
   const store = createSessionStore(
     createSession({
       sessionId: ids.next(),
@@ -49,36 +53,58 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
       defaults: { targetLanguage: settings.value.targetLanguage, tone: settings.value.tone },
     }),
   );
-  const actions = createActionController({ store, connector, processor, clock: systemClock, ids });
+  const history = createMessageHistory({ connector, isEnabled: () => siteEnabled.value });
+  const actions = createActionController({ store, connector, processor, history, clock: systemClock, ids });
   const applier = createApplyController({ store, connector, ids, copyText });
   const panel = createPanelController({ store, connector, actions, ids, settings: () => settings.value });
+  const stopHistory = history.subscribe((snapshot) => actions.threadCaptured(snapshot));
+  const session = {
+    store,
+    connector,
+    panel,
+    actions,
+    applier,
+    history,
+    processingAvailable: processor !== null,
+  };
 
   const text = computed(() => textFor(settings.value.uiLanguage).ui);
-  const theme = computed(() => settings.value.theme);
-  const siteEnabled = computed(() => settings.value.siteEnabled[provider.siteId]);
+  const pageTheme = shallowRef(provider.readTheme());
+  const refreshPageTheme = () => {
+    pageTheme.value = provider.readTheme();
+  };
+  const appearance = computed(() => resolveAppearance(settings.value.theme, pageTheme.value));
+  const surface = shallowRef(panel.surface());
 
-  const mountedPanel = await mountPanel(ctx, {
-    session: { store, connector, panel, actions, applier, processingAvailable: processor !== null },
-    text,
-    theme,
+  const mountedPanel = await mountPanel(ctx, { session, text, appearance });
+  const stopSurface = panel.onSurfaceChange((next) => {
+    surface.value = next;
+    // Outlook teması kullanıcı ayarlarından değişmiş olabilir; arayüz açılırken yeniden okunur.
+    refreshPageTheme();
+    mountedPanel.setOpen(next.kind === 'panel');
   });
-  const stopPanelVisibility = panel.onVisibilityChange((open) => mountedPanel.setOpen(open));
 
   const launchers = createLauncherMounter(ctx, {
     text,
-    theme,
-    onOpen(anchor, opener) {
-      mountedPanel.rememberOpener(opener);
-      panel.open(
-        anchor.target.kind === 'thread'
-          ? { origin: 'thread-launcher', thread: anchor.target.thread }
-          : { origin: 'composer-launcher', composer: anchor.target.composer, quickAction: null },
-      );
+    appearance,
+    session,
+    surface,
+    defaultLanguage: computed(() => settings.value.targetLanguage),
+    onOpenThread(anchor, opener) {
+      if (anchor.target.kind === 'thread') {
+        mountedPanel.rememberOpener(opener);
+        panel.open({ origin: 'thread-launcher', thread: anchor.target.thread });
+      }
     },
-    onQuickAction(anchor, operation, opener) {
+    onQuickAction(anchor, request) {
+      if (anchor.target.kind === 'composer') {
+        void panel.runQuickAction(anchor.target.composer, request);
+      }
+    },
+    onOpenPanel(anchor, opener) {
       if (anchor.target.kind === 'composer') {
         mountedPanel.rememberOpener(opener);
-        panel.open({ origin: 'composer-launcher', composer: anchor.target.composer, quickAction: operation });
+        panel.open({ origin: 'composer-launcher', composer: anchor.target.composer });
       }
     },
   });
@@ -97,6 +123,7 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
       event.type === 'composer-added' ||
       event.type === 'composer-removed'
     ) {
+      refreshPageTheme();
       syncLaunchers();
     }
   });
@@ -138,9 +165,11 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
     stopMessages();
     stopSettings();
     stopConnector();
-    stopPanelVisibility();
+    stopSurface();
+    stopHistory();
     stopSiteWatch();
     actions.dispose();
+    history.dispose();
     panel.dispose();
     launchers.removeAll();
     mountedPanel.remove();

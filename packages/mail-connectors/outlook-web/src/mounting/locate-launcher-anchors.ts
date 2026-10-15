@@ -35,7 +35,8 @@ export function locateLauncherAnchors(sources: AnchorSources): OutlookLauncherAn
   }
   for (const composer of sources.composers) {
     anchors.push({
-      key: `composer:${composer.ref.composerKey}`,
+      // Taslağın konuşma bağı değişirse (yeni ileti ↔ yanıt) düğme yeniden kurulur.
+      key: `composer:${composer.ref.composerKey}:${composer.ref.threadKey ?? 'new'}`,
       element: composer.editor,
       placement: 'bottom-end',
       target: { kind: 'composer', composer: composer.ref },

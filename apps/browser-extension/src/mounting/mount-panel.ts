@@ -1,10 +1,10 @@
-import type { Theme } from '@email-writer/contracts';
 import type { UiText } from '@email-writer/ui';
 import { createApp, ref, type Ref } from 'vue';
 import { createShadowRootUi, type ContentScriptContext } from '#imports';
 
 import { OWN_UI_ATTRIBUTE } from '../bootstrap/mail-provider';
 import type { PanelSessionDependencies } from '../composables/use-panel-session';
+import type { Appearance } from './appearance';
 import PanelHost from './PanelHost.vue';
 
 /**
@@ -31,7 +31,11 @@ export interface MountedPanel {
 
 export async function mountPanel(
   ctx: ContentScriptContext,
-  options: { session: PanelSessionDependencies; text: Readonly<Ref<UiText>>; theme: Readonly<Ref<Theme>> },
+  options: {
+    session: PanelSessionDependencies;
+    text: Readonly<Ref<UiText>>;
+    appearance: Readonly<Ref<Appearance>>;
+  },
 ): Promise<MountedPanel> {
   const open = ref(false);
   let opener: HTMLElement | null = null;
@@ -47,7 +51,7 @@ export async function mountPanel(
       const app = createApp(PanelHost, {
         session: options.session,
         text: options.text,
-        theme: options.theme,
+        appearance: options.appearance,
         open,
       });
       app.mount(container);

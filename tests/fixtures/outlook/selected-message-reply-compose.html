@@ -1,0 +1,99 @@
+<!--
+  ANONİMLEŞTİRİLMİŞ GERÇEK YAPI — selected-message-reading-pane.html ile aynı
+  hesap ve görünüm; kullanıcı "Reply"a bastıktan sonraki okuma bölmesi
+  (15 Ekim 2026, Firefox 157, iş hesabı, İngilizce arayüz).
+
+  Gözlenenler (`pnpm outlook:inspect structure`, maskeli):
+  - Okuma bölmesindeki mesaj (#ItemReadingPaneContainer, gövde, konu başlığı,
+    MSG_<ileti>_FROM) tamamen kaldırılır; yerine yanıt editörü gelir.
+  - Editör kaydırılan bir kapsayıcının içindedir:
+    #docking_InitVisiblePart_N.owaMailComposeEditorScrollContainer >
+    #docking_DockingTriggerPart_N > #editorParent_N > div[role=textbox][contenteditable].
+  - Orijinal mesaj editörde alıntı olarak durur (#appendonsend → hr → #divRplyFwdMsg).
+  - Taslağın başlık parçaları yeni bir öğe kimliği taşır (MSG_<taslak>_TO / _SUBJECT).
+  - İleti listesinde aynı satır seçili kalır.
+  Bütün metinler, adlar, adresler ve kimlikler uydurmadır.
+-->
+<div id="owa-me-control-container">
+  <button aria-label="Account manager for Deniz Yılmaz">DY</button>
+</div>
+
+<div id="MailList" tabindex="-1">
+  <div role="region">
+    <div tabindex="-1" role="listbox" aria-label="Message list">
+      <div data-testid="virtuoso-item-list">
+        <div data-index="0">
+          <div
+            id="row-1"
+            data-convid="AAQkConvFirst"
+            tabindex="0"
+            aria-selected="true"
+            role="option"
+            aria-label="Deniz Yılmaz; Ece Kara RE: Teklif revizyonu"
+            data-focusable-row="true"
+          >
+            <div role="group"><span>Deniz Yılmaz; Ece Kara</span><span>RE: Teklif revizyonu</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ReadingPaneContainerId">
+  <div>
+    <div dir="ltr" class="fui-FluentProvider">
+      <div id="docking_InitVisiblePart_0" class="owaMailComposeEditorScrollContainer">
+        <div>
+          <div data-testid="ComposeSendButton">
+            <button id="splitButton-r1__primaryActionButton" aria-label="Send">Send</button>
+          </div>
+          <button aria-label="Discard" id="discardCompose"></button>
+          <button aria-label="Pop out" id="popoutCompose"></button>
+          <div id="MSG_DraftAb12_TO" role="group">
+            <div aria-label="To" tabindex="0" contenteditable="true" id="1">
+              <span contenteditable="false" aria-label="Ece Kara <ece.kara@example.test>">Ece Kara</span>
+            </div>
+          </div>
+          <div>
+            <span class="fui-Input">
+              <input placeholder="Add a subject" aria-label="Subject" id="MSG_DraftAb12_SUBJECT" value="RE: Teklif revizyonu" />
+            </span>
+          </div>
+        </div>
+        <div id="docking_DockingTriggerPart_0">
+          <div>
+            <div id="editorParent_1">
+              <div
+                tabindex="0"
+                dir="ltr"
+                role="textbox"
+                aria-multiline="true"
+                aria-label="Message body"
+                contenteditable="true"
+                data-ms-editor="true"
+                data-scrollable="true"
+                data-fixture="reply-editor"
+              >
+                <div class="elementToProof"><br /></div>
+                <div id="appendonsend"></div>
+                <hr />
+                <div id="divRplyFwdMsg">
+                  <div>
+                    <b>From:</b> Deniz Yılmaz &lt;deniz.yilmaz@example.test&gt;<br />
+                    <b>Sent:</b> Wednesday, October 15, 2026 9:12 AM<br />
+                    <b>To:</b> Ece Kara<br />
+                    <b>Subject:</b> RE: Teklif revizyonu
+                  </div>
+                </div>
+                <p>Merhaba Ece,</p>
+                <p>Revize teklifi ekte paylaşıyorum. Toplam tutar 48.500 TL.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div role="alert" id="notificationBarText"></div>
+</div>

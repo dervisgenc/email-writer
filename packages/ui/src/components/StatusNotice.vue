@@ -3,6 +3,7 @@ import { computed } from 'vue';
 
 import { useUiText } from '../i18n';
 import type { StatusView } from '../view-model';
+import AppIcon from './AppIcon.vue';
 
 const props = defineProps<{
   status: StatusView;
@@ -33,7 +34,10 @@ const message = computed(() => describe(props.status));
   <!-- Bekleme ve başarı mesajları kısa biçimde, nazikçe duyurulur. -->
   <div class="ew-status" :data-kind="status.kind" aria-live="polite" role="status">
     <template v-if="status.kind !== 'none'">
-      <span>{{ message }}</span>
+      <span v-if="status.kind === 'busy'" class="ew-spinner" aria-hidden="true" />
+      <AppIcon v-else-if="status.kind === 'success'" name="check" />
+      <AppIcon v-else :name="status.kind === 'error' ? 'warning' : 'info'" />
+      <span class="ew-status__text">{{ message }}</span>
       <button
         v-if="status.kind === 'error' && status.canRetry"
         type="button"

@@ -41,6 +41,8 @@ export function describeContext(context: ContextSnapshot): ContextNotice[] {
   }
 
   const counted: [CountedNoticeKind, number][] = [
+    ['other-conversations', context.messages.filter((m) => m.conversation === 'other').length],
+    ['user-edited', context.messages.filter((m) => m.edited).length],
     ['user-excluded', countMessages(context, 'user-excluded')],
     ['message-limited', countMessages(context, 'message-limit')],
     ['size-limited', countMessages(context, 'size-limit')],

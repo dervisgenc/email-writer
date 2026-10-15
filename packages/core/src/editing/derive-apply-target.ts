@@ -1,4 +1,4 @@
-import type { ApplyTarget, Operation } from '@email-writer/contracts';
+import { isInstructionOperation, type ApplyTarget, type Operation } from '@email-writer/contracts';
 
 import type { SessionState, SourceBinding } from '../session/session-state';
 
@@ -25,7 +25,8 @@ export function deriveApplyTarget(binding: SourceBinding, operation: Operation):
           expectedRevision: binding.composerRevision,
         };
       }
-      if (!isEmpty && binding.canReplaceBody && operation !== 'reply') {
+      // Talimattan yazılan metin dolu bir taslağın yerine kendiliğinden geçmez; kullanıcı onaylar.
+      if (!isEmpty && binding.canReplaceBody && !isInstructionOperation(operation)) {
         return {
           mode: 'replace-body',
           composerRef: binding.composerRef,

@@ -1,4 +1,4 @@
-import { appError } from '@email-writer/contracts';
+import { appError, DEFAULT_CONTEXT_SELECTION } from '@email-writer/contracts';
 import { buildContext, deriveCapabilities, reduceSession, validateApply } from '@email-writer/core';
 import { describe, expect, it } from 'vitest';
 
@@ -131,18 +131,83 @@ describe('reduceSession — dış değişiklikler', () => {
   it('konuşmaya yeni içerik gelirse bağlam yeniden okunmadan işlem hazırlanmaz', () => {
     const snapshot = meetingThread();
     const context = buildContext(
-      { expectedThread: threadA, snapshot, selection: { mode: 'automatic' }, includedBlocks: [] },
+      { expectedThread: threadA, snapshot, selection: DEFAULT_CONTEXT_SELECTION, includedBlocks: [] },
       testDependencies(),
     );
     const state = reduceAll(newSession(), [
       { type: 'form-changed', changes: { operation: 'reply', instruction: 'Onayla' } },
       { type: 'read-started', operationId: 'r1', subject: 'thread' },
-      { type: 'thread-read', operationId: 'r1', snapshot, selection: { mode: 'automatic' }, context },
+      { type: 'thread-read', operationId: 'r1', snapshot, context },
       { type: 'mail-event', event: { type: 'thread-content-changed', threadRef: threadA } },
     ]);
 
     expect(state.contextStale).toBe(true);
     expect(capabilities(state).prepareBlocker?.code).toBe('CONTEXT_STALE');
+  });
+
+  it('arka planda okunan yeni içerik, kullanıcı bir sonuç üzerinde çalışmıyorsa bağlamı yeniler', () => {
+    const snapshot = meetingThread();
+    const context = buildContext(
+      { expectedThread: threadA, snapshot, selection: DEFAULT_CONTEXT_SELECTION, includedBlocks: [] },
+      testDependencies(),
+    );
+    const refreshed = { ...snapshot, revision: 2 };
+    const editing = reduceAll(newSession(), [
+      { type: 'form-changed', changes: { operation: 'reply', instruction: 'Onayla' } },
+      { type: 'read-started', operationId: 'r1', subject: 'thread' },
+      { type: 'thread-read', operationId: 'r1', snapshot, context },
+      { type: 'mail-event', event: { type: 'thread-content-changed', threadRef: threadA } },
+      { type: 'thread-refreshed', snapshot: refreshed, context },
+    ]);
+
+    expect(editing.contextStale).toBe(false);
+    expect(editing.threadSnapshot?.revision).toBe(2);
+    expect(capabilities(editing).prepareBlocker).toBeNull();
+
+    // Önizleme varken bağlam sessizce değişmez; önizleme geçerli kalır, "bağlam eskidi" uyarısı görünür.
+    const read = reduceAll(newSession(), [
+      { type: 'read-started', operationId: 'r1', subject: 'thread' },
+      { type: 'thread-read', operationId: 'r1', snapshot, context },
+      {
+        type: 'source-loaded',
+        operationId: null,
+        text: selectionBinding.loadedText,
+        binding: selectionBinding,
+      },
+    ]);
+    const action = prepareFrom(read);
+    const withPreview = reduceAll(read, [
+      { type: 'action-prepared', action },
+      {
+        type: 'result-received',
+        candidate: {
+          requestId: action.requestId,
+          sessionId: action.sessionId,
+          formRevision: action.formRevision,
+          text: 'Sonuç',
+          sample: true,
+        },
+      },
+      { type: 'mail-event', event: { type: 'thread-content-changed', threadRef: threadA } },
+      { type: 'thread-refreshed', snapshot: refreshed, context },
+    ]);
+    expect(withPreview.phase.status).toBe('preview');
+    expect(withPreview.threadSnapshot?.revision).toBe(1);
+    expect(withPreview.contextStale).toBe(true);
+  });
+
+  it('kullanıcı çalışmanın konuşmasına geri dönünce "konuşma değişti" uyarısı kalkar', () => {
+    const away = reduceAll(newSession(), [
+      { type: 'form-changed', changes: { instruction: 'Taslak talimat' } },
+      { type: 'mail-event', event: { type: 'active-thread-changed', previous: threadA, current: null } },
+    ]);
+    expect(away.staleReason).toBe('thread-changed');
+
+    const back = reduceAll(away, [
+      { type: 'mail-event', event: { type: 'active-thread-changed', previous: null, current: threadA } },
+    ]);
+    expect(back.staleReason).toBeNull();
+    expect(back.form.instruction).toBe('Taslak talimat');
   });
 
   it('okuma sırasında konuşma değiştiyse yarım bağlam atılır, kullanıcı girdisi korunur', () => {
@@ -154,7 +219,6 @@ describe('reduceSession — dış değişiklikler', () => {
         type: 'thread-read',
         operationId: 'r1',
         snapshot,
-        selection: { mode: 'automatic' },
         context: { ok: false, error: appError('THREAD_CHANGED') },
       },
     ]);
@@ -175,7 +239,6 @@ describe('reduceSession — dış değişiklikler', () => {
         type: 'thread-read',
         operationId: 'r1',
         snapshot: meetingThread(),
-        selection: { mode: 'automatic' },
         context: { ok: false, error: appError('CONTEXT_REQUIRED') },
       },
     ]);

@@ -3,6 +3,7 @@ import { computed, useId } from 'vue';
 
 import { useUiText } from '../i18n';
 import type { ApplyView } from '../view-model';
+import AppIcon from './AppIcon.vue';
 
 const props = defineProps<{
   apply: ApplyView;
@@ -24,11 +25,10 @@ const scope = computed(() =>
 </script>
 
 <template>
-  <section class="ew-apply">
+  <div class="ew-apply">
     <p class="ew-apply__scope">
-      <strong>{{ text.apply.scopeLabel }}:</strong> {{ scope }}
+      <span class="ew-apply__scope-label">{{ text.apply.scopeLabel }}:</span> {{ scope }}
     </p>
-    <p v-if="apply.mode !== null" class="ew-muted">{{ text.apply.formattingNote }}</p>
     <div v-if="apply.canReplaceExistingReply || apply.canUseOpenComposer" class="ew-apply__bind">
       <button
         v-if="apply.canUseOpenComposer"
@@ -50,34 +50,33 @@ const scope = computed(() =>
     <div class="ew-apply__buttons">
       <button
         type="button"
-        class="ew-button ew-button--secondary"
-        :disabled="!apply.canCopy"
-        @click="emit('copy')"
-      >
-        {{ text.apply.copy }}
-      </button>
-      <button
-        type="button"
-        class="ew-button"
+        class="ew-btn ew-btn--primary"
         :disabled="!apply.canApply || apply.isApplying"
         :aria-describedby="apply.blocker !== null ? blockerId : undefined"
         @click="emit('apply')"
       >
+        <AppIcon name="check" />
         {{ text.apply.apply }}
+      </button>
+      <button type="button" class="ew-btn" :disabled="!apply.canCopy" @click="emit('copy')">
+        <AppIcon name="copy" />
+        {{ text.apply.copy }}
       </button>
       <button
         v-if="apply.canUndo"
         type="button"
-        class="ew-button ew-button--secondary"
+        class="ew-btn ew-btn--subtle"
         :disabled="apply.isApplying"
         @click="emit('undo')"
       >
+        <AppIcon name="undo" />
         {{ text.apply.undo }}
       </button>
     </div>
+    <p v-if="apply.mode !== null" class="ew-muted">{{ text.apply.formattingNote }}</p>
     <!-- Düğmenin kapalı olma nedeni yalnızca renkle anlatılmaz. -->
     <p v-if="apply.blocker !== null && apply.canCopy" :id="blockerId" class="ew-muted">
       {{ text.errors[apply.blocker] }}
     </p>
-  </section>
+  </div>
 </template>

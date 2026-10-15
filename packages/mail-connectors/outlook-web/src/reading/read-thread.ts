@@ -13,14 +13,13 @@ import {
 } from '@email-writer/contracts';
 
 import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
-import { closest, queryAll, queryFirst } from '../discovery/selectors';
+import { queryAll, queryFirst } from '../discovery/selectors';
 import type { IdentityRegistry } from '../identity/identity-registry';
 import { extractTextBlocks, type ElementRole } from './extract-text-blocks';
+import { labelText, messageContainerOf, messageKeyOf, readMessageHeader } from './message-header';
 
 /** Başlangıç okuma bütçesi; ölçülmüş ürün sınırı değildir. */
 export const READ_LIMITS = Object.freeze({ maxMessages: 100, maxTextLength: 250_000 });
-
-const MAX_LABEL_LENGTH = 200;
 
 export interface ReadThreadDependencies {
   readonly registry: IdentityRegistry;
@@ -32,48 +31,13 @@ export interface ReadThreadDependencies {
   readonly yieldToBrowser: () => Promise<void>;
 }
 
-function visibleLabel(element: HTMLElement | null): string | null {
-  const text = element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-  return text === '' ? null : text.slice(0, MAX_LABEL_LENGTH);
-}
-
-function reliableIso(element: HTMLElement | null): string | null {
-  const value = element?.tagName === 'TIME' ? element.getAttribute('datetime') : null;
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const time = Date.parse(value);
-  return Number.isNaN(time) ? null : new Date(time).toISOString();
-}
-
 /**
- * Bir mesajın kapsayıcısı; gövde ile başlık bilgisini birlikte içerir. Birden
- * fazla gövde içeren eşleşme kapsayıcı sayılmaz: aksi halde farklı mesajlar
- * aynı kimliği alıp tek mesaj gibi birleşebilirdi.
- */
-export function messageContainerOf(body: HTMLElement): HTMLElement {
-  const candidate = closest(body, 'messageContainer');
-  if (candidate !== null && messageBodies(candidate).length === 1) {
-    return candidate;
-  }
-  return body.parentElement ?? body;
-}
-
-/**
- * Aktif mesaj yalnızca güvenle belirlenebiliyorsa döner: tek açık mesaj veya
- * bütün tarihleri güvenilir mesajlardan en yenisi. Aksi halde kullanıcı seçer.
+ * Aktif mesaj yalnızca güvenle belirlenebiliyorsa döner: tek açık mesaj.
+ * Outlook makinece okunur tarih vermediği için birden fazla açık mesajda
+ * en yenisi tahmin edilmez; kullanıcı seçer.
  */
 function activeMessageKey(messages: readonly MessageSnapshot[]): string | null {
-  if (messages.length === 1) {
-    return messages[0]?.messageKey ?? null;
-  }
-  if (messages.length > 0 && messages.every((message) => message.sentAt !== null)) {
-    return (
-      [...messages].sort((a, b) => Date.parse(b.sentAt ?? '') - Date.parse(a.sentAt ?? ''))[0]?.messageKey ??
-      null
-    );
-  }
-  return null;
+  return messages.length === 1 ? (messages[0]?.messageKey ?? null) : null;
 }
 
 /**
@@ -110,7 +74,7 @@ export async function readThread(
     if (!body.isConnected) {
       return err(appError('THREAD_CHANGED'));
     }
-    const container = messageContainerOf(body);
+    const container = messageContainerOf(body, located.root);
     const extraction = extractTextBlocks(body, { classify: deps.classify, maxLength: budget });
     if (extraction.truncated) {
       // Sınır nedeniyle tamamı okunamayan mesaj, tamamlanmış gibi verilmez.
@@ -118,12 +82,13 @@ export async function readThread(
       continue;
     }
     budget -= extraction.blocks.reduce((total, block) => total + block.text.length, 0);
-    const dateElement = queryFirst(container, 'messageDate');
+    const header = readMessageHeader(container, body);
     messages.push({
-      messageKey: deps.registry.keyFor(container, 'msg'),
-      senderLabel: visibleLabel(queryFirst(container, 'messageSender')),
-      sentAt: reliableIso(dateElement),
-      sentAtText: visibleLabel(dateElement),
+      messageKey: messageKeyOf(container, deps.registry),
+      senderLabel: header.senderLabel,
+      // Outlook yalnızca biçimlendirilmiş tarih gösteriyor; makinece okunur tarih yok.
+      sentAt: null,
+      sentAtText: header.sentAtText,
       displayOrder: index,
       blocks: extraction.blocks.map(({ kind, certainty, text }) => ({ kind, certainty, text })),
     });
@@ -149,8 +114,12 @@ export async function readThread(
     ref,
     revision: deps.threadRevision(),
     capturedAt: deps.now(),
-    subject: visibleLabel(queryFirst(located.root, 'subject')),
-    activeMessageKey: activeMessageKey(messages),
+    subject:
+      located.replyView === undefined
+        ? labelText(queryFirst(located.root, 'subject'))
+        : located.replyView.subject,
+    // Bölme yanıt taslağını gösteriyorsa yanıtlanan mesaj, gösterilirken kaydedilen mesajdır.
+    activeMessageKey: activeMessageKey(messages) ?? located.replyView?.replyingTo ?? null,
     messages,
     coverage: {
       source: 'visible-dom',

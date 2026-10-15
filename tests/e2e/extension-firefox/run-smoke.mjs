@@ -8,9 +8,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { connectBidi } from '../../support/firefox/bidi-client.mjs';
+import { firefoxVersion, launchFirefox } from '../../support/firefox/firefox-process.mjs';
+
 const root = resolve(import.meta.dirname, '../../..');
 const extensionPath = resolve(root, 'apps/browser-extension/.output/firefox-mv3-test');
-const firefoxBinary = process.env.FIREFOX_BIN ?? 'firefox';
 const fixtureUrl = 'http://127.0.0.1:4517/mail/inbox';
 const bidiPort = Number(process.env.FIREFOX_BIDI_PORT ?? 9333);
 
@@ -38,38 +40,6 @@ async function isServing() {
   }
 }
 
-function connect(url) {
-  const socket = new WebSocket(url);
-  let nextId = 0;
-  const pending = new Map();
-  socket.addEventListener('message', (event) => {
-    const message = JSON.parse(String(event.data));
-    const waiter = pending.get(message.id);
-    if (waiter !== undefined) {
-      pending.delete(message.id);
-      if (message.type === 'error') {
-        waiter.reject(new Error(`${message.error}: ${message.message}`));
-      } else {
-        waiter.resolve(message.result);
-      }
-    }
-  });
-  const opened = new Promise((done, fail) => {
-    socket.addEventListener('open', done, { once: true });
-    socket.addEventListener('error', fail, { once: true });
-  });
-  return {
-    opened,
-    send(method, params = {}) {
-      nextId += 1;
-      const id = nextId;
-      socket.send(JSON.stringify({ id, method, params }));
-      return new Promise((resolveResult, reject) => pending.set(id, { resolve: resolveResult, reject }));
-    },
-    close: () => socket.close(),
-  };
-}
-
 const steps = [];
 function record(name, ok, detail = '') {
   steps.push({ name, ok, detail });
@@ -87,34 +57,10 @@ try {
     await waitFor(isServing, 'örnek sayfa sunucusu');
   }
 
-  firefox = spawn(
-    firefoxBinary,
-    ['--headless', '--no-remote', '--profile', profile, `--remote-debugging-port=${bidiPort}`],
-    {
-      stdio: ['ignore', 'ignore', 'pipe'],
-    },
-  );
-  const version = await new Promise((done) => {
-    const probe = spawn(firefoxBinary, ['--version']);
-    let out = '';
-    probe.stdout.on('data', (chunk) => (out += chunk));
-    probe.on('close', () => done(out.trim()));
-  });
-  console.log(`Tarayıcı: ${version}`);
+  firefox = await launchFirefox({ profile, port: bidiPort, headless: true });
+  console.log(`Tarayıcı: ${firefoxVersion(firefox.firefox)}`);
 
-  await waitFor(
-    async () => {
-      try {
-        bidi = connect(`ws://127.0.0.1:${bidiPort}/session`);
-        await bidi.opened;
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    'WebDriver BiDi bağlantısı',
-    20_000,
-  );
+  bidi = await waitFor(() => connectBidi(bidiPort).catch(() => null), 'WebDriver BiDi bağlantısı', 20_000);
 
   await bidi.send('session.new', { capabilities: {} });
   const installed = await bidi.send('webExtension.install', {
@@ -162,35 +108,27 @@ try {
     getSelection().removeAllRanges();
     getSelection().addRange(range);
     const host = [...document.querySelectorAll('email-writer-launcher')]
-      .find((element) => element.shadowRoot?.querySelector('.ew-launcher__quick'));
-    host.shadowRoot.querySelector('.ew-launcher__quick').click();
+      .find((element) => element.shadowRoot?.querySelector('.ew-compose-bar'));
+    [...host.shadowRoot.querySelectorAll('.ew-compose-bar button')]
+      .find((button) => button.textContent.trim() === 'Düzelt')
+      .click();
     return true;
   })()`);
 
-  const panelQuery = `document.querySelector('email-writer-panel')?.shadowRoot`;
-  const source = await waitFor(
-    () => evaluate(`${panelQuery}?.querySelector('[role="dialog"] textarea')?.value ?? ''`),
-    'panel ve kaynak metin',
-  ).catch(() => '');
-  record(
-    'Panel açıldı; taslaktaki seçim kaynak olarak alındı',
-    source === 'toplantı odası',
-    JSON.stringify(source),
-  );
-
-  await evaluate(`${panelQuery}.querySelector('.ew-prepare button').click()`);
+  // "Düzelt" işlemi doğrudan yapar; sonuç taslağın yanındaki kartta görünür.
+  const cardQuery = `[...document.querySelectorAll('email-writer-launcher')].map((host) => host.shadowRoot?.querySelector('.ew-card')).find(Boolean)`;
   const preview = await waitFor(
-    () => evaluate(`${panelQuery}.querySelectorAll('textarea')[1]?.value ?? ''`),
-    'örnek sonuç',
+    () => evaluate(`${cardQuery}?.querySelector('.ew-card__result')?.value ?? ''`),
+    'sonuç kartı',
   ).catch(() => '');
   record(
-    'Etiketli örnek sonuç önizlemeye geldi',
+    'Taslaktaki "Düzelt" düğmesi seçimi işledi; etiketli örnek sonuç kartta göründü',
     preview === 'Toplantıyı yarın yapabiliriz.',
     JSON.stringify(preview),
   );
 
   await evaluate(
-    `[...${panelQuery}.querySelectorAll('.ew-apply__buttons button')].find((b) => b.textContent.trim() === 'Taslağa uygula').click()`,
+    `[...${cardQuery}.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Taslağa uygula').click()`,
   );
   const applied = await waitFor(async () => {
     const text = await evaluate(`document.querySelector('[data-fixture="reply-editor"] div').textContent`);
@@ -213,7 +151,7 @@ try {
     // Oturum zaten kapanmış olabilir.
   }
   bidi?.close();
-  firefox?.kill('SIGTERM');
+  firefox?.stop();
   server?.kill('SIGTERM');
   await sleep(300);
   rmSync(profile, { recursive: true, force: true });

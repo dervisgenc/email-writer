@@ -39,9 +39,11 @@ export function locateComposers(document: Document, ownUiSelector: string): Loca
     (editor) => !candidates.some((other) => other !== editor && other.contains(editor)),
   );
 
+  // Yanıt kanıtı: editör önceki yazışmayı alıntılıyor veya bir konuşmanın altında açılmış.
+  // Outlook yeni iletileri de aynı yerleşik bölgede açtığı için bölge tek başına yeterli değil.
   return outermost.map((editor) => ({
     editor,
-    isReply: closest(editor, 'inlineReplyRegion') !== null || (paneHasConversation && pane.contains(editor)),
+    isReply: queryFirst(editor, 'quoteStart') !== null || (paneHasConversation && pane.contains(editor)),
   }));
 }
 

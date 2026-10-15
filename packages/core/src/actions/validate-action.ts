@@ -76,6 +76,13 @@ export function validateAction(draft: ActionDraft): AppError[] {
         errors.push(appError('LANGUAGE_REQUIRED', { field: 'targetLanguage' }));
       }
       break;
+    case 'compose':
+      // Yeni e-posta: talimat ve dil gerekir, konuşma bağlamı gerekmez.
+      validateInstruction(draft, errors);
+      if (draft.targetLanguage === null) {
+        errors.push(appError('LANGUAGE_REQUIRED', { field: 'targetLanguage' }));
+      }
+      break;
     case 'reply':
       validateInstruction(draft, errors);
       if (draft.source.text.length > ACTION_LIMITS.maxSourceLength) {

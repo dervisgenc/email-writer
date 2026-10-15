@@ -59,15 +59,16 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
 
     expect(result.value.subject).toBe('Proje toplantısı');
     expect(result.value.messages).toHaveLength(2);
+    // Gönderenin adresi alınmaz; görünen tarih ayrıştırılmaz.
     expect(first).toMatchObject({
       senderLabel: 'Mehmet Demir',
-      sentAt: '2026-10-10T08:00:00.000Z',
+      sentAt: null,
       sentAtText: 'Cum 10.10.2026 11:00',
     });
     expect(first?.blocks.map((block) => block.kind)).toEqual(['body', 'signature']);
     expect(first?.blocks[0]?.text).toBe('Merhaba Ayşe,\n\nPerşembe 14:00 toplantısını teyit edebilir misin?');
 
-    // Tarih elemanı tanınmıyorsa tarih uydurulmaz; görünen metin de ayrıştırılmaz.
+    // Tarih elemanı tanınmıyorsa tarih uydurulmaz.
     expect(second).toMatchObject({ senderLabel: 'Ayşe Kaya', sentAt: null, sentAtText: null });
     expect(second?.blocks.map((block) => block.kind)).toEqual(['body', 'quote']);
   });
@@ -99,7 +100,7 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
       knownUnreadableMessageCount: 1,
       reasons: ['unverified-history', 'collapsed-messages'],
     });
-    // İki açık mesaj var ve tarihlerden biri güvenilir değil: aktif mesaj tahmin edilmez.
+    // İki açık mesaj var ve makinece okunur tarih yok: aktif mesaj tahmin edilmez.
     expect(result.value.activeMessageKey).toBeNull();
   });
 
@@ -114,8 +115,10 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     connection.connector.subscribe((event) => events.push(event));
     const previous = connection.connector.getPageState().activeThread!;
 
+    // Outlook başka konuşmayı açınca listede seçim ve okuma bölmesi birlikte değişir.
     document.querySelector('[data-convid="AAQkCONV1"]')?.setAttribute('aria-selected', 'false');
     document.querySelector('[data-convid="AAQkOTHER"]')?.setAttribute('aria-selected', 'true');
+    document.getElementById('CONV_c1_SUBJECT')!.id = 'CONV_c2_SUBJECT';
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(events.some((event) => event.type === 'active-thread-changed')).toBe(true);
@@ -123,6 +126,20 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
       ok: false,
       error: expect.objectContaining({ code: 'THREAD_CHANGED' }),
     });
+  });
+
+  it("ileti listesi kaydırılıp seçili satır DOM'dan çıkınca konuşma değişmiş sayılmaz", async () => {
+    const events: MailEvent[] = [];
+    connection.connector.subscribe((event) => events.push(event));
+    const thread = connection.connector.getPageState().activeThread!;
+
+    // Sanal liste ekran dışındaki satırları kaldırır; okuma bölmesi aynı kalır.
+    document.querySelector('[data-convid="AAQkCONV1"]')?.remove();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect(events.some((event) => event.type === 'active-thread-changed')).toBe(false);
+    expect(connection.connector.getPageState().activeThread).toEqual(thread);
+    expect((await connection.connector.readThread(thread, never)).ok).toBe(true);
   });
 
   it('gelen mesajdaki seçimi, ait olduğu mesajın kimliğiyle verir', async () => {

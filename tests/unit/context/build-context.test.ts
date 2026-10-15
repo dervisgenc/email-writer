@@ -1,4 +1,5 @@
-import { buildContext, type BuildContextInput } from '@email-writer/core';
+import { DEFAULT_CONTEXT_SELECTION, type MessageSnapshot, type ThreadRef } from '@email-writer/contracts';
+import { buildContext, type BuildContextInput, type HistoryEntry } from '@email-writer/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -10,6 +11,7 @@ import {
   signature,
   thread,
   threadA,
+  threadB,
 } from '../../fixtures/synthetic-mail/threads';
 import { sequentialIds, testDependencies } from '../test-dependencies';
 
@@ -17,7 +19,7 @@ function input(overrides: Partial<BuildContextInput> = {}): BuildContextInput {
   return {
     expectedThread: threadA,
     snapshot: meetingThread(),
-    selection: { mode: 'automatic' },
+    selection: DEFAULT_CONTEXT_SELECTION,
     includedBlocks: [],
     ...overrides,
   };
@@ -163,14 +165,15 @@ describe('buildContext', () => {
     });
   });
 
-  it('kullanıcının açıkça seçtiği bağlam sınırı aşıyorsa daraltmaz, hata döner', () => {
-    const snapshot = thread([
-      message('m1', 0, [body('a'.repeat(40))]),
-      message('m2', 1, [body('b'.repeat(40))]),
-    ]);
+  it('kullanıcının başka konuşmalardan açıkça eklediği bağlam sınırı aşıyorsa daraltmaz, hata döner', () => {
+    const snapshot = thread([message('m1', 0, [body('kısa')])]);
+    const history = [
+      historyEntry(message('o1', 0, [body('a'.repeat(40))]), threadB, 'Başka konu', 0),
+      historyEntry(message('o2', 0, [body('b'.repeat(40))]), threadB, 'Başka konu', 1),
+    ];
     const policy = { version: 1, maxMessages: 20, maxTotalLength: 60 };
     const result = buildContext(
-      input({ snapshot, policy, selection: { mode: 'manual', messageKeys: ['m1', 'm2'] } }),
+      input({ snapshot, history, policy, selection: { included: ['o1', 'o2'], excluded: [] } }),
       testDependencies(),
     );
 
@@ -181,10 +184,7 @@ describe('buildContext', () => {
   });
 
   it('elle çıkarılan mesajı gerekçesiyle kaydeder', () => {
-    const result = buildContext(
-      input({ selection: { mode: 'manual', messageKeys: ['m2', 'm3'] } }),
-      testDependencies(),
-    );
+    const result = buildContext(input({ selection: { included: [], excluded: ['m1'] } }), testDependencies());
     if (!result.ok) throw new Error('beklenmeyen hata');
 
     expect(result.value.messages.map((m) => m.messageKey)).toEqual(['m2', 'm3']);
@@ -223,4 +223,102 @@ describe('buildContext', () => {
 
     expect(result.value.messages[0]?.text).toBe('Tutar: 1.250,00 TL\n\nTarih: 12.10.2026');
   });
+
+  describe('oturumda okunan mesajlar', () => {
+    const current = () => thread([message('cur', 0, [body('Güncel mesaj')])], { subject: 'RE: Teklif' });
+
+    it('aynı konuşmadan veya aynı konudan okunanlar varsayılan olarak bağlamdadır', () => {
+      const history = [
+        historyEntry(message('old', 0, [body('Aynı konuşmadan eski mesaj')]), threadA, 'Teklif', 0),
+        historyEntry(message('same-subject', 0, [body('Aynı konu')]), threadB, 'FW: RE: Teklif', 1),
+      ];
+      const result = buildContext(input({ snapshot: current(), history }), testDependencies());
+      if (!result.ok) throw new Error('beklenmeyen hata');
+
+      // Sıra: önce geçmişte okunanlar (okunma sırasıyla), sonra açık mesaj.
+      expect(result.value.messages.map((m) => [m.messageKey, m.conversation])).toEqual([
+        ['old', 'current'],
+        ['same-subject', 'current'],
+        ['cur', 'current'],
+      ]);
+      expect(result.value.activeMessageKey).toBe('cur');
+    });
+
+    it('başka konudan okunan mesaj varsayılan olarak girmez; kullanıcı eklerse "other" olarak girer', () => {
+      const history = [historyEntry(message('other', 0, [body('Alakasız')]), threadB, 'Fatura', 0)];
+
+      const byDefault = buildContext(input({ snapshot: current(), history }), testDependencies());
+      const added = buildContext(
+        input({ snapshot: current(), history, selection: { included: ['other'], excluded: [] } }),
+        testDependencies(),
+      );
+      if (!byDefault.ok || !added.ok) throw new Error('beklenmeyen hata');
+
+      expect(byDefault.value.messages.map((m) => m.messageKey)).toEqual(['cur']);
+      expect(added.value.messages.map((m) => [m.messageKey, m.conversation, m.subject])).toEqual([
+        ['other', 'other', 'Fatura'],
+        ['cur', 'current', 'RE: Teklif'],
+      ]);
+    });
+
+    it('başka hesabın mesajı hiçbir koşulda bağlama girmez', () => {
+      const foreign: ThreadRef = { ...threadA, scope: scopeB };
+      const history = [historyEntry(message('foreign', 0, [body('Başka hesap')]), foreign, 'RE: Teklif', 0)];
+      const result = buildContext(
+        input({ snapshot: current(), history, selection: { included: ['foreign'], excluded: [] } }),
+        testDependencies(),
+      );
+      if (!result.ok) throw new Error('beklenmeyen hata');
+
+      expect(result.value.messages.map((m) => m.messageKey)).toEqual(['cur']);
+    });
+
+    it('aynı mesaj hem geçmişte hem güncel okumada varsa güncel okuma kullanılır, sırası korunur', () => {
+      const history = [
+        historyEntry(message('cur', 0, [body('Eski okuma')]), threadA, 'Teklif', 0),
+        historyEntry(message('later', 0, [body('Sonra okunan')]), threadA, 'Teklif', 1),
+      ];
+      const result = buildContext(input({ snapshot: current(), history }), testDependencies());
+      if (!result.ok) throw new Error('beklenmeyen hata');
+
+      expect(result.value.messages.map((m) => [m.messageKey, m.text])).toEqual([
+        ['cur', 'Güncel mesaj'],
+        ['later', 'Sonra okunan'],
+      ]);
+    });
+  });
+
+  it('kullanıcının düzenlediği metin orijinalin yerine kullanılır ve işaretlenir', () => {
+    const result = buildContext(
+      input({ edits: [{ messageKey: 'm2', text: '  Yalnızca fatura sorusu.  ' }] }),
+      testDependencies(),
+    );
+    if (!result.ok) throw new Error('beklenmeyen hata');
+
+    const edited = result.value.messages.find((m) => m.messageKey === 'm2');
+    expect(edited).toMatchObject({ text: 'Yalnızca fatura sorusu.', edited: true });
+    expect(result.value.messages.filter((m) => m.edited)).toHaveLength(1);
+    // Düzenlenen mesajın blokları için imza/alıntı ayıklaması kaydedilmez.
+    expect(result.value.omissions.some((o) => o.messageKey === 'm2' && o.blockIndex !== undefined)).toBe(
+      false,
+    );
+  });
+
+  it('bütün mesajlar çıkarılırsa bağlam oluşturulmaz', () => {
+    const result = buildContext(
+      input({ selection: { included: [], excluded: ['m1', 'm2', 'm3'] } }),
+      testDependencies(),
+    );
+
+    expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: 'CONTEXT_REQUIRED' }) });
+  });
 });
+
+function historyEntry(
+  entryMessage: MessageSnapshot,
+  threadRef: ThreadRef,
+  subject: string | null,
+  order: number,
+): HistoryEntry {
+  return { threadRef, subject, message: entryMessage, order };
+}

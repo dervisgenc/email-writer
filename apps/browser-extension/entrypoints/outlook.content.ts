@@ -53,6 +53,7 @@ export default defineContentScript({
           connector: outlook.connector,
           locateLauncherAnchors: outlook.locateLauncherAnchors,
           selectorReport: outlook.selectorReport,
+          readTheme: outlook.readTheme,
         },
         processor: await loadTextProcessor(),
       });

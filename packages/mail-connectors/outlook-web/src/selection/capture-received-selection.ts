@@ -11,7 +11,7 @@ import {
 import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
 import type { IdentityRegistry } from '../identity/identity-registry';
 import { extractTextBlocks } from '../reading/extract-text-blocks';
-import { messageContainerOf } from '../reading/read-thread';
+import { messageContainerOf, messageKeyOf } from '../reading/message-header';
 
 function bodyContaining(bodies: readonly HTMLElement[], node: Node): HTMLElement | null {
   return bodies.find((body) => body.contains(node)) ?? null;
@@ -52,7 +52,7 @@ export function captureReceivedSelection(
   }
   return ok({
     threadRef: ref,
-    messageKey: registry.keyFor(messageContainerOf(startBody), 'msg'),
+    messageKey: messageKeyOf(messageContainerOf(startBody, thread.root), registry),
     text,
   });
 }

@@ -7,15 +7,19 @@ import {
   type MailConnector,
   type MailEvent,
   type PageState,
+  type PageTheme,
   type ThreadRef,
 } from '@email-writer/contracts';
 
 import { detectPage, DEFAULT_WAIT_LIMIT_MS } from './discovery/detect-page';
 import { locateComposers, readAccountHint } from './discovery/locate-composers';
-import { locateThread, messageBodies, type LocatedThread } from './discovery/locate-thread';
+import { messageBodies, type LocatedThread } from './discovery/locate-thread';
+import { readPageTheme } from './discovery/read-page-theme';
+import { createActiveThreadTracker } from './discovery/track-active-thread';
 import {
   OUTLOOK_SELECTORS,
   queryAll,
+  queryFirst,
   SELECTOR_KEYS,
   type SelectorKey,
   type SelectorStatus,
@@ -62,6 +66,8 @@ export interface OutlookWebConnection {
   locateLauncherAnchors(): readonly OutlookLauncherAnchor[];
   /** Gerçek sayfada seçici doğrulaması için içeriksiz tanı raporu. */
   selectorReport(): readonly SelectorReportEntry[];
+  /** Outlook'un o anki tema renkleri; eklenti arayüzü bunlarla uyumlu görünür. */
+  readTheme(): PageTheme | null;
 }
 
 const SETTLE_MS = 250;
@@ -72,7 +78,11 @@ function samePageState(a: PageState, b: PageState): boolean {
     a.scope?.accountScopeId === b.scope?.accountScopeId &&
     a.activeThread?.threadKey === b.activeThread?.threadKey &&
     a.composers.length === b.composers.length &&
-    a.composers.every((composer, index) => composer.composerKey === b.composers[index]?.composerKey)
+    a.composers.every(
+      (composer, index) =>
+        composer.composerKey === b.composers[index]?.composerKey &&
+        composer.threadKey === b.composers[index]?.threadKey,
+    )
   );
 }
 
@@ -95,6 +105,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
   const startedAt = now().getTime();
   const classify = createOutlookClassifier(ownUiSelector);
   const registry = createIdentityRegistry(createId);
+  const threads = createActiveThreadTracker(document, registry);
   const selections = createSelectionRegistry();
   const undo = createUndoStore();
   const attempts: WriteDependencies['attempts'] = new Map();
@@ -143,6 +154,11 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
         // Editör değişince eski seçim kayıtları geçersiz olur.
         selections.forgetComposer(ref.composerKey);
         emit({ type: 'composer-changed', ref, revision });
+        // Editörün içi sayfa gözleminin dışındadır. Outlook yanıt alıntısını editörü
+        // açtıktan sonra doldurur; "yeni ileti" sayılan taslak yanıta dönüşmüş olabilir.
+        if (!isReply && queryFirst(editor, 'quoteStart') !== null) {
+          observer.request();
+        }
       },
     });
     const handle: ComposerHandle = {
@@ -171,6 +187,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       attempts.clear();
       thread = null;
       threadRef = null;
+      threads.reset();
       if (hadScope) {
         emit({ type: 'account-changed' });
       }
@@ -181,7 +198,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       now().getTime() - startedAt,
       options.waitLimitMs ?? DEFAULT_WAIT_LIMIT_MS,
     );
-    const located = support === 'ready' ? locateThread(document, registry) : null;
+    const located = support === 'ready' ? threads.locate() : null;
     const previousRef = threadRef;
     const nextRef = located === null ? null : { scope: registry.scope(), threadKey: located.key };
     thread = located;
@@ -208,7 +225,14 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       }
     }
     for (const { editor, isReply } of found) {
-      if (!composers.has(registry.keyFor(editor, 'composer'))) {
+      const key = registry.keyFor(editor, 'composer');
+      const threadKey = isReply ? (threadRef?.threadKey ?? null) : null;
+      if (composers.get(key)?.ref.threadKey !== threadKey) {
+        // Taslağın hangi konuşmaya ait olduğu sonradan anlaşıldı (ör. Outlook
+        // alıntıyı editörü açtıktan sonra doldurdu); kayıt yenilenir.
+        removeComposer(key, true);
+      }
+      if (!composers.has(key)) {
         addComposer(editor, isReply);
       }
     }
@@ -361,11 +385,15 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       if (pageState.support !== 'ready') {
         return [];
       }
+      // Bölme yanıt taslağını gösterirken konuşma düğmesi gösterilmez; taslak araç çubuğu yeterlidir.
+      const shownThread = thread !== null && thread.replyView === undefined ? thread : null;
       return locateLauncherAnchors({
-        thread: thread !== null && threadRef !== null ? { ref: threadRef, root: thread.root } : null,
+        thread:
+          shownThread !== null && threadRef !== null ? { ref: threadRef, root: shownThread.root } : null,
         composers: [...composers.values()].map(({ ref, editor }) => ({ ref, editor })),
       });
     },
+    readTheme: () => readPageTheme(document),
     selectorReport() {
       return SELECTOR_KEYS.map((key) => ({
         key,

@@ -6,7 +6,6 @@ import {
   type ApplyOutcome,
   type ApplyTarget,
   type ComposerRef,
-  type ContextSelection,
   type ContextSnapshot,
   type MailEvent,
   type PreparedAction,
@@ -34,8 +33,12 @@ export type SessionEvent =
       readonly type: 'thread-read';
       readonly operationId: string;
       readonly snapshot: ThreadSnapshot;
-      /** Yeni snapshot'ta hâlâ bulunan mesajlarla sınırlandırılmış seçim. */
-      readonly selection: ContextSelection;
+      readonly context: Result<ContextSnapshot, AppError>;
+    }
+  | {
+      /** Kullanıcı konuşmada başka bir mesajı açtı; arka planda okunan yeni içerik. */
+      readonly type: 'thread-refreshed';
+      readonly snapshot: ThreadSnapshot;
       readonly context: Result<ContextSnapshot, AppError>;
     }
   | { readonly type: 'context-built'; readonly context: Result<ContextSnapshot, AppError> }
@@ -132,10 +135,14 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       });
 
     case 'active-thread-changed':
-      if (state.thread !== null && (event.current === null || !isSameThread(state.thread, event.current))) {
+      if (state.thread === null) {
+        return state;
+      }
+      if (event.current === null || !isSameThread(state.thread, event.current)) {
         return markStale(state, 'thread-changed');
       }
-      return state;
+      // Kullanıcı çalışmanın konuşmasına geri döndü; çalışma yeniden geçerlidir.
+      return state.staleReason === 'thread-changed' ? { ...state, staleReason: null } : state;
 
     case 'thread-content-changed':
       if (
@@ -216,11 +223,36 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
           threadSnapshot: event.snapshot,
           contextStale: false,
           formRevision: state.formRevision + 1,
-          form: { ...state.form, contextSelection: event.selection },
         },
         event.context,
       );
       return rest(next);
+    }
+
+    case 'thread-refreshed': {
+      // Bağlam yalnızca kullanılıyorsa ve kullanıcı bir sonuç üzerinde
+      // çalışmıyorsa sessizce yenilenir. Önizleme varken bağlam değişirse
+      // önizleme eskirdi; o durumda "bağlam eskidi" uyarısı (contextStale) kalır.
+      const isIdle = state.phase.status === 'idle' || state.phase.status === 'editing';
+      if (
+        !isIdle ||
+        state.threadSnapshot === null ||
+        state.thread === null ||
+        !isSameThread(state.thread, event.snapshot.ref)
+      ) {
+        return state;
+      }
+      return rest(
+        withContext(
+          {
+            ...state,
+            threadSnapshot: event.snapshot,
+            contextStale: false,
+            formRevision: state.formRevision + 1,
+          },
+          event.context,
+        ),
+      );
     }
 
     case 'context-built':

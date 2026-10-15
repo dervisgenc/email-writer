@@ -1,6 +1,8 @@
 import {
+  isInstructionOperation,
   isSameThread,
   type ComposerRef,
+  type LanguageCode,
   type MailConnector,
   type MailEvent,
   type Operation,
@@ -20,11 +22,23 @@ import type { SessionStore } from './session-store';
 export type OpenRequest =
   | { readonly origin: 'toolbar' }
   | { readonly origin: 'thread-launcher'; readonly thread: ThreadRef }
-  | {
-      readonly origin: 'composer-launcher';
-      readonly composer: ComposerRef;
-      readonly quickAction: 'revise' | 'translate' | null;
-    };
+  | { readonly origin: 'composer-launcher'; readonly composer: ComposerRef };
+
+/** Yazma alanındaki araç çubuğundan doğrudan başlatılan işlem. */
+export type QuickAction =
+  | { readonly operation: 'revise' }
+  | { readonly operation: 'translate'; readonly language: LanguageCode | null }
+  | { readonly operation: 'reply' }
+  | { readonly operation: 'compose' };
+
+/**
+ * Oturumun gösterildiği yer. Aynı oturum sağdaki panelde veya yazma alanının
+ * yanındaki küçük kartta gösterilir; ikisi aynı anda açık olmaz.
+ */
+export type PanelSurface =
+  | { readonly kind: 'closed' }
+  | { readonly kind: 'panel' }
+  | { readonly kind: 'inline'; readonly composerKey: string };
 
 export interface PanelControllerDependencies {
   readonly store: SessionStore;
@@ -36,18 +50,25 @@ export interface PanelControllerDependencies {
 
 export interface PanelController {
   isOpen(): boolean;
+  surface(): PanelSurface;
   open(request: OpenRequest): void;
+  /**
+   * Yazma alanındaki düğmeden işlemi doğrudan başlatır ve sonucu taslağın
+   * yanındaki kartta gösterir. Düzeltme ve çeviri, taslağı veya seçimi alıp
+   * hemen hazırlanır; yanıt ve yeni e-posta için kart talimat bekler.
+   */
+  runQuickAction(composer: ComposerRef, action: QuickAction): Promise<void>;
+  /** Karttaki çalışmayı sağdaki panelde sürdürür. */
+  expandToPanel(): void;
   close(): void;
-  /** "Bu konuşmayla yeni çalışma başlat": açık konuşmaya bağlı yeni oturum. */
-  startNewWork(): void;
   changeOperation(operation: Operation): void;
   setUseConversation(enabled: boolean): void;
-  onVisibilityChange(listener: (open: boolean) => void): () => void;
+  onSurfaceChange(listener: (surface: PanelSurface) => void): () => void;
   dispose(): void;
 }
 
-/** Oturumda kullanıcıya ait bir içerik var mı? Varsa sessizce silinmez. */
-export function hasUserWork(state: SessionState): boolean {
+/** Oturumda kullanıcıya ait bir içerik var mı? */
+function hasUserWork(state: SessionState): boolean {
   return (
     state.form.sourceText.trim() !== '' ||
     state.form.instruction.trim() !== '' ||
@@ -71,14 +92,17 @@ function isSameOptionalThread(a: ThreadRef | null, b: ThreadRef | null): boolean
  */
 export function createPanelController(deps: PanelControllerDependencies): PanelController {
   const { store, connector, actions, ids } = deps;
-  let open = false;
-  const listeners = new Set<(open: boolean) => void>();
+  let surface: PanelSurface = { kind: 'closed' };
+  const listeners = new Set<(surface: PanelSurface) => void>();
 
-  const setOpen = (value: boolean) => {
-    if (open !== value) {
-      open = value;
+  const setSurface = (next: PanelSurface) => {
+    const changed =
+      next.kind !== surface.kind ||
+      (next.kind === 'inline' && surface.kind === 'inline' && next.composerKey !== surface.composerKey);
+    if (changed) {
+      surface = next;
       for (const listener of listeners) {
-        listener(open);
+        listener(surface);
       }
     }
   };
@@ -95,92 +119,134 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
     );
   };
 
-  /** Kullanıcı istediğinde (yanıt veya "konuşmayı da kullan") konuşmayı okur. */
-  const readThreadIfNeeded = () => {
+  /**
+   * Kullanıcı istediğinde (yanıt veya "konuşmayı da kullan") konuşmayı okur.
+   * Oturum meşgulken okuma başlamaz; bu yüzden taslak okumasından sonra çağrılır.
+   */
+  const readThreadIfNeeded = async () => {
     const state = store.getState();
     if (state.thread !== null && state.threadSnapshot === null && usesConversationContext(state)) {
-      void actions.readThread();
+      await actions.readThread();
     }
   };
 
-  /** Mevcut çalışma başka bir konuşmaya aitse ve içerik varsa korunur. */
-  const prepareSessionFor = (thread: ThreadRef | null, operation: Operation): boolean => {
+  /**
+   * Çalışma, kullanıcının o an baktığı e-postaya aittir. Başka bir e-postaya
+   * geçilince oturum o e-postayla yeniden başlar; kullanıcıdan "yeni çalışma"
+   * onayı istenmez. Önceki e-postanın metni ve sonucu bırakılır.
+   */
+  const followThread = (thread: ThreadRef | null, operation: Operation): void => {
     const state = store.getState();
     if (isSameOptionalThread(state.thread, thread) && state.staleReason !== 'account-changed') {
-      return true;
+      return;
     }
-    if (hasUserWork(state)) {
-      return false;
-    }
-    freshSession(thread, operation);
-    return true;
+    actions.cancelPending();
+    // Yeni ileti yazma bir konuşmaya ait değildir; konuşmaya geçilince yanıt olur.
+    freshSession(thread, thread !== null && operation === 'compose' ? 'reply' : operation);
+  };
+
+  /**
+   * Kullanıcı başka bir e-postaya geçti mi? Oturum bir konuşmaya bağlı değilse
+   * (ör. yeni ileti yazılıyor) ve içinde iş varsa, o çalışma korunur.
+   */
+  const isNewConversation = (current: ThreadRef): boolean => {
+    const state = store.getState();
+    return state.thread !== null ? !isSameThread(state.thread, current) : !hasUserWork(state);
   };
 
   const unsubscribe = connector.subscribe((event: MailEvent) => {
     if (event.type === 'account-changed') {
       actions.cancelPending();
     }
+    if (
+      event.type === 'active-thread-changed' &&
+      event.current !== null &&
+      isNewConversation(event.current)
+    ) {
+      followThread(event.current, store.getState().form.operation);
+      if (surface.kind === 'inline') {
+        // Kart önceki e-postanın taslağına aitti.
+        setSurface({ kind: 'closed' });
+      } else if (surface.kind === 'panel') {
+        void readThreadIfNeeded();
+      }
+      return;
+    }
     store.dispatch({ type: 'mail-event', event });
   });
 
   return {
-    isOpen: () => open,
+    isOpen: () => surface.kind !== 'closed',
+    surface: () => surface,
 
     open(request) {
       switch (request.origin) {
         case 'toolbar': {
           const { activeThread } = connector.getPageState();
-          const state = store.getState();
-          if (state.phase.status === 'idle' && !hasUserWork(state)) {
-            freshSession(activeThread, state.form.operation);
+          if (activeThread !== null) {
+            followThread(activeThread, store.getState().form.operation);
           }
           break;
         }
         case 'thread-launcher':
-          if (prepareSessionFor(request.thread, 'reply')) {
-            store.dispatch({ type: 'form-changed', changes: { operation: 'reply' } });
-          }
+          followThread(request.thread, 'reply');
+          store.dispatch({ type: 'form-changed', changes: { operation: 'reply' } });
           break;
-        case 'composer-launcher': {
-          const operation = request.quickAction ?? store.getState().form.operation;
-          if (prepareSessionFor(threadOfComposer(request.composer), operation)) {
-            if (request.quickAction !== null) {
-              store.dispatch({ type: 'form-changed', changes: { operation: request.quickAction } });
-            }
-            // Seçim, odak panele geçmeden ve ilk beklemeden önce yakalanır.
-            void actions.loadFromComposer(request.composer);
-          }
-          break;
-        }
+        case 'composer-launcher':
+          followThread(threadOfComposer(request.composer), store.getState().form.operation);
+          setSurface({ kind: 'panel' });
+          // Seçim, odak panele geçmeden ve ilk beklemeden önce yakalanır.
+          void actions.loadFromComposer(request.composer).then(readThreadIfNeeded);
+          return;
       }
-      setOpen(true);
-      readThreadIfNeeded();
+      setSurface({ kind: 'panel' });
+      void readThreadIfNeeded();
+    },
+
+    async runQuickAction(composer, action) {
+      followThread(threadOfComposer(composer), action.operation);
+      const language = action.operation === 'translate' ? action.language : null;
+      store.dispatch({
+        type: 'form-changed',
+        changes: { operation: action.operation, ...(language === null ? {} : { targetLanguage: language }) },
+      });
+      setSurface({ kind: 'inline', composerKey: composer.composerKey });
+      // Seçim, odak karta geçmeden ve ilk beklemeden önce yakalanır.
+      const loaded = await actions.loadFromComposer(composer);
+      if (loaded !== 'loaded') {
+        return;
+      }
+      await readThreadIfNeeded();
+      // Yanıt ve yeni e-posta için kart talimat bekler; diğer işlemler hemen hazırlanır.
+      if (!isInstructionOperation(action.operation)) {
+        await actions.prepare();
+      }
+    },
+
+    expandToPanel() {
+      if (surface.kind === 'inline') {
+        setSurface({ kind: 'panel' });
+        void readThreadIfNeeded();
+      }
     },
 
     close() {
       // Form verisi bellekte kalır; yalnızca devam eden okuma ve bekleme iptal edilir.
       actions.cancelPending();
-      setOpen(false);
-    },
-
-    startNewWork() {
-      actions.cancelPending();
-      const { activeThread } = connector.getPageState();
-      freshSession(activeThread, store.getState().form.operation);
-      readThreadIfNeeded();
+      setSurface({ kind: 'closed' });
     },
 
     changeOperation(operation) {
       store.dispatch({ type: 'form-changed', changes: { operation } });
-      readThreadIfNeeded();
+      void readThreadIfNeeded();
     },
 
     setUseConversation(enabled) {
       store.dispatch({ type: 'form-changed', changes: { useConversation: enabled } });
-      readThreadIfNeeded();
+      void readThreadIfNeeded();
     },
 
-    onVisibilityChange(listener) {
+    onSurfaceChange(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },

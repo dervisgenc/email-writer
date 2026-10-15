@@ -1,4 +1,11 @@
-import { err, ok, type AppError, type PreparedAction, type Result } from '@email-writer/contracts';
+import {
+  err,
+  isInstructionOperation,
+  ok,
+  type AppError,
+  type PreparedAction,
+  type Result,
+} from '@email-writer/contracts';
 
 import type { Clock, IdGenerator } from '../dependencies';
 import { deepFreeze } from '../immutability';
@@ -30,7 +37,7 @@ export function prepareAction(
     return err(errors);
   }
 
-  const isReply = draft.operation === 'reply';
+  const usesInstruction = isInstructionOperation(draft.operation);
   // Gelen mesajın çevirisi salt okunurdur; taslak hedefi atanmaz.
   const target = draft.source.origin === 'received-message' ? null : draft.target;
 
@@ -41,7 +48,7 @@ export function prepareAction(
       formRevision: input.formRevision,
       operation: draft.operation,
       source: { origin: draft.source.origin, text: draft.source.text },
-      instruction: isReply ? draft.instruction : '',
+      instruction: usesInstruction ? draft.instruction : '',
       targetLanguage: draft.operation === 'revise' ? null : draft.targetLanguage,
       tone: draft.operation === 'translate' ? 'neutral' : draft.tone,
       context: draft.context,

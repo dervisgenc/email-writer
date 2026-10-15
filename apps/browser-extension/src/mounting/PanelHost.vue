@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { Theme } from '@email-writer/contracts';
 import { provideUiText, WriterPanel, type UiText } from '@email-writer/ui';
 import { toRef, type Ref } from 'vue';
 
 import { usePanelSession, type PanelSessionDependencies } from '../composables/use-panel-session';
+import type { Appearance } from './appearance';
 
 const props = defineProps<{
   session: PanelSessionDependencies;
   text: Readonly<Ref<UiText>>;
-  theme: Readonly<Ref<Theme>>;
+  appearance: Readonly<Ref<Appearance>>;
   open: Readonly<Ref<boolean>>;
 }>();
 
@@ -18,13 +18,12 @@ const isOpen = toRef(() => props.open.value);
 </script>
 
 <template>
-  <div class="ew-root" :data-theme="theme.value">
+  <div class="ew-root" :data-theme="appearance.value.theme" :style="appearance.value.style">
     <WriterPanel
       v-if="isOpen"
       :view="view"
       :limits="limits"
       @close="handlers.close"
-      @start-new-work="handlers.startNewWork"
       @operation-change="handlers.operationChange"
       @source-change="handlers.sourceChange"
       @instruction-change="handlers.instructionChange"
@@ -34,6 +33,7 @@ const isOpen = toRef(() => props.open.value);
       @tone-change="handlers.toneChange"
       @use-conversation-change="handlers.useConversationChange"
       @context-selection-change="handlers.contextSelectionChange"
+      @context-text-change="handlers.contextTextChange"
       @block-include="handlers.blockInclude"
       @reply-target-change="handlers.replyTargetChange"
       @refresh-context="handlers.refreshContext"

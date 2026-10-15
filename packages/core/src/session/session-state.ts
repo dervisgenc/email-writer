@@ -1,16 +1,18 @@
-import type {
-  AppError,
-  ApplyTarget,
-  BlockRef,
-  ComposerRef,
-  ContextSelection,
-  ContextSnapshot,
-  LanguageCode,
-  Operation,
-  PreparedAction,
-  ThreadRef,
-  ThreadSnapshot,
-  Tone,
+import {
+  DEFAULT_CONTEXT_SELECTION,
+  type AppError,
+  type ApplyTarget,
+  type BlockRef,
+  type ComposerRef,
+  type ContextEdit,
+  type ContextSelection,
+  type ContextSnapshot,
+  type LanguageCode,
+  type Operation,
+  type PreparedAction,
+  type ThreadRef,
+  type ThreadSnapshot,
+  type Tone,
 } from '@email-writer/contracts';
 
 /**
@@ -49,6 +51,8 @@ export interface SessionForm {
   readonly useConversation: boolean;
   readonly contextSelection: ContextSelection;
   readonly includedBlocks: readonly BlockRef[];
+  /** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metinleri. */
+  readonly contextEdits: readonly ContextEdit[];
   /** Aktif mesaj tanınamadığında kullanıcının seçtiği yanıt verilecek mesaj. */
   readonly replyTargetKey: string | null;
 }
@@ -150,8 +154,9 @@ export function createSession(options: CreateSessionOptions): SessionState {
       targetLanguage: options.defaults.targetLanguage,
       tone: options.defaults.tone,
       useConversation: false,
-      contextSelection: { mode: 'automatic' },
+      contextSelection: DEFAULT_CONTEXT_SELECTION,
       includedBlocks: [],
+      contextEdits: [],
       replyTargetKey: null,
     },
     thread: options.thread,

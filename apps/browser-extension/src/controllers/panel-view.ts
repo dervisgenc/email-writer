@@ -1,5 +1,7 @@
 import {
+  isInstructionOperation,
   isSameComposer,
+  isSameScope,
   isSameThread,
   type ComposerRef,
   type ErrorCode,
@@ -9,7 +11,9 @@ import {
 } from '@email-writer/contracts';
 import {
   describeContext,
+  isRelatedEntry,
   normalizeContextText,
+  type HistoryEntry,
   type SessionCapabilities,
   type SessionState,
   type StaleReason,
@@ -23,8 +27,6 @@ import type {
   StatusView,
   TargetView,
 } from '@email-writer/ui';
-
-import { hasUserWork } from './panel-controller';
 
 const PREVIEW_LENGTH = 160;
 const RETRYABLE: readonly ErrorCode[] = ['READ_TIMEOUT', 'PAGE_NOT_READY', 'THREAD_CHANGED'];
@@ -52,6 +54,8 @@ export interface PanelViewInput {
   readonly capabilities: SessionCapabilities;
   readonly page: PageState;
   readonly ui: TransientUiState;
+  /** Sayfa oturumunda okunan mesajlar. */
+  readonly history: readonly HistoryEntry[];
 }
 
 function shorten(text: string): string {
@@ -93,9 +97,62 @@ function messageText(message: MessageSnapshot): string {
   return normalizeContextText(message.blocks.map((block) => block.text).join('\n\n'));
 }
 
+interface ListedMessage {
+  readonly message: MessageSnapshot;
+  readonly subject: string | null;
+  readonly group: ContextMessageView['group'];
+  readonly order: number;
+}
+
+/**
+ * Bağlam denetleyicisinde listelenecek mesajlar: açık konuşmanın son okuması
+ * ve oturumda okunan diğer mesajlar (aynı hesap). Açık konuşma grubunda
+ * okunma sırası, diğer grupta en son okunan önce gelir.
+ */
+function listedMessages(state: SessionState, history: readonly HistoryEntry[]): ListedMessage[] {
+  const snapshot = state.threadSnapshot;
+  if (snapshot === null) {
+    return [];
+  }
+  const historyOrder = new Map(history.map((entry) => [entry.message.messageKey, entry.order]));
+  const afterHistory = Math.max(-1, ...historyOrder.values()) + 1;
+  const current = new Set(snapshot.messages.map((message) => message.messageKey));
+  const listed: ListedMessage[] = [
+    ...snapshot.messages.map((message) => ({
+      message,
+      subject: snapshot.subject,
+      group: 'current' as const,
+      order: historyOrder.get(message.messageKey) ?? afterHistory + message.displayOrder,
+    })),
+    ...history
+      .filter(
+        (entry) =>
+          !current.has(entry.message.messageKey) && isSameScope(entry.threadRef.scope, snapshot.ref.scope),
+      )
+      .map((entry) => ({
+        message: entry.message,
+        subject: entry.subject,
+        group: isRelatedEntry(entry, snapshot.ref, snapshot.subject)
+          ? ('current' as const)
+          : ('other' as const),
+        order: entry.order,
+      })),
+  ];
+  return listed.sort((a, b) =>
+    a.group === b.group
+      ? a.group === 'current'
+        ? a.order - b.order
+        : b.order - a.order
+      : a.group === 'current'
+        ? -1
+        : 1,
+  );
+}
+
 function contextView(
   state: SessionState,
   capabilities: SessionCapabilities,
+  history: readonly HistoryEntry[],
   fieldError: ErrorCode | null,
 ): ContextView {
   const { threadSnapshot: snapshot, context, phase } = state;
@@ -111,37 +168,38 @@ function contextView(
           : 'ready';
 
   const included = new Map(context?.messages.map((message) => [message.messageKey, message]) ?? []);
+  const edits = new Map(state.form.contextEdits.map((edit) => [edit.messageKey, edit.text]));
   const isReply = state.form.operation === 'reply';
   const needsReplyTarget = isReply && snapshot !== null && snapshot.activeMessageKey === null;
   const replyTargetKey = snapshot?.activeMessageKey ?? state.form.replyTargetKey;
-  const messages: ContextMessageView[] =
-    snapshot === null
-      ? []
-      : [...snapshot.messages]
-          .sort((a, b) => a.displayOrder - b.displayOrder)
-          .map((message) => {
-            const inContext = included.get(message.messageKey);
-            const text = inContext?.text ?? messageText(message);
-            return {
-              messageKey: message.messageKey,
-              senderLabel: message.senderLabel,
-              sentAtText: message.sentAtText,
-              preview: shorten(text),
-              text,
-              included: inContext !== undefined,
-              locked: isReply && message.messageKey === replyTargetKey,
-              isReplyTarget: message.messageKey === replyTargetKey,
-              omittedBlocks: (context?.omissions ?? []).flatMap((omission) => {
-                const block =
-                  omission.messageKey === message.messageKey && omission.blockIndex !== undefined
-                    ? message.blocks[omission.blockIndex]
-                    : undefined;
-                return block !== undefined && (block.kind === 'signature' || block.kind === 'quote')
-                  ? [{ blockIndex: omission.blockIndex ?? 0, kind: block.kind, text: shorten(block.text) }]
-                  : [];
-              }),
-            };
-          });
+  const messages: ContextMessageView[] = listedMessages(state, history).map(({ message, subject, group }) => {
+    const inContext = included.get(message.messageKey);
+    const edited = edits.get(message.messageKey);
+    const text =
+      inContext?.text ?? (edited === undefined ? messageText(message) : normalizeContextText(edited).trim());
+    return {
+      messageKey: message.messageKey,
+      senderLabel: message.senderLabel,
+      sentAtText: message.sentAtText,
+      subject,
+      group,
+      preview: shorten(text),
+      text,
+      included: inContext !== undefined,
+      edited: edited !== undefined,
+      locked: isReply && message.messageKey === replyTargetKey,
+      isReplyTarget: message.messageKey === replyTargetKey,
+      omittedBlocks: (context?.omissions ?? []).flatMap((omission) => {
+        const block =
+          omission.messageKey === message.messageKey && omission.blockIndex !== undefined
+            ? message.blocks[omission.blockIndex]
+            : undefined;
+        return block !== undefined && (block.kind === 'signature' || block.kind === 'quote')
+          ? [{ blockIndex: omission.blockIndex ?? 0, kind: block.kind, text: shorten(block.text) }]
+          : [];
+      }),
+    };
+  });
 
   return {
     status,
@@ -181,7 +239,8 @@ function statusView(state: SessionState, ui: TransientUiState): StatusView {
 function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyView {
   const { state, capabilities, ui } = input;
   const { binding } = state;
-  const isReply = state.form.operation === 'reply';
+  // Talimattan yazılan metin (yanıt veya yeni e-posta) dolu taslağın yerine ancak onayla geçer.
+  const isReply = isInstructionOperation(state.form.operation);
   const draftNeedsConfirmation =
     binding.kind === 'draft' &&
     isReply &&
@@ -211,11 +270,22 @@ function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyVi
 }
 
 /**
+ * Kullanıcı başka bir işleme geçtiyse eski işlemin eskimiş sonucu gösterilmez
+ * (ör. karttaki düzeltme sonucu, yanıt hazırlarken panelde kalmaz). Aynı
+ * işlemin eskimiş sonucu ise "kaynak değişti" uyarısıyla kopyalanabilir kalır.
+ */
+function isOtherOperationsPreview(state: SessionState, capabilities: SessionCapabilities): boolean {
+  return (
+    capabilities.previewIsStale && state.action !== null && state.action.operation !== state.form.operation
+  );
+}
+
+/**
  * Oturum durumundan panelin görünüm verisini üretir. Saf bir fonksiyondur;
  * düğmelerin etkinliği yeniden hesaplanmaz, yetenekler `core`dan gelir.
  */
 export function toPanelView(input: PanelViewInput): PanelView {
-  const { state, capabilities, page, ui } = input;
+  const { state, capabilities, page, ui, history } = input;
   const { form, binding, phase } = state;
   const composer = sessionComposer(state, page);
   const fieldErrors: Partial<Record<ErrorField, ErrorCode>> = {};
@@ -224,10 +294,18 @@ export function toPanelView(input: PanelViewInput): PanelView {
       fieldErrors[error.field] = error.code;
     }
   }
-  const activeThread = page.activeThread;
 
   return {
     operation: form.operation,
+    // Yanıt taslağı veya konuşma varsa konuşmaya yanıt; yeni iletide veya hiçbirinde yeni e-posta.
+    writeOperation:
+      composer !== null
+        ? composer.threadKey === null
+          ? 'compose'
+          : 'reply'
+        : state.thread === null
+          ? 'compose'
+          : 'reply',
     target: targetView(state, capabilities),
     source: {
       origin: binding.kind,
@@ -236,7 +314,7 @@ export function toPanelView(input: PanelViewInput): PanelView {
       edited: capabilities.sourceEdited,
       pendingReplace: ui.pendingReplace,
       canLoadDraft: composer !== null,
-      canLoadSelection: composer !== null && form.operation !== 'reply',
+      canLoadSelection: composer !== null && !isInstructionOperation(form.operation),
       canLoadReceivedSelection: state.thread !== null && form.operation === 'translate',
       isReading: phase.status === 'reading',
     },
@@ -246,9 +324,9 @@ export function toPanelView(input: PanelViewInput): PanelView {
       showTargetLanguage: form.operation !== 'revise',
       showTone: form.operation !== 'translate',
       useConversation: form.useConversation,
-      showUseConversation: form.operation !== 'reply' && state.thread !== null,
+      showUseConversation: !isInstructionOperation(form.operation) && state.thread !== null,
     },
-    context: contextView(state, capabilities, fieldErrors.context ?? null),
+    context: contextView(state, capabilities, history, fieldErrors.context ?? null),
     fieldErrors,
     prepare: {
       canPrepare: !capabilities.isBusy && capabilities.prepareBlocker === null,
@@ -256,7 +334,7 @@ export function toPanelView(input: PanelViewInput): PanelView {
       isPreparing: phase.status === 'prepared',
     },
     preview:
-      state.preview === null
+      state.preview === null || isOtherOperationsPreview(state, capabilities)
         ? null
         : {
             text: state.preview.text,
@@ -267,9 +345,5 @@ export function toPanelView(input: PanelViewInput): PanelView {
     apply: applyView(input, composer),
     status: statusView(state, ui),
     staleNotice: state.staleReason === null ? null : STALE_NOTICES[state.staleReason],
-    canStartNewWork:
-      hasUserWork(state) &&
-      activeThread !== null &&
-      (state.thread === null || !isSameThread(state.thread, activeThread)),
   };
 }

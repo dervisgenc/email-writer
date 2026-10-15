@@ -10,6 +10,15 @@ export interface ContextMessage {
   readonly senderLabel: string | null;
   readonly sentAt: string | null;
   readonly sentAtText: string | null;
+  /** Mesajın okunduğu konuşmanın konusu. */
+  readonly subject: string | null;
+  /**
+   * `current`: açık konuşmadan veya aynı konulu bir konuşmadan (varsayılan
+   * olarak bağlamdadır). `other`: kullanıcının başka bir konuşmadan eklediği.
+   */
+  readonly conversation: 'current' | 'other';
+  /** Metin, kullanıcının bağlam denetleyicisinde yaptığı düzenlemedir. */
+  readonly edited: boolean;
   readonly text: string;
 }
 
@@ -38,9 +47,26 @@ export interface ContextSnapshot {
   readonly createdAt: string;
 }
 
-/** Kullanıcının bağlam denetleyicisindeki seçimi. */
-export type ContextSelection =
-  { readonly mode: 'automatic' } | { readonly mode: 'manual'; readonly messageKeys: readonly string[] };
+/**
+ * Kullanıcının bağlam denetleyicisindeki seçimi, varsayılan kurala göre
+ * istisnalar olarak tutulur. Varsayılan: açık konuşmadaki ve aynı konulu
+ * mesajlar bağlamdadır, başka konuşmalardan okunan mesajlar değildir. Böylece
+ * sonradan okunan ilgili mesajlar da kendiliğinden bağlama girer.
+ */
+export interface ContextSelection {
+  /** Varsayılan olarak bağlamda olmayıp kullanıcının eklediği mesajlar. */
+  readonly included: readonly string[];
+  /** Kullanıcının bağlamdan çıkardığı mesajlar. */
+  readonly excluded: readonly string[];
+}
+
+export const DEFAULT_CONTEXT_SELECTION: ContextSelection = Object.freeze({ included: [], excluded: [] });
+
+/** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metni; orijinal mesaj değişmez. */
+export interface ContextEdit {
+  readonly messageKey: string;
+  readonly text: string;
+}
 
 /** Otomatik çıkarılan bir imza veya alıntı bloğunu geri dahil etmek için. */
 export interface BlockRef {
@@ -60,6 +86,8 @@ export type ContextNotice =
   | { readonly kind: 'virtualized-content' }
   | { readonly kind: 'read-limit' }
   | { readonly kind: 'user-excluded'; readonly count: number }
+  | { readonly kind: 'other-conversations'; readonly count: number }
+  | { readonly kind: 'user-edited'; readonly count: number }
   | { readonly kind: 'message-limited'; readonly count: number }
   | { readonly kind: 'size-limited'; readonly count: number }
   | { readonly kind: 'signature-removed'; readonly count: number }

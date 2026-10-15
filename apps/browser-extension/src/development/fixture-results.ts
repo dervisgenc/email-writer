@@ -17,6 +17,8 @@ const SAMPLE_TEXTS: Readonly<Record<Operation, string>> = {
   revise: 'Toplantıyı yarın yapabiliriz.',
   translate: 'We can hold the meeting tomorrow.',
   reply: 'Merhaba,\n\nMesajınız için teşekkürler. Yarın size uygun bir saatte görüşebiliriz.\n\nSaygılarımla',
+  compose:
+    'Merhaba,\n\nPerşembe 14:00 için kısa bir toplantı önermek istiyorum. Uygun olup olmadığınızı paylaşır mısınız?\n\nİyi çalışmalar',
 };
 
 export type FixtureScenario = 'success' | 'error';

@@ -14,6 +14,13 @@ import type {
  * durumundan eklenti tarafında üretilir; bileşenler iş kuralı hesaplamaz.
  */
 
+/** Yazma alanındaki araç çubuğundan doğrudan istenen işlem. */
+export type QuickActionRequest =
+  | { readonly operation: 'revise' }
+  | { readonly operation: 'translate'; readonly language: LanguageCode }
+  | { readonly operation: 'reply' }
+  | { readonly operation: 'compose' };
+
 export type TargetView =
   | { readonly kind: 'none' }
   | { readonly kind: 'composer'; readonly isReply: boolean }
@@ -53,9 +60,17 @@ export interface ContextMessageView {
   readonly messageKey: string;
   readonly senderLabel: string | null;
   readonly sentAtText: string | null;
+  readonly subject: string | null;
+  /**
+   * `current`: açık konuşmadan veya aynı konudan (varsayılan olarak bağlamda).
+   * `other`: başka bir konuşmadan okunan; yalnızca kullanıcı eklerse bağlamda.
+   */
+  readonly group: 'current' | 'other';
   readonly preview: string;
+  /** Bağlama girecek metin; kullanıcı düzenlediyse düzenlenmiş hâli. */
   readonly text: string;
   readonly included: boolean;
+  readonly edited: boolean;
   /** Yanıt hazırlamada aktif mesaj bağlamdan çıkarılamaz. */
   readonly locked: boolean;
   readonly isReplyTarget: boolean;
@@ -101,6 +116,11 @@ export type StatusView =
 
 export interface PanelView {
   readonly operation: Operation;
+  /**
+   * Talimattan yazma işlemi: konuşmanın yanıtında `reply`, yeni iletide veya
+   * taslak yokken `compose`. Panelin ilk sekmesi buna göre gösterilir.
+   */
+  readonly writeOperation: 'reply' | 'compose';
   readonly target: TargetView;
   readonly source: SourceView;
   readonly options: OptionsView;
@@ -115,6 +135,4 @@ export interface PanelView {
   readonly apply: ApplyView;
   readonly status: StatusView;
   readonly staleNotice: ErrorCode | null;
-  /** Panel başka bir konuşmanın çalışmasına bağlıyken yeni çalışma başlatma seçeneği. */
-  readonly canStartNewWork: boolean;
 }

@@ -1,42 +1,30 @@
-import type { ContextSelection, ContextSnapshot, ThreadSnapshot } from '@email-writer/contracts';
+import type { ContextEdit, ContextSelection } from '@email-writer/contracts';
 
 /**
- * "Konuşmayı yeniden oku" sonrasında eski elle seçim yalnızca aynı güvenilir
- * mesaj kimlikleri yeni snapshot'ta hâlâ bulunuyorsa korunur.
- */
-export function retainContextSelection(
-  selection: ContextSelection,
-  snapshot: ThreadSnapshot,
-): ContextSelection {
-  if (selection.mode === 'automatic') {
-    return selection;
-  }
-  const available = new Set(snapshot.messages.map((message) => message.messageKey));
-  return {
-    mode: 'manual',
-    messageKeys: selection.messageKeys.filter((key) => available.has(key)),
-  };
-}
-
-/**
- * Bağlam denetleyicisinde bir mesajın seçimini değiştirir. Otomatik seçimden
- * ilk elle değişiklikte, o anda bağlamda bulunan mesajlar başlangıç kabul edilir.
+ * Bağlam denetleyicisinde bir mesajı ekler veya çıkarır. Seçim varsayılan
+ * kurala göre istisna olarak tutulur; aynı mesaj hem eklenen hem çıkarılan
+ * listesinde bulunmaz.
  */
 export function withMessageInclusion(
   selection: ContextSelection,
-  currentContext: ContextSnapshot | null,
   messageKey: string,
   included: boolean,
 ): ContextSelection {
-  const base =
-    selection.mode === 'manual'
-      ? selection.messageKeys
-      : (currentContext?.messages.map((message) => message.messageKey) ?? []);
-  const keys = new Set(base);
-  if (included) {
-    keys.add(messageKey);
-  } else {
-    keys.delete(messageKey);
-  }
-  return { mode: 'manual', messageKeys: [...keys] };
+  const without = (keys: readonly string[]) => keys.filter((key) => key !== messageKey);
+  return included
+    ? { included: [...without(selection.included), messageKey], excluded: without(selection.excluded) }
+    : { included: without(selection.included), excluded: [...without(selection.excluded), messageKey] };
+}
+
+/**
+ * Bir mesajın bağlamdaki metnini düzenler; `null` düzenlemeyi kaldırır ve
+ * orijinal metne döner. Orijinal mesaj ve e-posta değişmez.
+ */
+export function withMessageEdit(
+  edits: readonly ContextEdit[],
+  messageKey: string,
+  text: string | null,
+): readonly ContextEdit[] {
+  const others = edits.filter((edit) => edit.messageKey !== messageKey);
+  return text === null ? others : [...others, { messageKey, text }];
 }

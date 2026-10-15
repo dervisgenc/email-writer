@@ -1,0 +1,249 @@
+/*
+ * Yazma alanına gömülü araç çubuğu ve sonuç kartı. Outlook'un DOM ağacına
+ * eklenmezler; taslağın köşesinde yüzen gölge kökte gösterilirler.
+ */
+.ew-compose-anchor {
+  position: relative;
+}
+
+.ew-compose-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-medium);
+  background: var(--ew-color-bg);
+  box-shadow: var(--ew-shadow-4);
+}
+
+.ew-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--ew-space-2);
+  border: 0;
+  border-radius: var(--ew-radius-small);
+  background: transparent;
+  color: var(--ew-color-text);
+  font-size: var(--ew-font-size-200);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--ew-duration) var(--ew-ease);
+}
+
+.ew-bar-btn .ew-icon {
+  color: var(--ew-color-muted);
+}
+
+.ew-bar-btn:hover:not(:disabled) {
+  background: var(--ew-color-surface-hover);
+}
+
+.ew-bar-btn:hover:not(:disabled) .ew-icon {
+  color: var(--ew-color-link);
+}
+
+.ew-bar-btn:active:not(:disabled) {
+  background: var(--ew-color-surface-pressed);
+}
+
+.ew-bar-btn:disabled {
+  color: var(--ew-color-disabled);
+}
+
+.ew-bar-btn--brand,
+.ew-bar-btn--brand .ew-icon {
+  color: var(--ew-color-link);
+}
+
+.ew-bar-btn--icon {
+  width: 28px;
+  padding: 0;
+  justify-content: center;
+}
+
+.ew-bar-btn--chevron {
+  width: 20px;
+  padding: 0;
+  justify-content: center;
+}
+
+.ew-bar-btn .ew-spinner {
+  width: 14px;
+  height: 14px;
+}
+
+.ew-bar-split {
+  position: relative;
+  display: inline-flex;
+}
+
+.ew-bar-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: var(--ew-color-border);
+}
+
+/* Dil menüsü */
+.ew-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  min-width: 168px;
+  padding: 4px;
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-medium);
+  background: var(--ew-color-bg);
+  box-shadow: var(--ew-shadow-16);
+  animation: ew-rise var(--ew-duration) var(--ew-ease);
+}
+
+.ew-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ew-space-3);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--ew-space-2);
+  border: 0;
+  border-radius: var(--ew-radius-small);
+  background: transparent;
+  text-align: left;
+}
+
+.ew-menu__item:hover,
+.ew-menu__item:focus-visible {
+  background: var(--ew-color-surface-hover);
+}
+
+.ew-menu__item[aria-checked='true'] {
+  font-weight: 600;
+  color: var(--ew-color-link);
+}
+
+/* Sonuç kartı: araç çubuğunun hemen üstünde açılır. */
+.ew-card {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: min(400px, calc(100vw - 32px));
+  /* Konumlandırıcı, araç çubuğunun üstünde kalan boşluğu --ew-space-above ile bildirir. */
+  max-height: min(520px, var(--ew-space-above, calc(100vh - 96px)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--ew-space-3);
+  padding: var(--ew-space-3);
+  overflow-y: auto;
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-large);
+  background: var(--ew-color-bg);
+  box-shadow: var(--ew-shadow-28);
+  animation: ew-rise var(--ew-duration) var(--ew-ease);
+}
+
+.ew-card__header,
+.ew-card__row,
+.ew-card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--ew-space-2);
+}
+
+.ew-card__header {
+  gap: 6px;
+}
+
+.ew-card__icon {
+  color: var(--ew-color-link);
+}
+
+.ew-card__title {
+  margin: 0;
+  font-size: var(--ew-font-size-300);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ew-card__spacer {
+  flex: 1 1 auto;
+}
+
+.ew-card__instruction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ew-space-2);
+}
+
+.ew-card__input {
+  min-height: 56px;
+  resize: none;
+}
+
+.ew-card__busy {
+  display: flex;
+  align-items: center;
+  gap: var(--ew-space-2);
+  color: var(--ew-color-muted);
+  font-size: var(--ew-font-size-200);
+}
+
+.ew-card__result {
+  width: 100%;
+  min-height: 120px;
+  max-height: 260px;
+  padding: var(--ew-space-2) var(--ew-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--ew-radius-medium);
+  background: var(--ew-color-surface);
+  line-height: var(--ew-line-height-300);
+  resize: vertical;
+}
+
+.ew-card__result:focus {
+  outline: none;
+  border-color: var(--ew-color-border-strong);
+  box-shadow: inset 0 -2px 0 var(--ew-color-accent);
+}
+
+.ew-card__footer {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ew-card__success {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--ew-color-success);
+  font-size: var(--ew-font-size-200);
+}
+
+/* Okuma bölmesindeki "Yanıt hazırla" düğmesi */
+.ew-thread-launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--ew-space-3) 0 var(--ew-space-2);
+  border: 1px solid var(--ew-color-border);
+  border-radius: var(--ew-radius-circular);
+  background: var(--ew-color-bg);
+  box-shadow: var(--ew-shadow-2);
+  color: var(--ew-color-text);
+  font-size: var(--ew-font-size-200);
+  font-weight: 600;
+  transition: background var(--ew-duration) var(--ew-ease);
+}
+
+.ew-thread-launcher .ew-icon {
+  color: var(--ew-color-link);
+}
+
+.ew-thread-launcher:hover {
+  background: var(--ew-color-surface-hover);
+}

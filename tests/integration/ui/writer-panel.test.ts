@@ -1,11 +1,15 @@
 import { mount } from '@vue/test-utils';
 import {
+  ComposeToolbar,
   ContextInspector,
+  InlineAssistant,
   provideUiText,
   ResultPreview,
   WriterPanel,
+  type ContextMessageView,
   type ContextView,
   type PanelView,
+  type QuickActionRequest,
   type UiText,
 } from '@email-writer/ui';
 import { describe, expect, it } from 'vitest';
@@ -25,6 +29,7 @@ const emptyContext: ContextView = {
 function view(overrides: Partial<PanelView> = {}): PanelView {
   return {
     operation: 'revise',
+    writeOperation: 'reply',
     target: { kind: 'composer', isReply: true },
     source: {
       origin: 'draft-selection',
@@ -61,7 +66,6 @@ function view(overrides: Partial<PanelView> = {}): PanelView {
     },
     status: { kind: 'none' },
     staleNotice: null,
-    canStartNewWork: false,
     ...overrides,
   };
 }
@@ -118,7 +122,8 @@ describe('WriterPanel', () => {
 
     await wrapper.get('.ew-prepare button').trigger('click');
     await wrapper.get('textarea').setValue('yeni metin');
-    await wrapper.findAll('[role="radio"]')[1]!.trigger('click');
+    // Sıra: Yanıt hazırla, Düzelt, Çevir.
+    await wrapper.findAll('[role="radio"]')[2]!.trigger('click');
     await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' });
 
     expect(events).toEqual(['prepare', 'source:yeni metin', 'operation:translate', 'close']);
@@ -195,28 +200,22 @@ describe('ContextInspector', () => {
       { kind: 'coverage-unverified' },
     ],
     messages: [
-      {
+      contextMessage({
         messageKey: 'm1',
         senderLabel: 'Mehmet Demir',
         sentAtText: 'Cum 11:00',
         preview: 'Merhaba Ayşe',
         text: 'Merhaba Ayşe',
-        included: true,
-        locked: false,
-        isReplyTarget: false,
         omittedBlocks: [{ blockIndex: 1, kind: 'signature', text: 'Saygılarımla' }],
-      },
-      {
+      }),
+      contextMessage({
         messageKey: 'm2',
         senderLabel: null,
-        sentAtText: null,
         preview: 'Hi',
         text: 'Hi',
-        included: true,
         locked: true,
         isReplyTarget: true,
-        omittedBlocks: [],
-      },
+      }),
     ],
     errorCode: null,
   };
@@ -224,7 +223,7 @@ describe('ContextInspector', () => {
   it('eksik kapsamı genel bir "hazır" mesajının arkasına saklamaz', () => {
     const wrapper = withText(ContextInspector, { context, disabled: false });
 
-    expect(wrapper.text()).toContain('Bağlamda 2 mesaj var.');
+    expect(wrapper.text()).toContain('2/2 mesaj kullanılıyor');
     expect(wrapper.text()).toContain('1 mesaj kapalı; içerikleri okunmadı.');
     expect(wrapper.text()).toContain('mesajların tamamına erişildiği doğrulanamıyor');
     wrapper.unmount();
@@ -239,10 +238,6 @@ describe('ContextInspector', () => {
         onBlockInclude: (key: string, index: number) => included.push([key, index]),
       },
     );
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'İncele')!
-      .trigger('click');
     const checkboxes = wrapper.findAll('input[type="checkbox"]');
 
     expect(checkboxes[1]!.attributes('disabled')).toBeDefined();
@@ -268,4 +263,230 @@ describe('ContextInspector', () => {
     expect(chosen).toEqual(['m1']);
     wrapper.unmount();
   });
+
+  it('başka konuşmalardan açılanları ayrı ve kapalı bir grupta gösterir; işaretleyince bağlama ekler', async () => {
+    const changes: unknown[] = [];
+    const wrapper = withText(
+      ContextInspector,
+      {
+        context: {
+          ...context,
+          messages: [
+            ...context.messages,
+            contextMessage({ messageKey: 'o1', group: 'other', included: false, subject: 'Fatura' }),
+          ],
+        },
+        disabled: false,
+      },
+      { onContextSelectionChange: (key: string, included: boolean) => changes.push([key, included]) },
+    );
+
+    expect(wrapper.text()).toContain('Bu konuşma');
+    const toggle = wrapper.findAll('button').find((b) => b.text().includes('Diğer açılan e-postalar (1)'))!;
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+    await toggle.trigger('click');
+    expect(wrapper.text()).toContain('Fatura');
+
+    const otherCheckbox = wrapper.findAll('input[type="checkbox"]')[2]!;
+    (otherCheckbox.element as HTMLInputElement).checked = true;
+    await otherCheckbox.trigger('change');
+    expect(changes).toEqual([['o1', true]]);
+    wrapper.unmount();
+  });
+
+  it('mesaj metni düzenlenip kaydedilir veya orijinale döndürülür', async () => {
+    const edits: unknown[] = [];
+    const wrapper = withText(
+      ContextInspector,
+      {
+        context: {
+          ...context,
+          messages: [contextMessage({ messageKey: 'm1', text: 'Uzun metin', edited: true })],
+        },
+        disabled: false,
+      },
+      { onContextTextChange: (key: string, text: string | null) => edits.push([key, text]) },
+    );
+
+    await wrapper.get('button[aria-label="Düzenle"]').trigger('click');
+    const editor = wrapper.get('textarea');
+    expect((editor.element as HTMLTextAreaElement).value).toBe('Uzun metin');
+    await editor.setValue('Kısa metin');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Kaydet')!
+      .trigger('click');
+
+    await wrapper.get('button[aria-label="Düzenle"]').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Orijinale dön'))!
+      .trigger('click');
+
+    expect(edits).toEqual([
+      ['m1', 'Kısa metin'],
+      ['m1', null],
+    ]);
+    expect(wrapper.text()).toContain('Düzenlendi');
+    wrapper.unmount();
+  });
 });
+
+describe('ComposeToolbar', () => {
+  function toolbar(props: Partial<{ isReply: boolean; busyOperation: string | null }> = {}) {
+    const requests: unknown[] = [];
+    const wrapper = withText(
+      ComposeToolbar,
+      { isReply: true, busyOperation: null, defaultLanguage: 'en', ...props },
+      {
+        onQuickAction: (request: QuickActionRequest) => requests.push(request),
+        onOpenPanel: () => requests.push('panel'),
+      },
+    );
+    return { wrapper, requests };
+  }
+
+  it('yanıt taslağında Yanıt yaz, Düzelt ve Çevir işlemlerini doğrudan ister', async () => {
+    const { wrapper, requests } = toolbar();
+    const button = (label: string) => wrapper.findAll('button').find((b) => b.text() === label)!;
+
+    await button('Yanıt yaz').trigger('click');
+    await button('Düzelt').trigger('click');
+    await button('Çevir').trigger('click');
+    await wrapper.get('button[aria-label="Yazma yardımcısını panelde aç"]').trigger('click');
+
+    expect(requests).toEqual([
+      { operation: 'reply' },
+      { operation: 'revise' },
+      { operation: 'translate', language: 'en' },
+      'panel',
+    ]);
+    expect(wrapper.get('[role="toolbar"]').attributes('aria-label')).toBe('Email Writer');
+    wrapper.unmount();
+  });
+
+  it('yeni iletide "Yanıt yaz" yerine "Yaz" gösterir; dil menüsünden başka bir dile çevirir', async () => {
+    const { wrapper, requests } = toolbar({ isReply: false });
+
+    expect(wrapper.text()).not.toContain('Yanıt yaz');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Yaz')!
+      .trigger('click');
+    await wrapper.get('button[aria-haspopup="menu"]').trigger('click');
+    const german = wrapper.findAll('[role="menuitemradio"]').find((item) => item.text() === 'Almanca')!;
+    await german.trigger('click');
+
+    expect(requests).toEqual([{ operation: 'compose' }, { operation: 'translate', language: 'de' }]);
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('bir işlem çalışırken düğmeler kapanır ve çalışan işlemde ilerleme gösterilir', () => {
+    const { wrapper } = toolbar({ busyOperation: 'revise' });
+
+    for (const button of wrapper.findAll('[role="toolbar"] > button, .ew-bar-split > button')) {
+      if (button.attributes('aria-label') !== 'Yazma yardımcısını panelde aç') {
+        expect(button.attributes('disabled')).toBeDefined();
+      }
+    }
+    expect(wrapper.find('.ew-spinner').exists()).toBe(true);
+    wrapper.unmount();
+  });
+});
+
+describe('InlineAssistant', () => {
+  it('yanıt kartı talimatı Enter ile gönderir ve bağlam sayısını gösterir', async () => {
+    const submitted: string[] = [];
+    const wrapper = withText(
+      InlineAssistant,
+      {
+        view: view({
+          operation: 'reply',
+          prepare: { canPrepare: true, blocker: null, isPreparing: false },
+          context: {
+            ...emptyContext,
+            status: 'ready',
+            required: true,
+            messages: [
+              contextMessage({ messageKey: 'm1' }),
+              contextMessage({ messageKey: 'm2', included: false }),
+            ],
+          },
+        }),
+      },
+      { onSubmitInstruction: (text: string) => submitted.push(text) },
+    );
+
+    expect(wrapper.text()).toContain('Yanıt taslağı');
+    expect(wrapper.text()).toContain('Bağlam · 1 mesaj');
+    const field = wrapper.get('textarea');
+    await field.setValue('Perşembe uygun de');
+    await field.trigger('keydown', { key: 'Enter' });
+
+    expect(submitted).toEqual(['Perşembe uygun de']);
+    wrapper.unmount();
+  });
+
+  it('sonucu gösterir; Uygula, Kopyala ve Geri al olaylarını verir', async () => {
+    const events: string[] = [];
+    const wrapper = withText(
+      InlineAssistant,
+      {
+        view: view({
+          preview: { text: 'Toplantıyı yarın yapabiliriz.', sample: true, stale: false, unchanged: false },
+          apply: { ...view().apply, canApply: true, canCopy: true, canUndo: true },
+        }),
+      },
+      {
+        onApply: () => events.push('apply'),
+        onCopy: () => events.push('copy'),
+        onUndo: () => events.push('undo'),
+        onClose: () => events.push('close'),
+      },
+    );
+
+    expect(wrapper.text()).toContain('Düzeltme önerisi');
+    expect(wrapper.get('.ew-badge--sample').attributes('aria-label')).toBe('Örnek sonuç — geliştirme modu');
+    expect((wrapper.get('textarea').element as HTMLTextAreaElement).value).toBe(
+      'Toplantıyı yarın yapabiliriz.',
+    );
+    const button = (label: string) => wrapper.findAll('button').find((b) => b.text().includes(label))!;
+    await button('Taslağa uygula').trigger('click');
+    await button('Kopyala').trigger('click');
+    await button('Son uygulamayı geri al').trigger('click');
+    await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' });
+
+    expect(events).toEqual(['apply', 'copy', 'undo', 'close']);
+    wrapper.unmount();
+  });
+
+  it('hazırlanırken ilerlemeyi, engel varken nedenini gösterir', () => {
+    const busy = withText(InlineAssistant, {
+      view: view({ status: { kind: 'busy', activity: 'preparing' } }),
+    });
+    expect(busy.text()).toContain('İşlem hazırlanıyor…');
+    busy.unmount();
+
+    const blocked = withText(InlineAssistant, { view: view() });
+    expect(blocked.text()).toContain('Metin işleme henüz bağlanmadı');
+    blocked.unmount();
+  });
+});
+
+function contextMessage(overrides: Partial<ContextMessageView> & { messageKey: string }): ContextMessageView {
+  return {
+    senderLabel: `Gönderen ${overrides.messageKey}`,
+    sentAtText: null,
+    subject: null,
+    group: 'current',
+    preview: 'Önizleme',
+    text: 'Metin',
+    included: true,
+    edited: false,
+    locked: false,
+    isReplyTarget: false,
+    omittedBlocks: [],
+    ...overrides,
+  };
+}

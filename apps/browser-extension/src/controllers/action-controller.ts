@@ -1,10 +1,12 @@
 import {
   appError,
+  isSameThread,
   type AppError,
   type BlockRef,
   type ComposerRef,
   type MailConnector,
   type TextProcessor,
+  type ThreadSnapshot,
 } from '@email-writer/contracts';
 import {
   buildContext,
@@ -12,7 +14,7 @@ import {
   effectiveApplyTarget,
   isSessionBusy,
   prepareAction,
-  retainContextSelection,
+  withMessageEdit,
   withMessageInclusion,
   type Clock,
   type ContextPolicy,
@@ -21,6 +23,7 @@ import {
   type SourceBinding,
 } from '@email-writer/core';
 
+import type { MessageHistoryStore } from './message-history';
 import type { SessionStore } from './session-store';
 
 export type SourceKind = 'draft' | 'selection' | 'received-message';
@@ -32,6 +35,8 @@ export interface ActionControllerDependencies {
   readonly connector: MailConnector;
   /** Bu aşamanın normal derlemesinde metin işleme bağlantısı yoktur (`null`). */
   readonly processor: TextProcessor | null;
+  /** Sayfa oturumunda okunan mesajlar; ilgili olanlar varsayılan olarak bağlama girer. */
+  readonly history: MessageHistoryStore;
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly policy?: ContextPolicy;
@@ -42,7 +47,14 @@ export interface ActionControllerDependencies {
 export interface ActionController {
   readThread(): Promise<void>;
   rebuildContext(): void;
+  /**
+   * Kullanıcı yeni bir mesaj açtı ve arka planda okundu. Bağlam kullanılıyorsa
+   * ve kullanıcı bir sonuç üzerinde çalışmıyorsa bağlam güncellenir.
+   */
+  threadCaptured(snapshot: ThreadSnapshot): void;
   setMessageIncluded(messageKey: string, included: boolean): void;
+  /** Bağlamdaki mesaj metnini düzenler; `null` orijinal metne döner. */
+  setMessageText(messageKey: string, text: string | null): void;
   includeBlock(block: BlockRef): void;
   /** Aktif mesaj tanınamadığında kullanıcının seçtiği yanıt hedefi. */
   setReplyTarget(messageKey: string): void;
@@ -86,22 +98,28 @@ export function createActionController(deps: ActionControllerDependencies): Acti
     }
   });
 
-  const contextFor = (state: SessionState) => {
-    if (state.thread === null || state.threadSnapshot === null) {
+  const contextFor = (state: SessionState, snapshot = state.threadSnapshot) => {
+    if (state.thread === null || snapshot === null) {
       return null;
     }
     return buildContext(
       {
         expectedThread: state.thread,
-        snapshot: state.threadSnapshot,
+        snapshot,
+        history: deps.history.entries(),
         selection: state.form.contextSelection,
         includedBlocks: state.form.includedBlocks,
+        edits: state.form.contextEdits,
         replyTargetKey: state.form.replyTargetKey,
         ...(deps.policy ? { policy: deps.policy } : {}),
       },
       { clock, ids },
     );
   };
+
+  /** Bağlam yalnızca kullanıcı bir sonuç üzerinde çalışmıyorsa sessizce güncellenir. */
+  const canRefreshQuietly = (state: SessionState) =>
+    state.threadSnapshot !== null && (state.phase.status === 'idle' || state.phase.status === 'editing');
 
   const rebuildContext = () => {
     const context = contextFor(store.getState());
@@ -223,34 +241,46 @@ export function createActionController(deps: ActionControllerDependencies): Acti
         }
         return;
       }
-      const current = store.getState();
       const snapshot = result.value;
-      const selection = retainContextSelection(current.form.contextSelection, snapshot);
-      const context = buildContext(
-        {
-          expectedThread: current.thread ?? thread,
-          snapshot,
-          selection,
-          includedBlocks: current.form.includedBlocks,
-          replyTargetKey: current.form.replyTargetKey,
-          ...(deps.policy ? { policy: deps.policy } : {}),
-        },
-        { clock, ids },
-      );
-      store.dispatch({ type: 'thread-read', operationId: work.operationId, snapshot, selection, context });
+      deps.history.record(snapshot);
+      const current = store.getState();
+      const context = contextFor({ ...current, thread: current.thread ?? thread }, snapshot);
+      if (context !== null) {
+        store.dispatch({ type: 'thread-read', operationId: work.operationId, snapshot, context });
+      }
     },
 
     rebuildContext,
 
-    setMessageIncluded(messageKey, included) {
+    threadCaptured(snapshot) {
       const state = store.getState();
+      if (!canRefreshQuietly(state) || state.thread === null) {
+        return;
+      }
+      if (isSameThread(state.thread, snapshot.ref)) {
+        const context = contextFor(state, snapshot);
+        if (context !== null) {
+          store.dispatch({ type: 'thread-refreshed', snapshot, context });
+        }
+      } else {
+        // Başka bir konuşma okundu; aynı konudaysa bağlama varsayılan olarak girer.
+        rebuildContext();
+      }
+    },
+
+    setMessageIncluded(messageKey, included) {
       const contextSelection = withMessageInclusion(
-        state.form.contextSelection,
-        state.context,
+        store.getState().form.contextSelection,
         messageKey,
         included,
       );
       store.dispatch({ type: 'form-changed', changes: { contextSelection } });
+      rebuildContext();
+    },
+
+    setMessageText(messageKey, text) {
+      const contextEdits = withMessageEdit(store.getState().form.contextEdits, messageKey, text);
+      store.dispatch({ type: 'form-changed', changes: { contextEdits } });
       rebuildContext();
     },
 

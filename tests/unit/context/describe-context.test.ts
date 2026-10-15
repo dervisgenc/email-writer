@@ -22,7 +22,7 @@ describe('describeContext', () => {
       {
         expectedThread: threadA,
         snapshot,
-        selection: { mode: 'manual', messageKeys: ['m2', 'm3'] },
+        selection: { included: [], excluded: ['m1'] },
         includedBlocks: [],
       },
       testDependencies(),

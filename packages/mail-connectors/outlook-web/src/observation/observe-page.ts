@@ -1,6 +1,8 @@
 export interface PageObserver {
   /** Bekleyen yeniden keşfi hemen çalıştırır. */
   flush(): void;
+  /** Gözlenmeyen bir değişiklik (ör. izlenen editörün içi) yeniden keşif gerektiriyorsa ister. */
+  request(): void;
   dispose(): void;
 }
 
@@ -61,6 +63,7 @@ export function observePage(options: ObservePageOptions): PageObserver {
         run();
       }
     },
+    request: schedule,
     dispose() {
       disposed = true;
       observer.disconnect();

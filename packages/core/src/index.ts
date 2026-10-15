@@ -7,7 +7,15 @@ export { DEFAULT_CONTEXT_POLICY } from './context/context-policy';
 export type { ContextPolicy } from './context/context-policy';
 export { describeContext } from './context/describe-context';
 export { normalizeContextText } from './context/normalize-text';
-export { retainContextSelection, withMessageInclusion } from './context/context-selection';
+export { withMessageEdit, withMessageInclusion } from './context/context-selection';
+export {
+  EMPTY_HISTORY,
+  HISTORY_LIMIT,
+  isRelatedEntry,
+  normalizeSubject,
+  recordSnapshot,
+} from './context/message-history';
+export type { HistoryEntry, MessageHistory } from './context/message-history';
 
 export { ACTION_LIMITS } from './actions/action-limits';
 export { prepareAction } from './actions/prepare-action';

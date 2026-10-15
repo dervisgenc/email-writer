@@ -19,15 +19,35 @@ type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
 export interface UiText {
   readonly panelTitle: string;
   readonly close: string;
-  readonly newWork: {
-    readonly offer: string;
-    readonly start: string;
-  };
-  readonly launcher: {
+  /** Okuma bölmesindeki "Yanıt hazırla" düğmesi. */
+  readonly threadLauncher: {
     readonly label: string;
     readonly tooltip: string;
-    readonly quickRevise: string;
-    readonly quickTranslate: string;
+  };
+  /** Yazma alanına gömülü araç çubuğu. */
+  readonly compose: {
+    readonly toolbarLabel: string;
+    readonly reply: string;
+    readonly replyTooltip: string;
+    readonly write: string;
+    readonly writeTooltip: string;
+    readonly revise: string;
+    readonly reviseTooltip: string;
+    readonly translate: string;
+    readonly translateTooltip: (language: string) => string;
+    readonly chooseLanguage: string;
+    readonly openPanel: string;
+  };
+  /** Yazma alanının yanındaki sonuç kartı. */
+  readonly inline: {
+    readonly titles: Readonly<Record<Operation, string>>;
+    readonly instructionLabel: string;
+    readonly instructionPlaceholder: string;
+    readonly write: string;
+    readonly contextChip: (count: number) => string;
+    readonly contextReading: string;
+    readonly openPanel: string;
+    readonly translatedTo: (language: string) => string;
   };
   readonly operations: Readonly<Record<Operation, string>>;
   readonly prepareButton: Readonly<Record<Operation, string>>;
@@ -41,6 +61,7 @@ export interface UiText {
   readonly source: {
     readonly textLabel: string;
     readonly instructionLabel: string;
+    readonly composeInstructionLabel: string;
     readonly originLabel: string;
     readonly origins: Readonly<Record<SourceOrigin, string>>;
     readonly edited: string;
@@ -62,8 +83,7 @@ export interface UiText {
   };
   readonly context: {
     readonly title: string;
-    readonly inspect: string;
-    readonly hide: string;
+    readonly summary: (included: number, total: number) => string;
     readonly refresh: string;
     readonly read: string;
     readonly reading: string;
@@ -73,8 +93,19 @@ export interface UiText {
     readonly chooseReplyTarget: string;
     readonly replyTarget: string;
     readonly unknownSender: string;
+    readonly currentGroup: string;
+    readonly otherGroup: (count: number) => string;
+    readonly otherHint: string;
+    readonly includeMessage: (sender: string) => string;
+    readonly replyTargetBadge: string;
+    readonly editedBadge: string;
     readonly showBody: string;
     readonly hideBody: string;
+    readonly edit: string;
+    readonly editLabel: string;
+    readonly save: string;
+    readonly cancelEdit: string;
+    readonly resetEdit: string;
     readonly omittedBlock: Readonly<Record<'signature' | 'quote', string>>;
     readonly includeBlock: string;
     readonly counted: Readonly<Record<CountedNotice, (count: number) => string>>;
@@ -82,7 +113,10 @@ export interface UiText {
   };
   readonly preview: {
     readonly title: string;
+    readonly regenerate: string;
     readonly sampleLabel: string;
+    /** Dar alanlarda (sonuç kartı) gösterilen kısa etiket; tam açıklama ipucunda kalır. */
+    readonly sampleShort: string;
     readonly stale: string;
     readonly unchanged: string;
   };

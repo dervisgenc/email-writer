@@ -1,4 +1,11 @@
-import type { ComposerRef, MailConnector, SelectorReport, SiteId, ThreadRef } from '@email-writer/contracts';
+import type {
+  ComposerRef,
+  MailConnector,
+  PageTheme,
+  SelectorReport,
+  SiteId,
+  ThreadRef,
+} from '@email-writer/contracts';
 
 /** Eklentinin kendi arayüz kökleri bu öznitelikle işaretlenir ve sayfa gözleminden dışlanır. */
 export const OWN_UI_ATTRIBUTE = 'data-email-writer-ui';
@@ -27,4 +34,6 @@ export interface MailPageProvider {
   locateLauncherAnchors(): readonly LauncherAnchor[];
   /** Gerçek sayfada seçici doğrulaması için içeriksiz eşleşme sayıları. */
   selectorReport(): readonly SelectorReport['entries'][number][];
+  /** E-posta uygulamasının o anki tema renkleri; okunamazsa `null`. */
+  readTheme(): PageTheme | null;
 }

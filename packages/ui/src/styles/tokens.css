@@ -1,65 +1,130 @@
 /*
- * Tasarım değişkenleri panel kökünde tanımlanır. Global `body`, `button` veya
+ * Tasarım değişkenleri. Değerler Outlook'un kullandığı Fluent UI v9 tasarım
+ * diliyle uyumludur. Eklenti, Outlook'un o anki renklerini okuyabildiğinde
+ * renk değişkenleri kökte satır içi olarak bunlarla değiştirilir; burada
+ * yalnızca yedek açık/koyu paletler bulunur. Global `body`, `button` veya
  * Outlook sınıflarına stil uygulanmaz; bütün kurallar `.ew-root` altındadır.
  */
 .ew-root {
-  --ew-font: 'Segoe UI', system-ui, -apple-system, 'Noto Sans', sans-serif;
-  --ew-font-size: 14px;
-  --ew-line-height: 1.45;
-  --ew-radius: 8px;
+  --ew-font:
+    'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, 'Noto Sans',
+    sans-serif;
+  --ew-font-size-100: 11px;
+  --ew-font-size-200: 12px;
+  --ew-font-size-300: 14px;
+  --ew-font-size-400: 16px;
+  --ew-line-height-200: 16px;
+  --ew-line-height-300: 20px;
+  --ew-line-height-400: 22px;
+
   --ew-radius-small: 4px;
+  --ew-radius-medium: 6px;
+  --ew-radius-large: 8px;
+  --ew-radius-circular: 999px;
+
   --ew-space-1: 4px;
   --ew-space-2: 8px;
   --ew-space-3: 12px;
   --ew-space-4: 16px;
-  --ew-panel-width: 440px;
-  --ew-shadow: 0 8px 28px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.12);
+  --ew-space-5: 20px;
+
+  --ew-panel-width: 400px;
+  --ew-duration: 140ms;
+  --ew-ease: cubic-bezier(0.33, 0, 0.67, 1);
 
   --ew-color-bg: #ffffff;
-  --ew-color-surface: #f6f7f9;
-  --ew-color-border: #d4d7dd;
-  --ew-color-text: #1b1d22;
-  --ew-color-muted: #5b616e;
+  --ew-color-surface: #f5f5f5;
+  --ew-color-surface-hover: #f0f0f0;
+  --ew-color-surface-pressed: #e0e0e0;
+  --ew-color-border: #e0e0e0;
+  --ew-color-border-strong: #d1d1d1;
+  --ew-color-text: #242424;
+  --ew-color-muted: #616161;
+  --ew-color-disabled: #bdbdbd;
   --ew-color-accent: #0f6cbd;
-  --ew-color-accent-text: #ffffff;
-  --ew-color-warning-bg: #fff4ce;
-  --ew-color-warning-text: #5c4400;
-  --ew-color-error: #b3261e;
-  --ew-color-success: #0e7a0d;
-  --ew-color-focus: #0f6cbd;
-  --ew-color-sample: #8a3ffc;
+  --ew-color-accent-hover: #115ea3;
+  --ew-color-on-accent: #ffffff;
+  --ew-color-accent-soft: #ebf3fc;
+  --ew-color-link: #0f6cbd;
+  --ew-color-focus: #000000;
+  --ew-color-warning: #8a3707;
+  --ew-color-warning-bg: #fdf6f3;
+  --ew-color-warning-border: #f4bfab;
+  --ew-color-danger: #b10e1c;
+  --ew-color-danger-bg: #fdf3f4;
+  --ew-color-success: #0e700e;
+  --ew-color-success-bg: #f1faf1;
+  --ew-color-sample: #6b4fa0;
+  --ew-color-sample-bg: #f5f2fa;
+
+  --ew-shadow-2: 0 0 2px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.14);
+  --ew-shadow-4: 0 0 2px rgb(0 0 0 / 0.12), 0 2px 4px rgb(0 0 0 / 0.14);
+  --ew-shadow-16: 0 0 2px rgb(0 0 0 / 0.12), 0 8px 16px rgb(0 0 0 / 0.14);
+  --ew-shadow-28: 0 0 8px rgb(0 0 0 / 0.12), 0 14px 28px rgb(0 0 0 / 0.14);
 }
 
 .ew-root[data-theme='dark'] {
-  --ew-color-bg: #1f2125;
-  --ew-color-surface: #2a2d33;
-  --ew-color-border: #454a53;
-  --ew-color-text: #eceef2;
-  --ew-color-muted: #a8aeb9;
-  --ew-color-accent: #4aa3f0;
-  --ew-color-accent-text: #0b1520;
-  --ew-color-warning-bg: #4a3b0c;
-  --ew-color-warning-text: #ffe8a3;
-  --ew-color-error: #ff8a80;
-  --ew-color-success: #7ed67b;
-  --ew-color-focus: #4aa3f0;
-  --ew-color-sample: #c6a5ff;
+  --ew-color-bg: #292929;
+  --ew-color-surface: #1f1f1f;
+  --ew-color-surface-hover: #3d3d3d;
+  --ew-color-surface-pressed: #141414;
+  --ew-color-border: #525252;
+  --ew-color-border-strong: #666666;
+  --ew-color-text: #ffffff;
+  --ew-color-muted: #adadad;
+  --ew-color-disabled: #5c5c5c;
+  --ew-color-accent: #115ea3;
+  --ew-color-accent-hover: #0f6cbd;
+  --ew-color-on-accent: #ffffff;
+  --ew-color-accent-soft: #082338;
+  --ew-color-link: #479ef5;
+  --ew-color-focus: #ffffff;
+  --ew-color-warning: #faa06b;
+  --ew-color-warning-bg: #411200;
+  --ew-color-warning-border: #6e2a0a;
+  --ew-color-danger: #ee6f78;
+  --ew-color-danger-bg: #3b0509;
+  --ew-color-success: #54b054;
+  --ew-color-success-bg: #052505;
+  --ew-color-sample: #c9b5f0;
+  --ew-color-sample-bg: #2b2140;
+
+  --ew-shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+  --ew-shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+  --ew-shadow-16: 0 0 2px rgb(0 0 0 / 0.24), 0 8px 16px rgb(0 0 0 / 0.28);
+  --ew-shadow-28: 0 0 8px rgb(0 0 0 / 0.24), 0 14px 28px rgb(0 0 0 / 0.28);
 }
 
 @media (prefers-color-scheme: dark) {
   .ew-root[data-theme='system'] {
-    --ew-color-bg: #1f2125;
-    --ew-color-surface: #2a2d33;
-    --ew-color-border: #454a53;
-    --ew-color-text: #eceef2;
-    --ew-color-muted: #a8aeb9;
-    --ew-color-accent: #4aa3f0;
-    --ew-color-accent-text: #0b1520;
-    --ew-color-warning-bg: #4a3b0c;
-    --ew-color-warning-text: #ffe8a3;
-    --ew-color-error: #ff8a80;
-    --ew-color-success: #7ed67b;
-    --ew-color-focus: #4aa3f0;
-    --ew-color-sample: #c6a5ff;
+    --ew-color-bg: #292929;
+    --ew-color-surface: #1f1f1f;
+    --ew-color-surface-hover: #3d3d3d;
+    --ew-color-surface-pressed: #141414;
+    --ew-color-border: #525252;
+    --ew-color-border-strong: #666666;
+    --ew-color-text: #ffffff;
+    --ew-color-muted: #adadad;
+    --ew-color-disabled: #5c5c5c;
+    --ew-color-accent: #115ea3;
+    --ew-color-accent-hover: #0f6cbd;
+    --ew-color-on-accent: #ffffff;
+    --ew-color-accent-soft: #082338;
+    --ew-color-link: #479ef5;
+    --ew-color-focus: #ffffff;
+    --ew-color-warning: #faa06b;
+    --ew-color-warning-bg: #411200;
+    --ew-color-warning-border: #6e2a0a;
+    --ew-color-danger: #ee6f78;
+    --ew-color-danger-bg: #3b0509;
+    --ew-color-success: #54b054;
+    --ew-color-success-bg: #052505;
+    --ew-color-sample: #c9b5f0;
+    --ew-color-sample-bg: #2b2140;
+
+    --ew-shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+    --ew-shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+    --ew-shadow-16: 0 0 2px rgb(0 0 0 / 0.24), 0 8px 16px rgb(0 0 0 / 0.28);
+    --ew-shadow-28: 0 0 8px rgb(0 0 0 / 0.24), 0 14px 28px rgb(0 0 0 / 0.28);
   }
 }

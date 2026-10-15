@@ -5,6 +5,7 @@ import { computed, onScopeDispose, shallowRef } from 'vue';
 
 import type { ActionController } from '../controllers/action-controller';
 import type { ApplyController } from '../controllers/apply-controller';
+import type { MessageHistoryStore } from '../controllers/message-history';
 import type { PanelController } from '../controllers/panel-controller';
 import { sessionComposer, toPanelView, type TransientUiState } from '../controllers/panel-view';
 import type { SessionStore } from '../controllers/session-store';
@@ -15,6 +16,7 @@ export interface PanelSessionDependencies {
   readonly panel: PanelController;
   readonly actions: ActionController;
   readonly applier: ApplyController;
+  readonly history: MessageHistoryStore;
   readonly processingAvailable: boolean;
 }
 
@@ -25,14 +27,20 @@ const NOTICE_DURATION_MS = 4_000;
  * yazılmaz: görünüm `toPanelView` ile üretilir, olaylar denetleyicilere iletilir.
  */
 export function usePanelSession(deps: PanelSessionDependencies) {
-  const { store, connector, panel, actions, applier } = deps;
+  const { store, connector, panel, actions, applier, history } = deps;
   const state = shallowRef(store.getState());
   const page = shallowRef<PageState>(connector.getPageState());
+  // Arka planda okunan mesajlar bağlam listesinde hemen görünsün diye.
+  const historyEntries = shallowRef(history.entries());
   const ui = shallowRef<TransientUiState>({ pendingReplace: null, replyReplaceComposer: null, notice: null });
   let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   const unsubscribeStore = store.subscribe((next) => {
     state.value = next;
+    historyEntries.value = history.entries();
+  });
+  const unsubscribeHistory = history.subscribe(() => {
+    historyEntries.value = history.entries();
   });
   const unsubscribeConnector = connector.subscribe((event) => {
     if (event.type === 'page-state-changed') {
@@ -41,6 +49,7 @@ export function usePanelSession(deps: PanelSessionDependencies) {
   });
   onScopeDispose(() => {
     unsubscribeStore();
+    unsubscribeHistory();
     unsubscribeConnector();
     if (noticeTimer !== null) {
       clearTimeout(noticeTimer);
@@ -64,7 +73,13 @@ export function usePanelSession(deps: PanelSessionDependencies) {
   );
 
   const view = computed(() =>
-    toPanelView({ state: state.value, capabilities: capabilities.value, page: page.value, ui: ui.value }),
+    toPanelView({
+      state: state.value,
+      capabilities: capabilities.value,
+      page: page.value,
+      ui: ui.value,
+      history: historyEntries.value,
+    }),
   );
 
   const composer = (): ComposerRef | null => sessionComposer(store.getState(), page.value);
@@ -84,7 +99,6 @@ export function usePanelSession(deps: PanelSessionDependencies) {
 
   const handlers = {
     close: () => panel.close(),
-    startNewWork: () => panel.startNewWork(),
     operationChange: panel.changeOperation,
     sourceChange: (text: string) => store.dispatch({ type: 'form-changed', changes: { sourceText: text } }),
     instructionChange: (text: string) =>
@@ -96,11 +110,18 @@ export function usePanelSession(deps: PanelSessionDependencies) {
     toneChange: (tone: Tone) => store.dispatch({ type: 'form-changed', changes: { tone } }),
     useConversationChange: panel.setUseConversation,
     contextSelectionChange: actions.setMessageIncluded,
+    contextTextChange: actions.setMessageText,
     blockInclude: (messageKey: string, blockIndex: number) =>
       actions.includeBlock({ messageKey, blockIndex }),
     replyTargetChange: actions.setReplyTarget,
     refreshContext: () => void actions.readThread(),
     prepare: () => void actions.prepare(),
+    /** Karttaki yanıt talimatını kaydeder ve yanıtı hazırlar. */
+    submitInstruction: (text: string) => {
+      store.dispatch({ type: 'form-changed', changes: { instruction: text } });
+      void actions.prepare();
+    },
+    expandToPanel: () => panel.expandToPanel(),
     previewChange: (text: string) => store.dispatch({ type: 'preview-edited', text }),
     apply: () => void applier.apply(),
     undo: async () => {
