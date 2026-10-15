@@ -2,7 +2,7 @@
 
 E-posta uygulamasından ayrılmadan daha iyi mesaj yazmaya yardım eden tarayıcı eklentisi. İlk hedef Outlook Web. Chromium (Chrome, Edge, Brave) ve Firefox için aynı kod tabanından Manifest V3 paketleri üretilir.
 
-**Durum (14 Ekim 2026):** Proje temeli kuruldu (implementation_details.md, Adım 1). Konuşma okuma, bağlam kuralları, panel, işlem hazırlığı ve güvenli taslağa yazma/geri alma altyapısı sentetik örnek sayfada Chromium ve Firefox'ta çalışıyor. Gerçek Outlook hesabıyla doğrulama ve AI/metin işleme bağlantısı sonraki adımlar. Ayrıntı: [YAPILAN_ISLER.md](./YAPILAN_ISLER.md).
+**Durum (15 Ekim 2026):** Proje temeli kuruldu (implementation_details.md, Adım 1). Konuşma okuma, bağlam kuralları, panel, işlem hazırlığı ve güvenli taslağa yazma/geri alma altyapısı sentetik örnek sayfada Chromium ve Firefox'ta (Linux ve macOS) çalışıyor. Konuşma okuma gerçek Outlook'ta kısmen doğrulandı (seçili mesaj görünümü). Taslak/yazma doğrulaması ve AI/metin işleme bağlantısı sonraki adımlar. Ayrıntı: [YAPILAN_ISLER.md](./YAPILAN_ISLER.md).
 
 ## Hızlı başlangıç
 
