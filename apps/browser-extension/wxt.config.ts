@@ -39,21 +39,21 @@ export default defineConfig({
   }),
   hooks: {
     // Yerel test sayfası yalnızca geliştirme/test derlemesinde desteklenen origin olur.
-    'build:manifestGenerated': (wxt, manifest) => {
+    // Eşleşmeler manifest yerine giriş noktası seçeneklerine eklenir: `wxt` (dev)
+    // MV3'te content script'i manifeste yazmaz, bu seçeneklerle çalışma anında
+    // kaydeder. Manifestteki content script, host izni ve gölge kök stilinin
+    // web_accessible_resources eşleşmeleri de aynı seçeneklerden üretilir.
+    'entrypoints:resolved': (wxt, entrypoints) => {
       if (wxt.config.mode === 'production') {
         return;
       }
-      const withDevelopmentMatches = (matches: string[]) =>
-        matches.some((pattern) => (OUTLOOK_WEB_MATCHES as readonly string[]).includes(pattern))
-          ? [...matches, ...DEVELOPMENT_MATCHES]
-          : matches;
-      for (const script of manifest.content_scripts ?? []) {
-        script.matches = withDevelopmentMatches(script.matches ?? []);
-      }
-      // Gölge kökün stil dosyası yerel test sayfasından da yüklenebilmeli.
-      for (const resource of manifest.web_accessible_resources ?? []) {
-        if (typeof resource !== 'string' && resource.matches !== undefined) {
-          resource.matches = withDevelopmentMatches(resource.matches);
+      for (const entry of entrypoints) {
+        if (entry.type !== 'content-script') {
+          continue;
+        }
+        const { matches } = entry.options;
+        if (matches?.some((pattern) => (OUTLOOK_WEB_MATCHES as readonly string[]).includes(pattern))) {
+          entry.options.matches = [...matches, ...DEVELOPMENT_MATCHES];
         }
       }
     },
