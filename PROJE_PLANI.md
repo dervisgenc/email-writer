@@ -1,7 +1,7 @@
 # Email Writer proje planı
 
-Güncelleme: 13 Ekim 2026  
-Proje açık kaynak olarak başlayacak. Ticari model, uygulama kullanılabilir hale geldikten sonra değerlendirilecek.
+Güncelleme: 15 Ekim 2026
+Proje şu anda private repoda geliştiriliyor; ileride açık kaynak yayımlanması planlanıyor. Ticari model, uygulama kullanılabilir hale geldikten sonra değerlendirilecek.
 
 ## 1. Uygulamanın amacı
 
@@ -80,6 +80,8 @@ Yeni bir AI sağlayıcısı için de bağlantı kurma, model seçme ve metin ür
 Bunu mümkün kılmak için ilk geliştirme adımında, modüllerin hangi veriyi alıp hangi sonucu döndüreceğini tanımlayacağız. Bu tanımları tek yerde tutacağız. İkinci e-posta ve ikinci AI sağlayıcısını eklemek, yapının gerçekten modüler olup olmadığını gösterecek.
 
 ## 4. API ve üyelik bağlantıları
+
+**İlk implementasyon:** ChatGPT plan kullanımı ve OpenAI API anahtarı, `packages/ai-openai` ve `apps/ai-companion` üzerinden bağlandı. Yerel uygulama macOS/Linux native messaging ile çalışır; tarayıcı token saklamaz. Gerçek hesapta giriş ve model listesi doğrulandı; üretim OpenAI uygunluk reddinde kalıyor. Başarılı üretim doğrulaması ve Windows kurucusu bekliyor. Özel dağıtım için OpenAI erişim uygunluğu ayrıca kontrol edilmeli. Ayrıntı: [AI bağlantısı](./docs/AI_BAGLANTISI.md).
 
 Kullanıcı AI sağlayıcısını seçtikten sonra, o sağlayıcının desteklediği yöntemle bağlantı kuracak. API kullanmak isteyen anahtarını ekleyebilecek; mevcut üyeliğini kullanmak isteyen ise destekleniyorsa hesabıyla giriş yapabilecek. Her iki yöntem de baştan bağlantı yapısının bir parçası olacak.
 

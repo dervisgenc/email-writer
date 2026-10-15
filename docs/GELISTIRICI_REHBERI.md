@@ -2,6 +2,8 @@
 
 İlgili belgeler: [Proje planı](../PROJE_PLANI.md) · [İmplementasyon detayları](../implementation_details.md) · [Outlook doğrulama](./outlook-web-dogrulama.md) · [Tarayıcı matrisi](../tests/manual/browser-matrix.md) · [Yapılan işler](../YAPILAN_ISLER.md)
 
+AI bağlantısının güncel kurulumu, veri akışı ve sınırları: [ChatGPT / OpenAI rehberi](./AI_BAGLANTISI.md).
+
 ## Gereksinimler
 
 | Araç | Sürüm | Not |
@@ -22,7 +24,8 @@ npx playwright install chromium   # yalnızca tarayıcı testleri için, bir kez
 | --- | --- |
 | `pnpm dev` | Chromium geliştirme derlemesi; tarayıcıyı eklentiyle açar, değişiklikte yeniden yükler |
 | `pnpm dev:firefox` | Aynısı Firefox için (Manifest V3) |
-| `pnpm build` | Normal (üretim) paketleri: `.output/chrome-mv3`, `.output/firefox-mv3` |
+| `pnpm build` | Yerel AI uygulaması ve normal (üretim) paketleri: `.output/chrome-mv3`, `.output/firefox-mv3` |
+| `pnpm ai:build` / `ai:install` | Yerel AI uygulamasını derler / tarayıcıya kaydeder; ayrıntılar AI rehberinde |
 | `pnpm build:test` | Test paketleri: yerel örnek sayfa origin'i + etiketli örnek sonuçlar |
 | `pnpm typecheck` | Bütün paketler ve testler için TypeScript/vue-tsc |
 | `pnpm lint` | ESLint: doğruluk ve **modül sınırı** kuralları |
@@ -76,12 +79,12 @@ Ek kurallar (ESLint):
 
 | Ortam | Dosya | Görev |
 | --- | --- | --- |
-| Content script | `entrypoints/outlook.content.ts` | Outlook bağlantısı, panel oturumu, başlatıcılar. E-posta metinleri yalnızca burada, bellekte |
-| Arka plan | `entrypoints/background.ts` | Kurulum, ayar okuma/yazma (sıralı). Chrome'da service worker, Firefox'ta background script |
+| Content script | `entrypoints/outlook.content.ts` | Outlook bağlantısı, panel oturumu, başlatıcılar. E-posta oturumu ve AI önizlemesi bellekte |
+| Arka plan | `entrypoints/background.ts` | Kurulum, ayar okuma/yazma ve native AI mesaj yönlendirmesi. Chrome'da service worker, Firefox'ta background script |
 | Araç çubuğu penceresi | `entrypoints/popup/` | Destek durumu, "Bu sayfada paneli aç", ayarlara bağlantı; geliştirmede seçici tanılaması |
 | Ayarlar | `entrypoints/options/` | Arayüz dili, varsayılan hedef dil/ton, tema, sitede etkinleştirme |
 
-Ortamlar arası mesajlar (`contracts/src/runtime-messages.ts`): `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`. Her mesaj şema ile doğrulanır; gönderen tarayıcının verdiği bilgiyle kontrol edilir. E-posta ve önizleme içeriği bu protokolde taşınmaz.
+Ortamlar arası mesajlar (`contracts/src/runtime-messages.ts`): `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`. Her mesaj şema ile doğrulanır; gönderen tarayıcının verdiği bilgiyle kontrol edilir. AI_GENERATE yalnızca kullanıcının üretmek istediği metin/bağlamı taşır; sonuç tamamlanmış düz metin olarak döner. AI_STATUS/AI_COMMAND hesap yönetimi eklenti sayfalarıyla sınırlıdır; AI_SUMMARY içerik betiğine kimlik bilgisi vermez.
 
 ### Panel akışı
 
@@ -94,7 +97,7 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
    - Yanıt yaz kartı talimat bekler; bağlam önceden okunur.
 2. **Okuma bölmesi düğmesi** ("Yanıt hazırla"): paneli yanıt modunda açar.
 3. Panel veya kart kendiliğinden açılmaz. E-posta açmak işlem başlatmaz; yalnızca okunan mesaj geçmişine eklenir (aşağıda).
-4. `prepareAction` değişmez bir işlem kaydı üretir. Sonucu `TextProcessor` verir. Bu aşamada yalnızca geliştirme derlemesinde etiketli örnek sonuç kaynağı vardır; normal derlemede düğme nedenini açıklar.
+4. `prepareAction` değişmez bir işlem kaydı üretir. Sonucu `TextProcessor` verir. Normal/geliştirme derlemelerinde yerel AI bağlantısı, yalnızca test derlemesinde örnek sonuç kaynağı kullanılır.
 5. Önizleme elle düzenlenebilir. "Taslağa uygula" önce `core/editing/validate-apply.ts`, sonra bağlantının DOM kontrollerinden geçer. Yazma bir kez yapılır ve doğrulanır.
 6. "Son uygulamayı geri al", yalnızca araya başka düzenleme girmediyse çalışır.
 
@@ -108,7 +111,7 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 
 - `controllers/message-history.ts`, kullanıcının açtığı her mesajı sayfa oturumu boyunca bellekte tutar.
   - Okuma bölmesi yalnızca seçili mesajı gösterdiğinde, aynı konuşmanın önceki mesajlarına başka yoldan ulaşılamaz.
-  - Geçmiş kalıcı saklanmaz, hiçbir yere gönderilmez, hesap değişince silinir ve en fazla 40 mesaj tutar.
+  - Geçmiş kalıcı saklanmaz; yalnızca üretim için seçilen bağlam OpenAI’a gönderilir. Hesap değişince silinir ve en fazla 40 mesaj tutar.
 - `core/context/message-history.ts` (saf fonksiyonlar):
   - Aynı konuşmadan veya aynı konudan (`RE:`/`FW:`/`YNT:`/`İLT:` önekleri yok sayılarak) okunan mesajlar **ilişkili** sayılır ve bağlama varsayılan olarak girer.
   - Başka konuşmalardan okunanlar panelde "Diğer açılan e-postalar" altında seçilmemiş durur.
@@ -130,7 +133,9 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 3. `entrypoints/gmail.content.ts` bir `MailPageProvider` oluşturup `createExtensionSession` çağırır. `contracts/settings.ts` içindeki `SITE_IDS` listesine eklenir.
 4. Panel, bağlam kuralları, önizleme ve yazma kuralları yeniden yazılmaz.
 
-**AI / metin işleme bağlantısı (sonraki aşama):**
+**AI / metin işleme bağlantısı:**
+İlk bağlantı `packages/ai-openai` ve `apps/ai-companion` içinde geliştirildi. Yeni sağlayıcılar aynı TextProcessor ve AiInput sınırını kullanabilir.
+
 1. `contracts/src/text-processor.ts` içindeki `TextProcessor` arayüzünü uygulayan ayrı bir modül yazılır.
 2. Content script'te `loadTextProcessor()` bu modülü döndürür.
 3. Firefox'un veri paylaşımı beyanı (`wxt.config.ts` → `data_collection_permissions`) gerçek veri akışına göre **güncellenmek zorundadır**.
@@ -157,11 +162,11 @@ jsdom'da `execCommand` bulunmadığı için Outlook bağlantısı testleri DOM i
 
 ## Gizlilik ve güvenlik kuralları (özet)
 
-- E-posta içeriği, bağlam, önizleme ve geri alma verisi kalıcı saklanmaz. Yalnızca content script belleğinde, sayfa ömrü boyunca kalır. Ayarlar `storage.local` içinde, tek sürümlü kayıt olarak tutulur.
-- Bu aşamada hiçbir veri harici bir servise gönderilmez. Analitik ve hata toplama hizmeti yoktur.
+- E-posta içeriği, bağlam, önizleme ve geri alma verisi kalıcı saklanmaz. Üretimde seçili metin background/companion belleğinden geçer ve OpenAI’a iletilir. Ayarlar `storage.local` içinde, tek sürümlü kayıt olarak tutulur.
+- Kullanıcı üretim istediğinde seçili metin OpenAI’a gönderilir. Analitik ve hata toplama hizmeti yoktur. OAuth token’ları tarayıcı depolamasında bulunmaz; credential dosyası yerel uygulamanın kullanıcı dizinindedir.
 - Kayıtlarda e-posta gövdesi, konu, adres, kaynak metin, önizleme veya tam URL bulunmaz.
 - Gelen e-posta güvenilmeyen veridir: HTML çalıştırılmaz, bağlantı/görsel açılmaz, içindeki talimatlar komut sayılmaz.
-- İzinler: yalnızca `storage` ve desteklenen Outlook adreslerine statik content script eşleşmeleri.
+- İzinler: `storage`, `nativeMessaging` ve desteklenen Outlook adreslerine statik content script eşleşmeleri. Firefox veri paylaşımı beyanı AI akışını içerir.
 
 ## Bilinen sınırlar ve bekleyen kararlar
 

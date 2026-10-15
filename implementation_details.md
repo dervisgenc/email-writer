@@ -1,12 +1,12 @@
 # Email Writer — implementasyon detayları
 
 Tarih: 13 Ekim 2026  
-Durum: Geliştirme öncesi uygulama tasarımı  
+Durum: İlk aşamanın tasarımı; 15 Ekim 2026 AI bağlantısı ekleri aşağıdadır.
 İlgili belge: [Proje planı](./PROJE_PLANI.md)
 
 Bu doküman, tarayıcı eklentisinin AI bağlantısı dışındaki bütün temel parçalarının nasıl geliştirileceğini tanımlar. Amaç; e-postayı doğru okumak, kullanılacak konuşma bağlamını hazırlamak, kullanıcıya anlaşılır bir düzenleme paneli sunmak ve kullanıcının onayladığı metni doğru taslağa güvenli biçimde aktarmaktır.
 
-Belgede geçen dosyalar ve arayüzler önerilen implementasyon yapısıdır. Henüz uygulama kodu bulunmuyor. Outlook'un gerçek sayfa yapısına ait seçiciler ve editöre yazma yöntemi, ilk geliştirme adımında gerçek hesaplarla doğrulanacak; burada çalıştığı kanıtlanmamış bir CSS seçicisi tanımlanmıyor.
+Bu belgenin 1–20 bölümleri ilk aşamanın tasarım kaydıdır. Güncel implementasyon ve sapmalar [YAPILAN_ISLER.md](./YAPILAN_ISLER.md) içinde tutulur. **15 Ekim 2026 güncellemesi:** Kullanıcının AI bağlantısı talebiyle §1.2'deki AI kapsam dışı kararı sonraki aşama için kaldırıldı. §15–17'deki yalnızca sayfa belleği, içeriksiz mesajlaşma, yalnızca storage izni ve harici servise veri gönderilmemesi ifadeleri AI üretimi için artık geçerli değildir. Güncel sınırlar aşağıdaki §21 ve [AI bağlantı rehberidir](./docs/AI_BAGLANTISI.md).
 
 ## İçindekiler
 
@@ -30,6 +30,7 @@ Belgede geçen dosyalar ve arayüzler önerilen implementasyon yapısıdır. Hen
 18. [Temiz kod kuralları](#bolum-18)
 19. [Test planı](#bolum-19)
 20. [Geliştirme sırası ve teslim koşulları](#bolum-20)
+21. [ChatGPT ve OpenAI bağlantısı](#bolum-21)
 
 <a id="bolum-1"></a>
 
@@ -1244,3 +1245,20 @@ Bu doküman modüllerin görevlerini ve güvenlik sınırlarını belirler. Aşa
 | En düşük tarayıcı sürümleri | Adım 8 | Gerçek doğrulamaya göre manifest ve kurulum rehberi güncellenir. |
 
 Sonraki aşamaya bırakılan metin işleme bağlantısı, hazırlanmış işlemi alıp aynı işleme ait düz metin sonucu geri verecek sınırdan bağlanabilir. Bu belgenin tamamlanması için sağlayıcı, üyelik, API veya model seçimi yapılması gerekmez.
+
+<a id="bolum-21"></a>
+
+## 21. ChatGPT ve OpenAI bağlantısı — 15 Ekim 2026
+
+- `TextProcessor` korunur. `PreparedAction` yalnızca seçili metni taşıyan `AiInput` kaydına çevrilir; DOM hedefleri ve posta hesabı kimlikleri yerelde kalır. Core ve Outlook adaptörü sağlayıcı bilmez.
+- Content script → şema/gönderici denetimli background → native messaging → `apps/ai-companion` → `packages/ai-openai` sırası kullanılır. `nativeMessaging` izni eklenmiştir; Outlook dışı geniş host izinleri eklenmez.
+- `AI_STATUS`/`AI_COMMAND` yalnızca eklenti sayfalarına açıktır. Content script `AI_SUMMARY`, `AI_GENERATE`, kendi isteği için `AI_CANCEL` ve `OPEN_OPTIONS` kullanabilir. Background'da hesap token'ı bulunmaz.
+- OAuth: dinamik kayıt, kurulum başına kalıcı host kimliği, state/nonce/PKCE, tam loopback URI eşleşmesi, JWT imzası/issuer/audience/expiry/nonce kontrolü, dönen kapsam doğrulaması. Aynı e-posta adresli workspace kayıtları client ID ile ayrıdır.
+- Credential dosyası kullanıcı dizininde `0700`/`0600` izinleri ve atomik dosya değiştirme ile korunur. Süreçler arası dosya kilidi token yenilemeyi sıralar. Çıkış revocation dener; doğrulanamayan iptal ayrı gösterilir. Dosya uygulama düzeyinde şifrelenmez.
+- Üretim için seçilen metin yalnızca istek süresince süreç belleğinde tutulur. `store:false`/`stream:true` ile public Responses API kullanılır. Gelen e-posta prompt talimatı kabul edilmez; model çıktısı düz metindir.
+- `response.completed` olmadan başarılı önizleme oluşmaz. Limit, eksik izin, uygunluk, kopmuş akış ve iptal ayrı hatalardır. Üretim otomatik tekrarlanmaz veya başka ücretlendirme yöntemine geçirilmez.
+- UI: ayarlarda ChatGPT/API yöntemi, hesaplar, model, çıkış, ilk kullanım bildirimi; panel/kartta kullanılan yöntem ve ayarlar/kullanım bağlantısı. Görünüm Fluent tema değişkenlerini kullanır; UI sağlayıcı çağırmaz. TR/EN sözlükleri vardır.
+- 16 Ekim hesap yönetimi: `AiAccountActions` yalnızca yeniden adlandırma/kaldırma olaylarını üretir; sözleşme sınırı adları doğrular, companion benzersizliği ve kalıcılığı sağlar. Listeden kayıt seçmek giriş veya hesap değişimi başlatmaz. Kaldırma yerel kaydı siler ve sunucuda oturum iptalini dener; çıkış kaydı korur. Kaldırılmış hesaba gecikmiş OAuth yanıtı token kaydedemez. Elle verilen ad doğrulanmış profil bilgisiyle ezilmez.
+- Firefox veri aktarımı beyanı `personalCommunications` ve `authenticationInfo` olarak güncellenmiştir. Normal/geliştirme derlemeleri gerçek bağlantıyı, yalnızca test derlemesi örnek sonuçları kullanır.
+
+Kurulum, erişim koşulları, canlı doğrulama sınırı ve kaynaklar: [docs/AI_BAGLANTISI.md](./docs/AI_BAGLANTISI.md). Companion kurucusu macOS/Linux içindir; gerçek ChatGPT/Outlook uçtan uca denemesi ve Windows kurucusu tamamlanmadan bütün platformlarda hazır sayılmaz.

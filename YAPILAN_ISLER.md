@@ -276,3 +276,80 @@ Kullanıcının bildirdiği sorun: Başka bir e-postaya geçip taslaktaki "Çevi
 - "Bu konuşmayla yeni çalışma başlat" seçeneği, metinleri ve ilgili kod (`startNewWork`, `canStartNewWork`) kaldırıldı.
 
 **Doğrulama:** `pnpm check` (147 test), Chromium uçtan uca 6/6, Firefox duman testi geçti. Gerçek Outlook'ta henüz denenmedi; çalışan `pnpm outlook:dev` oturumunun yeniden başlatılması gerekiyor.
+
+## 14. 15 Ekim 2026 — ChatGPT üyeliği ve OpenAI API bağlantısı
+
+**Kullanım**
+- Ayarlar ekranında ChatGPT üyeliği veya OpenAI API anahtarı seçiliyor. ChatGPT için `Continue with ChatGPT`, hesap/çalışma alanı kayıtları, model listesi, yeniden giriş, çıkış ve kullanım yönetimi var.
+- İlk başarılı plan bağlantısında tek seferlik kullanım bildirimi gösteriliyor. Panel ve taslak kartında kullanılan yöntem ile AI ayarları/kullanım bağlantıları var. Fluent açık/koyu tema değişkenleri, TR/EN metinler ve dar ekran düzeni kullanıldı.
+- Gerçek bağlantı `revise`, `translate`, `reply`, `compose` işlemlerini mevcut `TextProcessor` sınırından işler. Önizleme ve kontrollü taslağa yazma/geri alma kuralları korunur.
+- Geliştirme dahil normal derlemeler gerçek bağlantıyı kullanıyor; sabit örnekler yalnızca `--mode test` derlemesinde. Limit veya bağlantı hatası başka ücretlendirme yöntemine otomatik geçmez.
+
+**Mimari**
+- `packages/ai-openai`: belgelenmiş OAuth/PKCE/OIDC, model keşfi, e-posta prompt'u, Responses SSE ve hata eşleme.
+- `apps/ai-companion`: native messaging, loopback callback, hesap yönetimi ve korumalı credential dosyası. Kurucu macOS/Linux içindir; Node.js 22+ gerekir.
+- `contracts/ai.ts`: sınırlandırılmış üretim girdisi, bağlantı komutları, model/hesap görünümü. Gönderilen veri yalnızca seçili metin ve bağlamdır; DOM hedefleri/posta kimlikleri aktarılmaz.
+- Background, gönderici ve mesaj şemasını doğrulayarak native uygulamaya yönlendirir. Content script hesap yönetimi veya API anahtarı mesajı gönderemez; yalnızca güvenli durum özeti, üretim ve kendi isteğini iptal etme hakkı vardır.
+- OAuth token'ları tarayıcıya dönmez; `~/.config/email-writer/credentials.json` içinde `0600`, dizin `0700` izinleriyle saklanır. Dosya değişimi atomik, token yenileme süreçler arası kilitle sıralıdır. Uygulama düzeyinde dosya şifrelemesi yoktur.
+- İptal edilmiş eski girişin geç tamamlanıp yeni giriş durumunu silmesi engellendi. İptal sonrasında gelen yeni refresh token iptal edilmeye çalışılır. Başarısız kod değişiminde verilen client ID sonraki giriş için korunur.
+- Her üretimde `store:false`, `stream:true`; `response.completed` olmadan önizleme yok. Giriş/kimlik doğrulama, plan izni, uygunluk, kota, kopma ve iptal ayrı ele alındı. Mail içeriği/prompt/token loglanmaz; metinler diske yazılmaz.
+- Eklentiye `nativeMessaging` izni ve Firefox'a `personalCommunications`/`authenticationInfo` beyanı eklendi. Geniş host erişimi, çerez erişimi veya ChatGPT özel backend kullanımı yok.
+
+**Belgeler**
+- [AI_BAGLANTISI.md](./docs/AI_BAGLANTISI.md): kurulum, mimari, veri sınırı, çıkış/sorun giderme ve canlı deneme adımları.
+- README, proje planı, implementasyon detayları (§21) ve geliştirici rehberi güncellendi. İlk aşamanın “AI yok / harici veri aktarımı yok” kararlarının artık tarihsel olduğu belirtildi.
+- Özel repo/dağıtım OpenAI uygunluğunu otomatik sağlamaz. Gerçek hesap/workspace erişimi ayrıca doğrulanmalı. Repo yayımlanmadı; lisans kararı değiştirilmedi.
+
+**Doğrulama**
+- Vitest: 184 test; OAuth callback/state/PKCE/JWT, token döndürme, dosya izinleri, izin eksikliği, limit ve yarım akış, iptal/yeni giriş yarışı, native framing, gönderici yetkisi ve Vue bağlantı ekranı dahil.
+- Chromium: 8 uçtan uca test (mevcut e-posta akışları; bağlantı eksikliği; simüle native bağlantıyla hesap/model/ilk kullanım/çıkış). Açık/koyu ve 390 px genişlikte görüntüler kontrol edildi.
+- Firefox 157.0.1: mevcut sentetik Outlook duman testi geçti.
+- Derlenmiş native süreç, geçici kullanıcı dizininde gerçek framed stdin/stdout isteğiyle denetlendi; kullanıcı credential dosyasına veya OpenAI'a erişilmedi.
+- Tip, lint, biçim, derleme ve paket kontrolü `pnpm check` ile yürütülür.
+
+**Açık kalan doğrulama/dağıtım işleri:** Gerçek ChatGPT hesabıyla OAuth onayı, model listesi, üyelik kotasıyla üretim ve gerçek Outlook taslağına uygulama bu oturumda yapılmadı. Windows native host kurucusu, son kullanıcı kurulum paketi, imzalama ve mağaza yayını ayrıca gereklidir. Kullanıcının tarayıcı native host kayıtlarına otomatik kurulum yapılmadı; kurulum komutları rehberdedir.
+
+## 15. 15 Ekim 2026 — Yarım kalan ChatGPT bağlantısı ve plan uygunluğu
+
+- Kullanıcı Business Premium hesabında OpenAI `3p_delegated_access_policy_denied`, ücretsiz kişisel hesabında callback hatası bildirdi. Yerel incelemede yalnızca tamamlanmamış uygulama kaydı bulundu; doğrulanmış hesap/token yoktu. OpenAI izin e-postası, yerelde oturumun kurulması ve planla üretim birbirinden ayrıldı.
+- Ayarlar; bağlantı tamamlanmadı, oturum kapalı, hesap doğrulandı ama plan izni yok, model erişimi hazır değil ve üretime hazır durumlarını ayrı gösterir. Hazır durumu artık yüklenmiş katalogda kullanılabilir model gerektirir; kayıtlı model adı tek başına yeterli değildir. Eklenti yeniden açıldığında uygun bağlı hesap için katalog yenilenir.
+- OAuth callback/token yanıtında kuruluş politika hatası ayrı eşlenir. Kod değişimi, geçersiz token yanıtı ve kimlik doğrulama hatalarının güvenli yerel kodları callback ve arayüzde gösterilir; ham sağlayıcı yanıtı veya token taşınmaz. OpenAI hata sayfası callback'e dönmezse eklenti o sayfanın hata kodunu okuyamaz.
+- Doğrulanmış giriş sonrası model keşfi sorunu giriş başarısızlığına dönüştürülmez. Plan izni eksik girişte callback üretimin etkin olmadığını açıklar. Yeni denemeler kayıtlı client ID'yi korur; doğrulama kontrolleri gevşetilmedi.
+- ChatGPT bağlantısının Plugins yerine **Settings → Security and login → Sign in with ChatGPT**, kullanımının **Settings → Usage** altında yönetildiği TR/EN arayüze ve bağlantı rehberine eklendi. Ücretsiz hesap ve Business Premium için Plus/Pro plan kullanım kapsamı genellenmez.
+- Doğrulama: `pnpm check` geçti, 194 test; bağlantı ayarlarına yönelik 2 Chromium uçtan uca test geçti. Dar ekran/koyu tema görüntüsü kontrol edildi. Güncel native host Firefox için yeniden kuruldu, eklenti/ayarlar yenilendi ve gerçek native protokolüyle tamamlanmamış kaydın `ready: false` döndüğü doğrulandı.
+- Gerçek hesapla başarılı giriş ve metin üretimi hâlâ doğrulanmış değildir. Kuruluş erişim engeli uygulama koduyla kaldırılmadı; kişisel hesabın ücretsiz olması planla üretim uygunluğu sağlamaz.
+
+## 16. 15 Ekim 2026 — Hesap ve çalışma alanı değiştirme
+
+- Kullanıcı Business hesabında `3p_login_workspace_scope_denied` bildirdi. Tek yarım kalmış kaydı sürdüren düğme ile yeni hesap/çalışma alanı ekleme ayrımı netleştirildi. Kişisel hesap için oluşan OAuth kaydı başka çalışma alanına taşınmaz; OpenAI'ın kayıt sınırları korunur.
+- **Farklı hesap veya çalışma alanı ekle** düğmesi görünür hale getirildi; seçili kayıtla devam etmenin aynı hesap/çalışma alanını gerektirdiği TR/EN açıklamaya eklendi. Bu açık kullanıcı eylemi, geri dönüş yapmayan eski giriş denemesini iptal ederek yeni kayıt başlatabilir.
+- Yeni kayıt akışı mevcut client ID, e-posta veya ID token ipucunu kullanmaz; cihaz kimliği ve eski hesaplar korunur. Yeni hesap doğrulanmadan etkin hesap değişmez. Normal yeniden giriş hâlâ mevcut client ID'yi kullanır.
+- Workspace uyuşmazlığı callback ve token yanıtında `AI_WORKSPACE_MISMATCH` olarak ayrı eşlenir; yanlış `state` içeren callback yine reddedilir. Kuruluş politikası ve plan uygunluğu kontrolleri gevşetilmedi.
+- Doğrulama: `pnpm check` (199 test) ve bağlantı ayarlarına yönelik 2 Chromium testi geçti. Yeni kayıt akışının eski hesap ipuçlarını taşımaması, bekleyen girişten yeni kayda geçiş ve kayıtların korunması test edildi. Güncel native host kuruldu ve Firefox eklentisi/ayarları yenilendi. Business hesabıyla yeni kayıt ve gerçek üretim kullanıcı denemesi bekliyor.
+
+## 17. 16 Ekim 2026 — Hesap kaldırma ve bağlantı adları
+
+- AI ayarlarına **Yeniden adlandır** ve onay pencereli **Hesabı kaldır** eklendi. Listeden kayıt seçmek artık giriş veya etkin hesap değişimi başlatmaz; tamamlanmamış kayıtlar da yönetilebilir. Bağlı başka bir hesabı etkinleştirmek için **Bu hesabı kullan** seçilir.
+- İlk doğrulanmış girişte profil adı/e-posta kullanılır; aynı adlı bağlantılar numarayla ayrılır. Elle verilen, en fazla 80 karakterlik ad yeniden girişte korunur. Adlar cihazda saklanır; çalışma alanı adı tahmin edilmez. Eski varsayılan adlar başarılı yeniden girişte güncellenir.
+- Kaldırma yerel hesap kaydını/token'larını siler ve varsa OpenAI oturumunu iptal etmeyi dener. Sunucu iptali doğrulanamazsa uyarı gösterilir. Çıkış kaydı korur; kaldırma unutur. ChatGPT hesabı veya sağlayıcıdaki uygulama kaydı silinmez. Etkin hesabın kaldırılması başka hesaba/API ücretlendirmesine geçmez.
+- Bekleyen giriş iptal edilir; kaldırılmış hesaba gecikmiş OAuth yanıtı token kaydedemez. Kaydedilemeyen yeni refresh token iptal edilmeye çalışılır. Ayrı native süreçten kaldırma ve uçuş halindeki token yanıtı test kapsamındadır. Durum sorgulaması, ad düzenlemeyi yarıda kapatmaz.
+- Sunum `AiAccountActions` bileşeninde, ad şeması `contracts` içinde, ad üretimi ve kalıcılık companion içinde tutulur. TR/EN metinler, Fluent tema değişkenleri, klavye erişimi ve dar ekran onay penceresi kullanılır.
+- Business Premium için bildirilen `3p_delegated_access_policy_denied` kuruluş reddidir. Resmî belgelerden bu plan için kesin bir yönetici ayarı veya yayımlama yoluyla çözüm doğrulanamadı. Bağlantı rehberine hata kodu/istek kimliğiyle OpenAI desteğine başvurma yönlendirmesi eklendi; kuruluş erişimi koddan değiştirilmedi.
+- Doğrulama: `pnpm check` geçti (212 test). Bağlantı ayarlarına yönelik 2 Chromium testi; ad değiştirme, kaldırmayı iptal etme/onaylama, çıkış, ilk kullanım ve model seçimini doğruladı. Açık/koyu tema ve 390 px ekran görüntüleri incelendi. Testler sentetik hesaplarla çalışır; gerçek ChatGPT üyeliğiyle üretim hâlâ doğrulanmış değildir.
+- Güncel native host Firefox için yeniden kuruldu ve çalışan Firefox geliştirme eklentisi yeniden yüklendi. Kullanıcının hesap kayıtları silinmedi veya yeniden adlandırılmadı.
+
+## 18. 16 Ekim 2026 — Plus hesabında üretim uygunluğu reddi
+
+- Kullanıcı kişisel Plus aboneliğinin aktif olduğunu doğruladı. Canlı kontrolde doğrulanmış hesap, süresi dolmamış oturum ve `chatgpt.tokens.use.direct` izni bulundu; `GET /v1/models` HTTP 200 ile model listesini döndürdü.
+- Kişisel veri içermeyen tek bir minimal `POST /v1/responses` isteği, seçili model ve belgelenmiş `store:false`/`stream:true` alanlarıyla HTTP 403 ve `subscription_sharing_user_not_eligible` döndürdü. Bu deneme e-posta prompt'unu kullanmadı; gerçek e-posta aktarılmadı. Yanıtta `x-request-id` yoktu. Kimlik/token bilgileri çıktıya veya belgelere yazılmadı.
+- Üretim reddinin sağlayıcıdan geldiği doğrulandı; alttaki uygunluk/politika nedeni henüz açıklanmış değildir. Giriş, izin ve model kataloğu başarısı üretim uygunluğunu garanti etmez. Hesabı tekrar tekrar silip ekleme veya aynı isteği tekrarlama yapılmadı; OpenAI desteğine somut hata koduyla başvurma yönlendirmesi eklendi.
+- Genel HTTP 403 artık `AI_NOT_ELIGIBLE` sayılmıyor; `AI_ACCESS_DENIED` olarak ayrılıyor. Uygunluk hatası yalnızca açık sağlayıcı koduyla eşleniyor. TR/EN uygunluk uyarısı bu kodu gösterir ve aktif Plus/Pro hesabı için destek yönlendirmesi içerir. Route/kapsam erişim reddi ve model hatası da uygunlukla karıştırılmaz.
+- Doğrulama: `pnpm check` geçti (217 test); gerçek uygunluk reddi ile genel 403, route/kapsam ve model hatası ayrımı test edildi. Native host Firefox için yeniden kuruldu, geliştirme eklentisi güncellendi. Başarılı üretim hâlâ engellidir; sağlayıcı kısıtlamasının giderildiği iddia edilmez.
+
+## 19. 16 Ekim 2026 — Plus hesabında üretim çalıştı; bağlantı göstergesi düzeltildi
+
+- Aynı kişisel Plus oturumuyla, yeniden giriş yapılmadan, kişisel veri içermeyen kısa bir `POST /v1/responses` isteği HTTP 200 ve `response.completed` ile tamamlandı. Kurulu native host üzerinden sentetik bir "Düzelt" isteği de yaklaşık 4 saniyede doğru sonuç verdi. Token ve hesap bilgileri çıktıya veya belgelere yazılmadı.
+- Gözlem: Birkaç dakika arayla alınan iki model listesi 3 modelden 7 modele çıktı. §18'deki 403 (`subscription_sharing_user_not_eligible`) büyük olasılıkla ücretsizden Plus'a geçişin OpenAI tarafında henüz etkinleşmemesindendi. OpenAI bu gecikmeyi belgelemiyor; bu bir çıkarımdır.
+- **Hata:** Native süreç her başlatıldığında model kataloğu bellekte boş başlıyordu. Outlook'taki gösterge (5 saniyede bir `AI_SUMMARY`) bağlı hesabı "Üretim için AI hesabınızı bağlayın" diye gösteriyordu. Bu durum yalnızca ayarlardaki Yenile veya bir üretimle düzeliyordu. Firefox arka planı yeniden başlattığında ve `pnpm outlook:dev` her derlemede eklentiyi yeniden yüklediğinde tekrar ediyordu.
+- **Düzeltme** (`apps/ai-companion/src/ai-service.ts`): Bağlı hesabın durumu sorulunca katalog süreç ve hesap başına bir kez yüklenir (yalnızca `GET /v1/models`; üretim isteği yok). Girişten sonraki yükleme de bu tek denemeye sayılır. Başarısız yükleme her sorguda tekrarlanmaz; hata ayarlarda görünür, Yenile veya üretim yeniden dener. Eşzamanlı sorgular aynı yüklemeyi bekler.
+- Doğrulama: `pnpm check` geçti (219 test). Native host yeniden derlenip Firefox için kuruldu; yeni süreçte ilk durum sorgusu `ready: true` döndü.
