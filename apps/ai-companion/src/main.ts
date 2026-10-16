@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { createClaudeCodeProvider } from '@email-writer/ai-claude-code';
 import { createOpenAiOAuth, createOpenAiProvider, failureCode } from '@email-writer/ai-openai';
 import { PROTOCOL_VERSION, runtimeRequestSchema } from '@email-writer/contracts';
 
@@ -13,6 +14,7 @@ const service = createAiService({
   store: createCredentialStore(join(homedir(), '.config', 'email-writer')),
   oauth: createOpenAiOAuth(),
   provider: createOpenAiProvider(),
+  claude: createClaudeCodeProvider({ env: process.env }),
   openBrowser: (url) =>
     new Promise<void>((resolve, reject) => {
       const child = spawn(process.platform === 'darwin' ? '/usr/bin/open' : 'xdg-open', [url], {

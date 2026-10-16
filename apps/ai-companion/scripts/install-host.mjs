@@ -1,6 +1,6 @@
-import { chmod, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, constants, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, dirname, isAbsolute, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const name = 'com.email_writer.ai';
@@ -24,6 +24,19 @@ const directories = mac
       edge: '.config/microsoft-edge/NativeMessagingHosts',
       brave: '.config/BraveSoftware/Brave-Browser/NativeMessagingHosts',
     };
+async function findExecutable(name) {
+  for (const directory of (process.env.PATH ?? '').split(delimiter)) {
+    // pnpm puts the workspace's node_modules/.bin first; those are not user installations.
+    if (!isAbsolute(directory) || directory.includes(`${sep}node_modules${sep}`)) continue;
+    try {
+      await access(join(directory, name), constants.X_OK);
+      return join(directory, name);
+    } catch {
+      /* Not in this directory. */
+    }
+  }
+  return null;
+}
 if (!Object.hasOwn(directories, browser ?? ''))
   throw new Error('Usage: pnpm ai:install firefox|chrome|edge|brave [--extension-id=ID] [--uninstall]');
 const directory = join(homedir(), directories[browser]);
@@ -46,9 +59,23 @@ if (uninstall) {
   await copyFile(source, host);
   await chmod(host, 0o600);
   const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
-  await writeFile(launcher, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(host)} "$@"\n`, {
-    mode: 0o700,
-  });
+  // The browser starts the host with a minimal environment. Record what this shell uses
+  // so the optional Claude Code method runs the same installation and account.
+  const claude = await findExecutable('claude');
+  const claudeConfig = process.env.CLAUDE_CONFIG_DIR;
+  const exports = [
+    // An npm-installed Claude Code runs on Node.js.
+    `PATH=${quote(dirname(process.execPath))}:"$PATH"; export PATH`,
+    // Claude Code finds its macOS Keychain sign-in by user name.
+    'USER="${USER:-$(id -un)}"; export USER',
+    ...(claude ? [`EMAIL_WRITER_CLAUDE_PATH=${quote(claude)}; export EMAIL_WRITER_CLAUDE_PATH`] : []),
+    ...(claudeConfig ? [`CLAUDE_CONFIG_DIR=${quote(claudeConfig)}; export CLAUDE_CONFIG_DIR`] : []),
+  ];
+  await writeFile(
+    launcher,
+    `#!/bin/sh\n${exports.join('\n')}\nexec ${quote(process.execPath)} ${quote(host)} "$@"\n`,
+    { mode: 0o700 },
+  );
   await chmod(launcher, 0o700);
   await mkdir(directory, { recursive: true });
   await writeFile(
@@ -69,6 +96,9 @@ if (uninstall) {
     { mode: 0o600 },
   );
   console.log(
-    `Installed for ${browser}: ${manifestPath}\nRestart the extension, open Settings → AI connection, then Continue with ChatGPT.`,
+    `Installed for ${browser}: ${manifestPath}\n` +
+      `Claude Code: ${claude ?? 'not found (install it and run this command again to use it)'}` +
+      (claudeConfig ? ` · configuration: ${claudeConfig}` : '') +
+      '\nRestart the extension, then open Settings → AI connection.',
   );
 }

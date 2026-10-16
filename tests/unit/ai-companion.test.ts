@@ -1,13 +1,14 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ClaudeCodeProvider, ClaudeCodeStatus } from '@email-writer/ai-claude-code';
 import {
   AiFailure,
   PLAN_SCOPE,
   type createOpenAiOAuth,
   type createOpenAiProvider,
 } from '@email-writer/ai-openai';
-import type { AiInput } from '@email-writer/contracts';
+import { appError, err, ok, type AiInput } from '@email-writer/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAiService } from '../../apps/ai-companion/src/ai-service';
@@ -53,6 +54,14 @@ const initial = (): CredentialState => ({
   apiKey: 'private-api-key',
   apiModel: null,
 });
+const claudeSignedIn: ClaudeCodeStatus = {
+  installed: true,
+  loggedIn: true,
+  subscription: true,
+  plan: 'max',
+  account: 'c@example.test',
+  organization: null,
+};
 const memoryStore = (state = initial()): CredentialStore => ({
   read: async () => structuredClone(state),
   update: async (operation) => operation(state),
@@ -81,6 +90,14 @@ const dependencies = (store = memoryStore()) => ({
     listModels: vi.fn().mockResolvedValue([{ id: 'allowed', label: 'Allowed' }]),
     generate: vi.fn().mockResolvedValue('complete'),
   } satisfies ReturnType<typeof createOpenAiProvider>,
+  claude: {
+    models: [
+      { id: 'sonnet', label: 'Claude Sonnet' },
+      { id: 'haiku', label: 'Claude Haiku' },
+    ],
+    status: vi.fn().mockResolvedValue(claudeSignedIn),
+    generate: vi.fn().mockResolvedValue(ok('claude complete')),
+  } satisfies Pick<ClaudeCodeProvider, 'models' | 'status' | 'generate'>,
   openBrowser: vi.fn().mockResolvedValue(undefined),
 });
 const temporary: string[] = [];
@@ -595,5 +612,103 @@ describe('Native framing', () => {
     const error = new Promise<Error>((resolve) => decoder.once('error', resolve));
     decoder.end(Buffer.from([255, 255, 255, 255]));
     expect((await error).message).toBe('Invalid native message.');
+  });
+});
+
+describe('Claude Code method', () => {
+  const claudeState = () => {
+    const state = initial();
+    state.mode = 'claude-code';
+    return state;
+  };
+
+  it('reports the local Claude Code sign-in and routes generation to it without OpenAI calls', async () => {
+    const deps = dependencies();
+    const service = createAiService(deps);
+
+    const status = await service.command({ action: 'set-mode', mode: 'claude-code' });
+    expect(status).toMatchObject({
+      mode: 'claude-code',
+      ready: true,
+      selectedModel: 'sonnet',
+      models: [{ id: 'sonnet' }, { id: 'haiku' }],
+      claudeCode: claudeSignedIn,
+      error: null,
+    });
+    expect(await service.generate('00000000-0000-4000-8000-000000000001', input)).toEqual({
+      text: 'claude complete',
+    });
+    expect(deps.claude.generate).toHaveBeenCalledWith(input, 'sonnet', expect.any(AbortSignal));
+    expect(deps.provider.listModels).not.toHaveBeenCalled();
+    expect(deps.provider.generate).not.toHaveBeenCalled();
+    expect(deps.oauth.refresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps the chosen Claude model and rejects unknown ones', async () => {
+    const state = claudeState();
+    const deps = dependencies(memoryStore(state));
+    const service = createAiService(deps);
+
+    expect((await service.command({ action: 'set-model', model: 'haiku' })).selectedModel).toBe('haiku');
+    expect(state.claudeModel).toBe('haiku');
+    await expect(service.command({ action: 'set-model', model: 'gpt-5' })).rejects.toThrow(
+      'AI_MODEL_UNAVAILABLE',
+    );
+    await service.generate('00000000-0000-4000-8000-000000000002', input);
+    expect(deps.claude.generate).toHaveBeenCalledWith(input, 'haiku', expect.any(AbortSignal));
+  });
+
+  it('reuses the sign-in check while the indicator polls; Refresh checks again', async () => {
+    const deps = dependencies(memoryStore(claudeState()));
+    const service = createAiService(deps);
+
+    await service.status();
+    await service.status();
+    expect(deps.claude.status).toHaveBeenCalledTimes(1);
+    await service.command({ action: 'refresh-models' });
+    expect(deps.claude.status).toHaveBeenCalledTimes(2);
+  });
+
+  it('is not ready when Claude Code is missing or signed out, and says which', async () => {
+    const deps = dependencies(memoryStore(claudeState()));
+    deps.claude.status.mockResolvedValue({ ...claudeSignedIn, loggedIn: false, account: null, plan: null });
+    const service = createAiService(deps);
+
+    expect(await service.status()).toMatchObject({ ready: false, claudeCode: { loggedIn: false } });
+    await expect(service.generate('00000000-0000-4000-8000-000000000003', input)).rejects.toThrow(
+      'AI_CLAUDE_NOT_LOGGED_IN',
+    );
+    // A cached "signed out" answer is checked again before failing the request.
+    expect(deps.claude.status).toHaveBeenCalledTimes(2);
+    expect(deps.claude.generate).not.toHaveBeenCalled();
+
+    deps.claude.status.mockResolvedValue({ ...claudeSignedIn, installed: false, loggedIn: false });
+    await expect(service.generate('00000000-0000-4000-8000-000000000004', input)).rejects.toThrow(
+      'AI_CLAUDE_NOT_INSTALLED',
+    );
+  });
+
+  it('passes provider failures through and checks the sign-in again after a sign-out', async () => {
+    const deps = dependencies(memoryStore(claudeState()));
+    const service = createAiService(deps);
+    deps.claude.generate.mockResolvedValueOnce(err(appError('AI_CLAUDE_NOT_LOGGED_IN')));
+
+    await expect(service.generate('00000000-0000-4000-8000-000000000005', input)).rejects.toThrow(
+      'AI_CLAUDE_NOT_LOGGED_IN',
+    );
+    await service.status();
+    expect(deps.claude.status).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads credential files written before Claude Code support', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    temporary.push(directory);
+    const legacy: Record<string, unknown> = { ...initial() };
+    delete legacy.claudeModel;
+    await writeFile(join(directory, 'credentials.json'), JSON.stringify(legacy), { mode: 0o600 });
+
+    const state = await createCredentialStore(directory).read();
+    expect(state.mode).toBe('chatgpt');
+    expect(state.claudeModel).toBeUndefined();
   });
 });

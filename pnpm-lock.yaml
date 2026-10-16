@@ -166,6 +166,9 @@ importers:
 
   .:
     devDependencies:
+      '@email-writer/ai-claude-code':
+        specifier: workspace:*
+        version: link:packages/ai-claude-code
       '@email-writer/ai-openai':
         specifier: workspace:*
         version: link:packages/ai-openai
@@ -241,6 +244,9 @@ importers:
 
   apps/ai-companion:
     dependencies:
+      '@email-writer/ai-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/ai-claude-code
       '@email-writer/ai-openai':
         specifier: workspace:*
         version: link:../../packages/ai-openai
@@ -291,6 +297,15 @@ importers:
       wxt:
         specifier: ^0.21.4
         version: 0.21.4(eslint@9.39.4(jiti@2.7.0)(supports-color@7.2.0))(rolldown@1.2.13)(typescript@6.0.3)(vite@8.3.4(@types/node@22.20.5)(jiti@2.7.0))(web-ext@10.7.0(jiti@2.7.0)(supports-color@7.2.0))
+
+  packages/ai-claude-code:
+    dependencies:
+      '@email-writer/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   packages/ai-openai:
     dependencies:

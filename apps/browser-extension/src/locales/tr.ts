@@ -214,7 +214,7 @@ export const tr: ExtensionText = {
       AI_ACCESS_DENIED:
         'OpenAI isteğe erişim izni vermedi. Uygulama izinleri, bağlantı yapılandırması veya bölge kısıtlaması kontrol edilmeli; bu hata tek başına aboneliğinizin uygun olmadığını göstermez.',
       AI_LIMIT_REACHED:
-        'Kullanım limitine ulaşıldı. ChatGPT kullanıyorsanız Kullanımı yönet bağlantısını açın; API kullanıyorsanız OpenAI API limitlerinizi kontrol edin.',
+        'Kullanım limitine ulaşıldı. ChatGPT için Kullanımı yönet bağlantısını açın; Claude aboneliğinde limit yenilenince tekrar deneyin; API anahtarı kullanıyorsanız OpenAI API limitlerinizi kontrol edin.',
       AI_UNAVAILABLE: 'AI hizmeti şu anda kullanılamıyor. Bağlantınız korunuyor; daha sonra tekrar deneyin.',
       AI_NETWORK: 'AI hizmetine ulaşılamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.',
       AI_MODEL_UNAVAILABLE: 'Seçili model kullanılamıyor. AI ayarlarında model listesini yenileyin.',
@@ -223,6 +223,10 @@ export const tr: ExtensionText = {
       AI_REVOKE_UNCONFIRMED:
         'Yerel oturum kapatıldı; OpenAI bağlantısının iptali doğrulanamadı. ChatGPT ayarlarından uygulama erişimini kaldırın.',
       AI_BUSY: 'Bir AI bağlantı işlemi sürüyor. Tamamlanmasını bekleyin veya girişi iptal edin.',
+      AI_CLAUDE_NOT_INSTALLED:
+        'Claude Code bulunamadı. Claude Code’u kurup pnpm ai:install komutunu yeniden çalıştırın.',
+      AI_CLAUDE_NOT_LOGGED_IN:
+        'Claude Code’da oturum açık değil. Terminalde claude çalıştırıp /login ile giriş yapın.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Eklenti bu sekmeye ulaşamıyor. Site erişimini kontrol edin veya sayfayı yenileyin.',
       MESSAGE_REJECTED: 'Geçersiz bir eklenti mesajı reddedildi.',
@@ -247,18 +251,33 @@ export const tr: ExtensionText = {
   },
   options: {
     title: 'Email Writer ayarları',
+    subtitle: 'Outlook Web için yazma yardımcısı',
+    preferencesTitle: 'Yazma tercihleri',
+    preferencesDescription: 'Yeni çalışmalarda kullanılacak dil, ton ve görünüm.',
     uiLanguage: 'Arayüz dili',
     uiLanguages: { tr: 'Türkçe', en: 'English' },
     targetLanguage: 'Varsayılan hedef dil',
     tone: 'Varsayılan ton',
     theme: 'Tema',
     themes: { system: 'Otomatik (Outlook ile aynı)', light: 'Açık', dark: 'Koyu' },
+    themeOptions: { system: 'Otomatik', light: 'Açık', dark: 'Koyu' },
+    themeHint:
+      'Otomatik seçildiğinde Outlook’taki panel Outlook’un temasını, bu sayfa sistem temasını izler.',
     siteEnabled: 'Outlook Web üzerinde yazma yardımcısını göster',
+    siteEnabledHint: 'Kapatırsanız Outlook’taki düğmeler ve panel görünmez.',
+    unsaved: 'Kaydedilmemiş değişiklikler var.',
     save: 'Kaydet',
     saved: 'Ayarlar kaydedildi.',
     saving: 'Kaydediliyor…',
-    storageNote:
-      'Tercihleriniz yalnızca bu cihazda saklanır. Açtığınız e-postalar, bağlam önerebilmek için yalnızca sayfa açıkken bellekte tutulur. E-posta içerikleri, panel metinleri ve önizlemeler kalıcı olarak kaydedilmez. Üretim istediğinizde metin ve seçilen bağlam OpenAI’a gönderilir.',
     defaultsNote: 'Varsayılan dil ve ton, açık bir çalışmayı değiştirmez; sonraki çalışmalarda kullanılır.',
+    privacyTitle: 'Gizlilik ve veriler',
+    privacyDescription: 'Email Writer e-postalarınızla ne yapar, ne yapmaz.',
+    privacyPoints: [
+      'Tercihleriniz yalnızca bu cihazda saklanır.',
+      'Açtığınız e-postalar, bağlam önerebilmek için yalnızca sayfa açıkken bellekte tutulur; diske yazılmaz.',
+      'Metin yalnızca siz Düzelt, Çevir veya Yanıt yaz’a bastığınızda seçtiğiniz AI sağlayıcısına (OpenAI veya Anthropic) gönderilir.',
+      'Sonuç önce önizlemede görünür; siz onaylamadan taslağınıza yazılmaz.',
+      'Email Writer e-posta göndermez; göndermek her zaman sizin elinizdedir.',
+    ],
   },
 };

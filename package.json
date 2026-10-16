@@ -29,6 +29,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {
+    "@email-writer/ai-claude-code": "workspace:*",
     "@email-writer/ai-openai": "workspace:*",
     "jose": "^6.1.0",
     "@email-writer/contracts": "workspace:*",

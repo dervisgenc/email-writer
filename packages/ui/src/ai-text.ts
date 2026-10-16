@@ -1,8 +1,38 @@
+import type { AiMode } from '@email-writer/contracts';
+
+/** Bağlantı rehberindeki bir bölüm. Metindeki `...` parçaları kod olarak gösterilir. */
+export interface AiGuideItem {
+  readonly title: string;
+  readonly summary: string;
+  readonly requirements: readonly string[];
+  readonly steps: readonly string[];
+  readonly notes: readonly string[];
+  readonly linkLabel?: string;
+}
+
+export interface AiGuideText {
+  readonly title: string;
+  readonly intro: string;
+  readonly requirementsLabel: string;
+  readonly stepsLabel: string;
+  readonly notesLabel: string;
+  readonly current: string;
+  readonly methods: Readonly<Record<AiMode, AiGuideItem>>;
+  readonly helper: AiGuideItem;
+}
+
 export interface AiText {
   readonly title: string;
   readonly description: string;
   readonly chatgpt: string;
   readonly apiKey: string;
+  readonly claudeCode: string;
+  /** Yöntem kartlarındaki kısa açıklama. */
+  readonly methodHints: Readonly<Record<AiMode, string>>;
+  readonly methodLabel: string;
+  readonly statusReady: string;
+  readonly statusSetup: string;
+  readonly statusAction: string;
   readonly connect: string;
   readonly addAccount: string;
   readonly reconnect: string;
@@ -32,6 +62,12 @@ export interface AiText {
   readonly planDisabled: string;
   readonly planNote: string;
   readonly apiNote: string;
+  readonly claudeNote: string;
+  readonly claudeAccount: string;
+  readonly claudeNotInstalled: string;
+  readonly claudeNotLoggedIn: string;
+  readonly claudeApiBilling: string;
+  readonly claudePrivacy: string;
   readonly apiKeyLabel: string;
   readonly saveKey: string;
   readonly removeKey: string;
@@ -47,6 +83,8 @@ export interface AiText {
   readonly extensionId: string;
   readonly usePlan: string;
   readonly useApi: string;
+  readonly useClaude: string;
   readonly openSettings: string;
   readonly notReady: string;
+  readonly guide: AiGuideText;
 }

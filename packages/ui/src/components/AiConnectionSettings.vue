@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { CHATGPT_USAGE_URL, type AiCommand, type AiStatus } from '@email-writer/contracts';
+import {
+  AI_MODES,
+  CHATGPT_USAGE_URL,
+  type AiCommand,
+  type AiMode,
+  type AiStatus,
+} from '@email-writer/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 import type { AiText } from '../ai-text';
 import { inputValue } from '../input-value';
 import AiAccountActions from './AiAccountActions.vue';
+import AppIcon from './AppIcon.vue';
+import type { IconName } from './icons';
 
 const props = defineProps<{
   status: AiStatus | null;
@@ -21,6 +29,7 @@ const ids = {
   accountHint: useId(),
   key: useId(),
   welcome: useId(),
+  method: useId(),
 };
 const welcome = useTemplateRef<HTMLDialogElement>('welcome');
 const selectedId = ref<string | null>(null);
@@ -42,6 +51,43 @@ watch(
   { immediate: true },
 );
 const disabled = computed(() => props.busy || props.status?.signingIn === true);
+const METHOD_ICONS: Record<AiMode, IconName> = {
+  chatgpt: 'chat',
+  'api-key': 'key',
+  'claude-code': 'terminal',
+};
+const methodTitle = (mode: AiMode) =>
+  ({ chatgpt: props.text.chatgpt, 'api-key': props.text.apiKey, 'claude-code': props.text.claudeCode })[mode];
+/** Kartın başındaki kısa durum: hazır mı, kurulum mu, bağlantı mı gerekiyor. */
+const pill = computed<{ tone: 'success' | 'warning' | 'neutral'; label: string }>(() => {
+  const status = props.status;
+  if (status === null) {
+    return props.busy
+      ? { tone: 'neutral', label: props.text.checking }
+      : { tone: 'warning', label: props.text.statusSetup };
+  }
+  if (status.ready) return { tone: 'success', label: props.text.statusReady };
+  if (props.busy || status.signingIn) return { tone: 'neutral', label: props.text.checking };
+  if (status.mode === 'claude-code' && status.claudeCode?.installed === false)
+    return { tone: 'warning', label: props.text.statusSetup };
+  return { tone: 'warning', label: props.text.statusAction };
+});
+function chooseMode(mode: AiMode) {
+  if (props.status?.mode !== mode) emit('command', { action: 'set-mode', mode });
+}
+const claudeState = computed(() => {
+  const claude = props.status?.claudeCode;
+  if (!claude) return null;
+  if (!claude.installed) return props.text.claudeNotInstalled;
+  if (!claude.loggedIn) return props.text.claudeNotLoggedIn;
+  return props.status?.ready ? props.text.connected : null;
+});
+const claudeAccount = computed(() => {
+  const claude = props.status?.claudeCode;
+  if (!claude?.loggedIn) return null;
+  const plan = claude.plan ? claude.plan.charAt(0).toUpperCase() + claude.plan.slice(1) : null;
+  return [claude.account, claude.organization, plan].filter(Boolean).join(' · ') || null;
+});
 const connectionState = computed(() => {
   if (!selected.value) return null;
   if (!selected.value.verified) return props.text.registrationIncomplete;
@@ -68,191 +114,251 @@ function saveKey() {
 </script>
 
 <template>
-  <section class="ew-ai-settings" :aria-labelledby="ids.title" :aria-busy="busy">
-    <div class="ew-ai-settings__heading">
-      <h2 :id="ids.title">{{ text.title }}</h2>
-      <button
-        type="button"
-        class="ew-btn ew-btn--subtle ew-btn--small"
-        :disabled="busy"
-        @click="emit('refresh')"
-      >
-        {{ text.refresh }}
-      </button>
-    </div>
-    <p class="ew-muted">{{ text.description }}</p>
-    <p v-if="error" class="ew-alert ew-alert--error" role="alert">{{ error }}</p>
-    <p v-if="busy" class="ew-muted" role="status">{{ text.checking }}</p>
-    <template v-if="status">
-      <div class="ew-ai-settings__methods" role="group" :aria-label="text.title">
+  <section class="ew-settings-card ew-ai-settings" :aria-labelledby="ids.title" :aria-busy="busy">
+    <header class="ew-settings-card__header">
+      <span class="ew-settings-card__icon"><AppIcon name="sparkle" :size="18" /></span>
+      <div class="ew-settings-card__heading">
+        <h2 :id="ids.title" class="ew-settings-card__title">{{ text.title }}</h2>
+        <p class="ew-settings-card__description">{{ text.description }}</p>
+      </div>
+      <div class="ew-settings-card__aside">
+        <span class="ew-status-pill" :data-tone="pill.tone" role="status">{{ pill.label }}</span>
         <button
           type="button"
-          class="ew-btn"
-          :class="{ 'ew-btn--primary': status.mode === 'chatgpt' }"
-          :aria-pressed="status.mode === 'chatgpt'"
-          :disabled="disabled"
-          @click="emit('command', { action: 'set-mode', mode: 'chatgpt' })"
+          class="ew-btn ew-btn--subtle ew-btn--small"
+          :disabled="busy"
+          @click="emit('refresh')"
         >
-          {{ text.chatgpt }}
-        </button>
-        <button
-          type="button"
-          class="ew-btn"
-          :class="{ 'ew-btn--primary': status.mode === 'api-key' }"
-          :aria-pressed="status.mode === 'api-key'"
-          :disabled="disabled"
-          @click="emit('command', { action: 'set-mode', mode: 'api-key' })"
-        >
-          {{ text.apiKey }}
+          <AppIcon name="refresh" :size="14" />
+          {{ text.refresh }}
         </button>
       </div>
-      <template v-if="status.mode === 'chatgpt'">
-        <p class="ew-muted">{{ text.planNote }}</p>
-        <p v-if="active?.connected" class="ew-muted">{{ text.activeAccount }}: {{ active.label }}</p>
-        <div v-if="status.accounts.length" class="ew-ai-settings__field">
-          <label class="ew-label" :for="ids.account">{{ text.account }}</label>
-          <select
-            :id="ids.account"
-            class="ew-select"
-            :value="selected?.id ?? ''"
-            :aria-describedby="ids.accountHint"
-            :disabled="busy"
-            @change="selectedId = inputValue($event)"
+    </header>
+    <p v-if="error" class="ew-alert ew-alert--error" role="alert">
+      <AppIcon name="warning" :size="16" />
+      <span>{{ error }}</span>
+    </p>
+    <template v-if="status">
+      <div class="ew-method-grid" role="radiogroup" :aria-label="text.methodLabel">
+        <label
+          v-for="mode in AI_MODES"
+          :key="mode"
+          class="ew-method"
+          :data-mode="mode"
+          :data-checked="status.mode === mode"
+          :data-disabled="disabled"
+        >
+          <input
+            type="radio"
+            class="ew-visually-hidden"
+            :name="ids.method"
+            :value="mode"
+            :checked="status.mode === mode"
+            :disabled="disabled"
+            @change="chooseMode(mode)"
+          />
+          <span class="ew-method__glyph"><AppIcon :name="METHOD_ICONS[mode]" :size="16" /></span>
+          <span class="ew-method__title">{{ methodTitle(mode) }}</span>
+          <span class="ew-method__hint">{{ text.methodHints[mode] }}</span>
+          <AppIcon v-if="status.mode === mode" class="ew-method__check" name="check" :size="16" />
+        </label>
+      </div>
+      <div class="ew-ai-settings__panel">
+        <template v-if="status.mode === 'chatgpt'">
+          <p class="ew-muted">{{ text.planNote }}</p>
+          <p v-if="active?.connected" class="ew-ai-settings__meta">
+            {{ text.activeAccount }}: <strong>{{ active.label }}</strong>
+          </p>
+          <div v-if="status.accounts.length" class="ew-ai-settings__field">
+            <label class="ew-label" :for="ids.account">{{ text.account }}</label>
+            <select
+              :id="ids.account"
+              class="ew-select"
+              :value="selected?.id ?? ''"
+              :aria-describedby="ids.accountHint"
+              :disabled="busy"
+              @change="selectedId = inputValue($event)"
+            >
+              <option disabled value="">{{ text.account }}</option>
+              <option v-for="account in status.accounts" :key="account.id" :value="account.id">
+                {{ account.label
+                }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : '' }}
+              </option>
+            </select>
+            <p :id="ids.accountHint" class="ew-muted">{{ text.savedAccountHint }}</p>
+          </div>
+          <p
+            v-if="connectionState"
+            class="ew-ai-settings__state"
+            :data-ready="status.ready && selectedIsActive"
+            role="status"
           >
-            <option disabled value="">{{ text.account }}</option>
-            <option v-for="account in status.accounts" :key="account.id" :value="account.id">
-              {{ account.label
-              }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : '' }}
+            {{ connectionState }}
+          </p>
+          <div class="ew-ai-settings__actions">
+            <button
+              v-if="!selected?.connected || !selected.planEnabled"
+              type="button"
+              class="ew-btn ew-ai-sign-in"
+              :disabled="disabled"
+              @click="emit('command', { action: 'connect', accountId: selected?.id ?? null })"
+            >
+              {{ text.connect }}
+            </button>
+            <button
+              v-else-if="!selectedIsActive"
+              type="button"
+              class="ew-btn ew-btn--primary"
+              :disabled="disabled"
+              @click="emit('command', { action: 'select-account', accountId: selected.id })"
+            >
+              {{ text.useAccount }}
+            </button>
+            <button
+              v-else
+              type="button"
+              class="ew-btn"
+              :disabled="disabled"
+              @click="emit('command', { action: 'connect', accountId: selected.id })"
+            >
+              {{ text.reconnect }}
+            </button>
+            <button
+              v-if="status.accounts.length"
+              type="button"
+              class="ew-btn"
+              :disabled="busy"
+              @click="emit('command', { action: 'connect', accountId: null })"
+            >
+              <AppIcon name="plus" :size="14" />
+              {{ text.addAccount }}
+            </button>
+          </div>
+          <div v-if="selected" class="ew-ai-settings__manage">
+            <button
+              v-if="selected.connected"
+              type="button"
+              class="ew-btn ew-btn--subtle ew-btn--small"
+              :disabled="disabled"
+              @click="emit('command', { action: 'disconnect', accountId: selected.id })"
+            >
+              {{ text.disconnect }}
+            </button>
+            <AiAccountActions
+              :account="selected"
+              :text="text"
+              :busy="busy"
+              @command="emit('command', $event)"
+            />
+          </div>
+          <div v-if="status.signingIn" class="ew-alert" role="status">
+            <span class="ew-spinner" aria-hidden="true" />
+            <span class="ew-alert__body">
+              {{ text.signingIn }}
+              <button type="button" class="ew-link" @click="emit('command', { action: 'cancel-sign-in' })">
+                {{ text.cancel }}
+              </button>
+            </span>
+          </div>
+          <a
+            class="ew-link ew-ai-settings__usage"
+            :href="CHATGPT_USAGE_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ text.manageUsage }}
+            <AppIcon name="external" :size="14" />
+          </a>
+          <p class="ew-muted">{{ text.connectionHelp }}</p>
+        </template>
+        <form v-else-if="status.mode === 'api-key'" class="ew-ai-settings__field" @submit.prevent="saveKey">
+          <p class="ew-muted">{{ text.apiNote }}</p>
+          <p v-if="status.apiKeyConfigured" class="ew-ai-settings__state" data-ready="true">
+            {{ text.keySaved }}
+          </p>
+          <label class="ew-label" :for="ids.key">{{ text.apiKeyLabel }}</label>
+          <div class="ew-ai-settings__key">
+            <input
+              :id="ids.key"
+              v-model="key"
+              class="ew-input"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="sk-…"
+              :disabled="disabled"
+              maxlength="512"
+            />
+            <button
+              type="submit"
+              class="ew-btn ew-btn--primary"
+              :disabled="disabled || key.trim().length < 10"
+            >
+              {{ text.saveKey }}
+            </button>
+          </div>
+          <div v-if="status.apiKeyConfigured" class="ew-ai-settings__manage">
+            <button
+              type="button"
+              class="ew-btn ew-btn--subtle ew-btn--small"
+              :disabled="disabled"
+              @click="emit('command', { action: 'clear-api-key' })"
+            >
+              {{ text.removeKey }}
+            </button>
+          </div>
+        </form>
+        <div v-else class="ew-ai-settings__field">
+          <p class="ew-muted">{{ text.claudeNote }}</p>
+          <p v-if="claudeState" class="ew-ai-settings__state" :data-ready="status.ready" role="status">
+            {{ claudeState }}
+          </p>
+          <p v-if="claudeAccount" class="ew-ai-settings__meta">
+            {{ text.claudeAccount }}: <strong>{{ claudeAccount }}</strong>
+          </p>
+          <p
+            v-if="status.claudeCode?.loggedIn && !status.claudeCode.subscription"
+            class="ew-alert ew-alert--warning"
+            role="note"
+          >
+            <AppIcon name="warning" :size="16" />
+            <span>{{ text.claudeApiBilling }}</span>
+          </p>
+        </div>
+        <div
+          v-if="status.models.length && (status.mode !== 'chatgpt' || selectedIsActive)"
+          class="ew-ai-settings__field ew-ai-settings__model"
+        >
+          <label class="ew-label" :for="ids.model">{{ text.model }}</label>
+          <select
+            :id="ids.model"
+            class="ew-select"
+            :value="status.selectedModel ?? ''"
+            :disabled="disabled"
+            @change="emit('command', { action: 'set-model', model: inputValue($event) })"
+          >
+            <option disabled value="">{{ text.model }}</option>
+            <option v-for="model in status.models" :key="model.id" :value="model.id">
+              {{ model.label }}
             </option>
           </select>
         </div>
-        <p v-if="connectionState" class="ew-ai-settings__state" role="status">{{ connectionState }}</p>
-        <p v-if="status.accounts.length" :id="ids.accountHint" class="ew-muted">
-          {{ text.savedAccountHint }}
-        </p>
-        <div class="ew-ai-settings__actions">
-          <button
-            v-if="!selected?.connected || !selected.planEnabled"
-            type="button"
-            class="ew-btn ew-ai-sign-in"
-            :disabled="disabled"
-            @click="emit('command', { action: 'connect', accountId: selected?.id ?? null })"
-          >
-            {{ text.connect }}
-          </button>
-          <button
-            v-else-if="!selectedIsActive"
-            type="button"
-            class="ew-btn ew-btn--primary"
-            :disabled="disabled"
-            @click="emit('command', { action: 'select-account', accountId: selected.id })"
-          >
-            {{ text.useAccount }}
-          </button>
-          <button
-            v-else
-            type="button"
-            class="ew-btn"
-            :disabled="disabled"
-            @click="emit('command', { action: 'connect', accountId: selected.id })"
-          >
-            {{ text.reconnect }}
-          </button>
-          <button
-            v-if="status.accounts.length"
-            type="button"
-            class="ew-btn"
-            :disabled="busy"
-            @click="emit('command', { action: 'connect', accountId: null })"
-          >
-            {{ text.addAccount }}
-          </button>
-          <button
-            v-if="selected?.connected"
-            type="button"
-            class="ew-btn ew-btn--subtle"
-            :disabled="disabled"
-            @click="emit('command', { action: 'disconnect', accountId: selected.id })"
-          >
-            {{ text.disconnect }}
-          </button>
-        </div>
-        <AiAccountActions
-          v-if="selected"
-          :account="selected"
-          :text="text"
-          :busy="busy"
-          @command="emit('command', $event)"
-        />
-        <div v-if="status.signingIn" class="ew-ai-settings__actions" role="status">
-          <span class="ew-muted">{{ text.signingIn }}</span>
-          <button
-            type="button"
-            class="ew-btn ew-btn--subtle"
-            @click="emit('command', { action: 'cancel-sign-in' })"
-          >
-            {{ text.cancel }}
-          </button>
-        </div>
-        <a class="ew-link" :href="CHATGPT_USAGE_URL" target="_blank" rel="noopener noreferrer">{{
-          text.manageUsage
-        }}</a>
-        <p class="ew-muted">{{ text.connectionHelp }}</p>
-      </template>
-      <form v-else class="ew-ai-settings__field" @submit.prevent="saveKey">
-        <p class="ew-muted">{{ text.apiNote }}</p>
-        <p v-if="status.apiKeyConfigured" class="ew-ai-settings__state">{{ text.keySaved }}</p>
-        <label class="ew-label" :for="ids.key">{{ text.apiKeyLabel }}</label>
-        <input
-          :id="ids.key"
-          v-model="key"
-          class="ew-input"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
-          :disabled="disabled"
-          maxlength="512"
-        />
-        <div class="ew-ai-settings__actions">
-          <button type="submit" class="ew-btn ew-btn--primary" :disabled="disabled || key.trim().length < 10">
-            {{ text.saveKey }}
-          </button>
-          <button
-            v-if="status.apiKeyConfigured"
-            type="button"
-            class="ew-btn ew-btn--subtle"
-            :disabled="disabled"
-            @click="emit('command', { action: 'clear-api-key' })"
-          >
-            {{ text.removeKey }}
-          </button>
-        </div>
-      </form>
-      <div
-        v-if="status.models.length && (status.mode === 'api-key' || selectedIsActive)"
-        class="ew-ai-settings__field"
-      >
-        <label class="ew-label" :for="ids.model">{{ text.model }}</label>
-        <select
-          :id="ids.model"
-          class="ew-select"
-          :value="status.selectedModel ?? ''"
-          :disabled="disabled"
-          @change="emit('command', { action: 'set-model', model: inputValue($event) })"
-        >
-          <option disabled value="">{{ text.model }}</option>
-          <option v-for="model in status.models" :key="model.id" :value="model.id">{{ model.label }}</option>
-        </select>
       </div>
     </template>
     <details class="ew-ai-settings__setup" :open="status === null && !busy">
-      <summary>{{ text.setup }}</summary>
+      <summary>
+        <AppIcon name="chevronRight" class="ew-ai-settings__setup-chevron" :size="14" />
+        {{ text.setup }}
+      </summary>
       <p class="ew-muted">{{ text.setupBody }}</p>
       <p class="ew-muted">
         {{ text.extensionId }} <code>{{ extensionId }}</code>
       </p>
     </details>
-    <p class="ew-muted ew-ai-settings__privacy">{{ text.privacy }}</p>
+    <p class="ew-ai-settings__privacy">
+      <AppIcon name="shield" :size="16" />
+      <span>{{ status?.mode === 'claude-code' ? text.claudePrivacy : text.privacy }}</span>
+    </p>
     <dialog
       ref="welcome"
       class="ew-ai-welcome"

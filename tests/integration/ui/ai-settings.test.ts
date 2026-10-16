@@ -1,4 +1,4 @@
-import { AiConnectionSettings } from '@email-writer/ui';
+import { AiConnectionGuide, AiConnectionSettings } from '@email-writer/ui';
 import type { AiStatus } from '@email-writer/contracts';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +14,7 @@ const disconnected: AiStatus = {
   ready: false,
   signingIn: false,
   needsPlanAcknowledgement: false,
+  claudeCode: null,
   error: null,
 };
 const render = (status: AiStatus | null) =>
@@ -222,7 +223,7 @@ describe('AI connection settings', () => {
     expect(wrapper.emitted('command')?.[0]).toEqual([
       { action: 'save-api-key', apiKey: 'sk-private-test-key' },
     ]);
-    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('');
+    expect((wrapper.get('input[type=password]').element as HTMLInputElement).value).toBe('');
     wrapper.unmount();
   });
   it('shows installation guidance when the native host is missing', () => {
@@ -231,6 +232,120 @@ describe('AI connection settings', () => {
     expect(wrapper.text()).toContain('test-extension');
     expect(wrapper.text()).toContain('docs/AI_BAGLANTISI.md');
     expect(wrapper.find('input[type=password]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+  describe('Claude plan method', () => {
+    const claude = {
+      ...disconnected,
+      mode: 'claude-code' as const,
+      models: [
+        { id: 'sonnet', label: 'Claude Sonnet' },
+        { id: 'haiku', label: 'Claude Haiku' },
+      ],
+      selectedModel: 'sonnet',
+    };
+    const signedIn = {
+      installed: true,
+      loggedIn: true,
+      subscription: true,
+      plan: 'team',
+      account: 'c@example.test',
+      organization: 'Acme',
+    };
+
+    it('offers the method and switches to it', async () => {
+      const wrapper = render(disconnected);
+      const method = wrapper.get('input[type=radio][value="claude-code"]');
+      expect(method.element.closest('label')?.textContent).toContain(tr.ui.ai.claudeCode);
+      expect(method.element.closest('label')?.textContent).toContain(tr.ui.ai.methodHints['claude-code']);
+      await method.setValue(true);
+      expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'set-mode', mode: 'claude-code' }]);
+      wrapper.unmount();
+    });
+
+    it('shows the signed-in Claude Code account, the model choice and the Anthropic privacy note', async () => {
+      const wrapper = render({ ...claude, ready: true, claudeCode: signedIn });
+      expect(wrapper.text()).toContain(tr.ui.ai.connected);
+      expect(wrapper.text()).toContain(`${tr.ui.ai.claudeAccount}: c@example.test · Acme · Team`);
+      expect(wrapper.text()).toContain(tr.ui.ai.claudePrivacy);
+      expect(wrapper.text()).not.toContain(tr.ui.ai.privacy);
+      expect(wrapper.find('input[type=password]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain('Continue with ChatGPT');
+      await wrapper.get('select').setValue('haiku');
+      expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'set-model', model: 'haiku' }]);
+      wrapper.unmount();
+    });
+
+    it('explains how to install or sign in, and warns when Claude Code is not on a subscription', () => {
+      const missing = render({
+        ...claude,
+        claudeCode: {
+          ...signedIn,
+          installed: false,
+          loggedIn: false,
+          account: null,
+          organization: null,
+          plan: null,
+        },
+      });
+      expect(missing.text()).toContain(tr.ui.ai.claudeNotInstalled);
+      missing.unmount();
+      const signedOut = render({
+        ...claude,
+        claudeCode: { ...signedIn, loggedIn: false, account: null, organization: null, plan: null },
+      });
+      expect(signedOut.text()).toContain(tr.ui.ai.claudeNotLoggedIn);
+      expect(signedOut.text()).not.toContain(tr.ui.ai.claudeAccount);
+      signedOut.unmount();
+      const apiBilled = render({ ...claude, ready: true, claudeCode: { ...signedIn, subscription: false } });
+      expect(apiBilled.text()).toContain(tr.ui.ai.claudeApiBilling);
+      apiBilled.unmount();
+    });
+  });
+  it('shows a status badge: ready, setup needed or connection needed', () => {
+    const ready = render({ ...disconnected, mode: 'api-key', apiKeyConfigured: true, ready: true });
+    expect(ready.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusReady);
+    expect(ready.get('.ew-status-pill').attributes('data-tone')).toBe('success');
+    ready.unmount();
+    const missing = render(null);
+    expect(missing.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusSetup);
+    missing.unmount();
+    const signedOut = render(disconnected);
+    expect(signedOut.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusAction);
+    signedOut.unmount();
+  });
+});
+
+describe('AI connection guide', () => {
+  const guide = (mode: AiStatus['mode'] | null) =>
+    mount(AiConnectionGuide, { props: { text: tr.ui.ai, mode } });
+
+  it('lists what each method needs, opens the selected one and links to official setup pages', () => {
+    const wrapper = guide('claude-code');
+    const items = wrapper.findAll('details');
+    expect(items.map((item) => item.attributes('data-mode'))).toEqual([
+      'chatgpt',
+      'api-key',
+      'claude-code',
+      'helper',
+    ]);
+    expect(items.map((item) => item.attributes('open') !== undefined)).toEqual([false, false, true, false]);
+
+    const claude = items[2]!;
+    expect(claude.text()).toContain(tr.ui.ai.guide.current);
+    expect(claude.text()).toContain('Claude Pro, Max, Team veya Enterprise');
+    // `claude` ve `/login` komut olarak gösterilir.
+    expect(claude.findAll('code').map((code) => code.text())).toEqual(['claude', '/login']);
+    expect(claude.get('a').attributes('href')).toBe('https://code.claude.com/docs/en/setup');
+    expect(items[1]!.get('a').attributes('href')).toBe('https://platform.openai.com/api-keys');
+    expect(items[0]!.text()).toContain('Plus veya Pro');
+    expect(items[3]!.text()).toContain('Windows');
+    wrapper.unmount();
+  });
+
+  it('opens nothing when no method is known yet', () => {
+    const wrapper = guide(null);
+    expect(wrapper.findAll('details[open]')).toHaveLength(0);
     wrapper.unmount();
   });
 });

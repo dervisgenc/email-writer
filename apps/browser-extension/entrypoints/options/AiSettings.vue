@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AiCommand, AiStatus, ErrorCode } from '@email-writer/contracts';
-import { AiConnectionSettings, type UiText } from '@email-writer/ui';
+import { AiConnectionGuide, AiConnectionSettings, type UiText } from '@email-writer/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
 
 import { extensionId } from '../../src/platform/extension-browser';
@@ -55,6 +55,8 @@ async function command(value: AiCommand) {
 onMounted(async () => {
   await refresh();
   const current = status.value;
+  // Claude Code's models are fixed aliases; there is no catalog to load.
+  if (current?.mode === 'claude-code') return;
   const canLoadModels =
     current?.mode === 'api-key'
       ? current.apiKeyConfigured
@@ -79,4 +81,5 @@ onUnmounted(() => {
     @command="command"
     @refresh="refresh(status !== null && !status.signingIn)"
   />
+  <AiConnectionGuide :key="status?.mode ?? 'none'" :text="text.ai" :mode="status?.mode ?? null" />
 </template>

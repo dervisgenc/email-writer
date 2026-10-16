@@ -50,14 +50,24 @@ function remove() {
 
 <template>
   <div class="ew-ai-settings__actions">
-    <button type="button" class="ew-btn ew-btn--subtle" :disabled="busy || editing" @click="startRename">
+    <button
+      type="button"
+      class="ew-btn ew-btn--subtle ew-btn--small"
+      :disabled="busy || editing"
+      @click="startRename"
+    >
       {{ text.renameAccount }}
     </button>
-    <button type="button" class="ew-btn ew-btn--subtle" :disabled="busy" @click="startRemoval">
+    <button
+      type="button"
+      class="ew-btn ew-btn--subtle ew-btn--small ew-btn--danger-text"
+      :disabled="busy"
+      @click="startRemoval"
+    >
       {{ text.removeAccount }}
     </button>
   </div>
-  <form v-if="editing" class="ew-ai-settings__field" @submit.prevent="saveName">
+  <form v-if="editing" class="ew-ai-settings__field ew-ai-settings__rename" @submit.prevent="saveName">
     <label class="ew-label" :for="ids.name">{{ text.accountName }}</label>
     <input
       :id="ids.name"

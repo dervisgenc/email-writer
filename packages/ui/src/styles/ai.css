@@ -1,66 +1,146 @@
-.ew-root .ew-ai-settings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  margin: 20px 0 28px;
-  border: 1px solid var(--ew-color-border);
-  border-radius: var(--ew-radius-large);
-  background: var(--ew-color-bg);
-  box-shadow: var(--ew-shadow-2);
-}
-.ew-root .ew-ai-settings h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
+/* AI bağlantısı kartının içi, hoş geldin ve hesap pencereleri, panel göstergesi. */
 .ew-root .ew-ai-settings p {
   margin: 0;
 }
-.ew-root .ew-ai-settings__heading,
+.ew-root .ew-ai-settings__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ew-space-3);
+  padding: var(--ew-space-4);
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+}
+.ew-root .ew-ai-settings__panel .ew-select,
+.ew-root .ew-ai-settings__panel .ew-input {
+  background: var(--ew-color-bg);
+}
 .ew-root .ew-ai-settings__actions,
-.ew-root .ew-ai-settings__methods {
+.ew-root .ew-ai-settings__manage {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ew-space-2);
 }
-.ew-root .ew-ai-settings__heading {
-  justify-content: space-between;
+.ew-root .ew-ai-settings__manage {
+  gap: 2px var(--ew-space-1);
+  margin: -4px 0 0 -8px;
+}
+.ew-root .ew-ai-settings__manage > .ew-ai-settings__actions {
+  display: contents;
+}
+.ew-root .ew-ai-settings__rename {
+  flex-basis: 100%;
+  margin: var(--ew-space-2) 0 0 var(--ew-space-2);
 }
 .ew-root .ew-ai-settings__field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ew-space-2);
+}
+.ew-root .ew-ai-settings__model {
+  padding-top: var(--ew-space-3);
+  border-top: 1px solid var(--ew-color-border);
+}
+.ew-root .ew-ai-settings__key {
+  display: flex;
+  gap: var(--ew-space-2);
+}
+.ew-root .ew-ai-settings__key .ew-input {
+  flex: 1 1 auto;
 }
 .ew-root .ew-ai-settings__state {
+  display: flex;
+  align-items: center;
+  gap: var(--ew-space-2);
   font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.ew-root .ew-ai-settings__state::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ew-color-warning);
+}
+.ew-root .ew-ai-settings__state[data-ready='true']::before {
+  background: var(--ew-color-success);
+}
+.ew-root .ew-ai-settings__meta {
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .ew-root .ew-ai-settings__setup {
-  font-size: 12px;
+  font-size: var(--ew-font-size-200);
   overflow-wrap: anywhere;
 }
 .ew-root .ew-ai-settings__setup summary {
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--ew-color-link);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.ew-root .ew-ai-settings__setup summary::-webkit-details-marker {
+  display: none;
+}
+.ew-root .ew-ai-settings__setup-chevron {
+  transition: transform var(--ew-duration) var(--ew-ease);
+}
+.ew-root .ew-ai-settings__setup[open] .ew-ai-settings__setup-chevron {
+  transform: rotate(90deg);
 }
 .ew-root .ew-ai-settings__setup p {
-  margin-top: 8px;
+  margin-top: var(--ew-space-2);
 }
 .ew-root .ew-ai-settings__privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ew-space-2);
+  padding-top: var(--ew-space-3);
   border-top: 1px solid var(--ew-color-border);
-  padding-top: 12px;
+  color: var(--ew-color-muted);
+  font-size: var(--ew-font-size-200);
+  line-height: 18px;
 }
+.ew-root .ew-ai-settings__privacy .ew-icon {
+  margin-top: 1px;
+  color: var(--ew-color-success);
+}
+/* OpenAI'ın arayüz kurallarına göre "Continue with ChatGPT" siyah düğmedir. */
 .ew-root .ew-ai-sign-in {
+  border-color: #000;
+  border-radius: var(--ew-radius-medium);
+  padding: 8px 16px;
   background: #000;
   color: #fff;
-  border-color: #000;
-  border-radius: 6px;
-  padding: 8px 16px;
 }
 .ew-root .ew-ai-sign-in:hover:not(:disabled) {
   background: #333;
   color: #fff;
+}
+.ew-root[data-theme='dark'] .ew-ai-sign-in {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+}
+.ew-root[data-theme='dark'] .ew-ai-sign-in:hover:not(:disabled) {
+  background: #e0e0e0;
+  color: #000;
+}
+@media (prefers-color-scheme: dark) {
+  .ew-root[data-theme='system'] .ew-ai-sign-in {
+    border-color: #fff;
+    background: #fff;
+    color: #000;
+  }
+  .ew-root[data-theme='system'] .ew-ai-sign-in:hover:not(:disabled) {
+    background: #e0e0e0;
+    color: #000;
+  }
 }
 .ew-root .ew-ai-welcome,
 .ew-root .ew-ai-account-dialog {
@@ -78,6 +158,12 @@
 .ew-root .ew-ai-welcome::backdrop,
 .ew-root .ew-ai-account-dialog::backdrop {
   background: rgb(0 0 0 / 0.4);
+}
+.ew-root .ew-ai-welcome h2,
+.ew-root .ew-ai-account-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
 }
 .ew-root .ew-ai-welcome p,
 .ew-root .ew-ai-account-dialog p {

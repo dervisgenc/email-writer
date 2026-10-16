@@ -222,7 +222,7 @@ export const en: ExtensionText = {
       AI_ACCESS_DENIED:
         'OpenAI denied access to this request. Check app permissions, connection configuration or regional restrictions; this error alone does not establish subscription eligibility.',
       AI_LIMIT_REACHED:
-        'Usage limit reached. For ChatGPT, open Manage usage; for API keys, check your OpenAI API limits.',
+        'Usage limit reached. For ChatGPT, open Manage usage; on a Claude plan, try again when your limit resets; for API keys, check your OpenAI API limits.',
       AI_UNAVAILABLE: 'The AI service is currently unavailable. Your connection is kept; try again later.',
       AI_NETWORK: 'Could not reach the AI service. Check your internet connection and try again.',
       AI_MODEL_UNAVAILABLE: 'The selected model is unavailable. Refresh models in AI settings.',
@@ -231,6 +231,10 @@ export const en: ExtensionText = {
       AI_REVOKE_UNCONFIRMED:
         'Signed out locally; OpenAI revocation could not be confirmed. Disconnect the app in ChatGPT settings.',
       AI_BUSY: 'An AI connection operation is in progress. Wait for it or cancel sign-in.',
+      AI_CLAUDE_NOT_INSTALLED:
+        'Claude Code was not found. Install Claude Code and run pnpm ai:install again.',
+      AI_CLAUDE_NOT_LOGGED_IN:
+        'Claude Code is not signed in. Run claude in a terminal and sign in with /login.',
       CONTENT_SCRIPT_UNREACHABLE:
         'The extension cannot reach this tab. Check site access or reload the page.',
       MESSAGE_REJECTED: 'An invalid extension message was rejected.',
@@ -255,18 +259,33 @@ export const en: ExtensionText = {
   },
   options: {
     title: 'Email Writer settings',
+    subtitle: 'Writing assistant for Outlook on the web',
+    preferencesTitle: 'Writing preferences',
+    preferencesDescription: 'Language, tone and appearance used for new work.',
     uiLanguage: 'Interface language',
     uiLanguages: { tr: 'Türkçe', en: 'English' },
     targetLanguage: 'Default target language',
     tone: 'Default tone',
     theme: 'Theme',
     themes: { system: 'Automatic (same as Outlook)', light: 'Light', dark: 'Dark' },
+    themeOptions: { system: 'Automatic', light: 'Light', dark: 'Dark' },
+    themeHint:
+      'With Automatic, the panel in Outlook follows Outlook’s theme and this page follows your system theme.',
     siteEnabled: 'Show the writing assistant on Outlook Web',
+    siteEnabledHint: 'When off, the buttons and panel are hidden in Outlook.',
+    unsaved: 'You have unsaved changes.',
     save: 'Save',
     saved: 'Settings saved.',
     saving: 'Saving…',
-    storageNote:
-      'Your preferences are stored only on this device. Emails you open are kept in memory only while the page is open, so related messages can be suggested as context. Mail content, panel text and previews are not stored permanently When you request generation, your text and selected context are sent to OpenAI.',
     defaultsNote: 'Default language and tone do not change open work; they apply to the next work.',
+    privacyTitle: 'Privacy and data',
+    privacyDescription: 'What Email Writer does and does not do with your email.',
+    privacyPoints: [
+      'Your preferences are stored only on this device.',
+      'Emails you open are kept in memory only while the page is open, to suggest context; they are never written to disk.',
+      'Text is sent to the AI provider you chose (OpenAI or Anthropic) only when you select Revise, Translate or Write reply.',
+      'Results appear as a preview first and are never written to your draft without your approval.',
+      'Email Writer never sends email; sending is always up to you.',
+    ],
   },
 };

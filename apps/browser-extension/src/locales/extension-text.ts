@@ -17,17 +17,26 @@ export interface ExtensionText {
   };
   readonly options: {
     readonly title: string;
+    readonly subtitle: string;
+    readonly preferencesTitle: string;
+    readonly preferencesDescription: string;
     readonly uiLanguage: string;
     readonly uiLanguages: Readonly<Record<UiLanguage, string>>;
     readonly targetLanguage: string;
     readonly tone: string;
     readonly theme: string;
     readonly themes: Readonly<Record<Theme, string>>;
+    readonly themeOptions: Readonly<Record<Theme, string>>;
+    readonly themeHint: string;
     readonly siteEnabled: string;
+    readonly siteEnabledHint: string;
+    readonly unsaved: string;
     readonly save: string;
     readonly saved: string;
     readonly saving: string;
-    readonly storageNote: string;
     readonly defaultsNote: string;
+    readonly privacyTitle: string;
+    readonly privacyDescription: string;
+    readonly privacyPoints: readonly string[];
   };
 }

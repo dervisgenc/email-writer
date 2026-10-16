@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { lock } from 'proper-lockfile';
+import { AI_MODES } from '@email-writer/contracts';
 import { z } from 'zod';
 
 const credentialsSchema = z
@@ -31,9 +32,11 @@ const stateSchema = z
     hostId: z.string(),
     accounts: z.array(accountSchema).max(100),
     activeAccountId: z.string().nullable(),
-    mode: z.enum(['chatgpt', 'api-key']),
+    mode: z.enum(AI_MODES),
     apiKey: z.string().nullable(),
     apiModel: z.string().nullable(),
+    // Added with Claude Code support; files written earlier do not have it.
+    claudeModel: z.string().nullable().optional(),
   })
   .strict();
 export type Credentials = z.infer<typeof credentialsSchema>;

@@ -14,6 +14,7 @@ const INTERNAL_PACKAGES = [
   '@email-writer/ui',
   '@email-writer/outlook-web',
   '@email-writer/ai-openai',
+  '@email-writer/ai-claude-code',
 ];
 
 const deepImportBan = {
@@ -192,7 +193,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/ai-openai/src/**/*.ts', 'apps/ai-companion/src/**/*.ts'],
+    files: [
+      'packages/ai-openai/src/**/*.ts',
+      'packages/ai-claude-code/src/**/*.ts',
+      'apps/ai-companion/src/**/*.ts',
+    ],
     languageOptions: { globals: { ...globals.node } },
     rules: {
       'no-restricted-globals': ['error', ...browserGlobals],
@@ -202,6 +207,31 @@ export default tseslint.config(
           paths: restrictImports(
             ['vue', 'wxt', '#imports', '@email-writer/core', '@email-writer/ui', '@email-writer/outlook-web'],
             'AI modules do not depend on the UI or mailbox.',
+          ),
+          patterns: [deepImportBan],
+        },
+      ],
+    },
+  },
+  {
+    // Sağlayıcı paketleri birbirini bilmez; ortak talimat ve tipler contracts'tadır.
+    files: ['packages/ai-openai/src/**/*.ts', 'packages/ai-claude-code/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: restrictImports(
+            [
+              'vue',
+              'wxt',
+              '#imports',
+              '@email-writer/core',
+              '@email-writer/ui',
+              '@email-writer/outlook-web',
+              '@email-writer/ai-openai',
+              '@email-writer/ai-claude-code',
+            ],
+            'AI provider packages depend only on contracts.',
           ),
           patterns: [deepImportBan],
         },

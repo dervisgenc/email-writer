@@ -1,4 +1,9 @@
 import {
+  DEFAULT_CLAUDE_CODE_MODEL,
+  type ClaudeCodeProvider,
+  type ClaudeCodeStatus,
+} from '@email-writer/ai-claude-code';
+import {
   AiFailure,
   failureCode,
   PLAN_SCOPE,
@@ -22,6 +27,7 @@ export function createAiService(deps: {
   store: CredentialStore;
   oauth: ReturnType<typeof createOpenAiOAuth>;
   provider: ReturnType<typeof createOpenAiProvider>;
+  claude: Pick<ClaudeCodeProvider, 'models' | 'status' | 'generate'>;
   openBrowser: (url: string) => Promise<void>;
 }) {
   let models: AiModel[] = [];
@@ -31,12 +37,27 @@ export function createAiService(deps: {
   let catalogAttemptKey: string | null = null;
   let automaticCatalogLoad: Promise<void> | null = null;
   let commandBusy = false;
+  // Claude Code's sign-in state is read through its own CLI. The connection indicator
+  // polls every few seconds, so the answer is reused for a short while.
+  let claudeCache: { at: number; value: Promise<ClaudeCodeStatus> } | null = null;
+  const claudeStatus = (force = false): Promise<ClaudeCodeStatus> => {
+    if (force || claudeCache === null || Date.now() - claudeCache.at > 30_000) {
+      const value = deps.claude.status().catch((caught: unknown) => {
+        claudeCache = null;
+        throw caught;
+      });
+      claudeCache = { at: Date.now(), value };
+    }
+    return claudeCache.value;
+  };
   const running = new Map<string, AbortController>();
   const stopRequests = () => {
     for (const abort of running.values()) abort.abort();
   };
+  /** OpenAI credentials; the Claude Code method never passes through here. */
   const credential = async () => {
     const result = await deps.store.update(async (state) => {
+      if (state.mode === 'claude-code') return null;
       if (state.mode === 'api-key') {
         return state.apiKey
           ? { token: state.apiKey, key: 'api-key', mode: state.mode, model: state.apiModel }
@@ -68,7 +89,7 @@ export function createAiService(deps: {
       return {
         token: account.credentials.accessToken,
         key: account.clientId,
-        mode: state.mode,
+        mode: 'chatgpt' as const,
         model: account.model,
       };
     });
@@ -114,15 +135,27 @@ export function createAiService(deps: {
     const active = state.accounts.find((item) => item.clientId === state.activeAccountId);
     return {
       active,
-      key: state.mode === 'api-key' ? 'api-key' : state.activeAccountId,
+      key: state.mode === 'chatgpt' ? state.activeAccountId : state.mode,
       connected:
-        state.mode === 'api-key' ? state.apiKey !== null : !!active?.credentials?.scopes.includes(PLAN_SCOPE),
+        state.mode === 'api-key'
+          ? state.apiKey !== null
+          : state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE),
     };
   };
 
-  const describe = (state: CredentialState): AiStatus => {
+  const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): AiStatus => {
     const { active, key, connected } = usage(state);
-    const selectedModel = state.mode === 'api-key' ? state.apiModel : (active?.model ?? null);
+    const claudeMode = state.mode === 'claude-code';
+    const selectedModel = claudeMode
+      ? (state.claudeModel ?? DEFAULT_CLAUDE_CODE_MODEL)
+      : state.mode === 'api-key'
+        ? state.apiModel
+        : (active?.model ?? null);
+    // Claude Code resolves model aliases itself; there is no account catalog to load.
+    const available = claudeMode ? [...deps.claude.models] : key === catalogKey ? models : [];
+    const usable = claudeMode
+      ? claude?.installed === true && claude.loggedIn
+      : connected && key === catalogKey;
     return {
       mode: state.mode,
       accounts: state.accounts.map((account) => ({
@@ -135,22 +168,20 @@ export function createAiService(deps: {
       })),
       activeAccountId: state.activeAccountId,
       apiKeyConfigured: state.apiKey !== null,
-      models: key === catalogKey ? models : [],
+      models: available,
       selectedModel,
-      ready:
-        connected &&
-        !signIn.pending() &&
-        key === catalogKey &&
-        models.some((model) => model.id === selectedModel),
+      ready: usable && !signIn.pending() && available.some((model) => model.id === selectedModel),
       signingIn: signIn.pending(),
       needsPlanAcknowledgement:
         state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE) && !active.welcomed,
+      claudeCode: claudeMode ? claude : null,
       error: signIn.error() ?? lastError,
     };
   };
 
   const status = async (): Promise<AiStatus> => {
     const state = await deps.store.read();
+    if (state.mode === 'claude-code') return describe(state, await claudeStatus());
     const { key, connected } = usage(state);
     // Every native process starts without a catalog. Load it once per account so a
     // connected account is not reported as unavailable after a browser or host restart.
@@ -170,9 +201,22 @@ export function createAiService(deps: {
     }
     if (automaticCatalogLoad !== null) {
       await automaticCatalogLoad;
-      return describe(await deps.store.read());
+      return describe(await deps.store.read(), null);
     }
-    return describe(state);
+    return describe(state, null);
+  };
+
+  const generateWithClaude = async (model: string, input: AiInput, signal: AbortSignal) => {
+    let claude = await claudeStatus();
+    // The user may have just installed Claude Code or signed in; check again before failing.
+    if (!claude.installed || !claude.loggedIn) claude = await claudeStatus(true);
+    if (!claude.installed) throw new AiFailure('AI_CLAUDE_NOT_INSTALLED');
+    if (!claude.loggedIn) throw new AiFailure('AI_CLAUDE_NOT_LOGGED_IN');
+    const result = await deps.claude.generate(input, model, signal);
+    if (result.ok) return result.value;
+    if (result.error.code === 'AI_CLAUDE_NOT_LOGGED_IN' || result.error.code === 'AI_CLAUDE_NOT_INSTALLED')
+      claudeCache = null;
+    throw new AiFailure(result.error.code);
   };
 
   return {
@@ -225,12 +269,22 @@ export function createAiService(deps: {
             await deps.store.update((state) => {
               state.mode = command.mode;
             });
-            await refreshQuietly();
+            if (command.mode === 'claude-code') await claudeStatus(true);
+            else await refreshQuietly();
             break;
           case 'refresh-models':
-            await refreshQuietly();
+            if ((await deps.store.read()).mode === 'claude-code') await claudeStatus(true);
+            else await refreshQuietly();
             break;
           case 'set-model': {
+            if ((await deps.store.read()).mode === 'claude-code') {
+              if (!deps.claude.models.some((model) => model.id === command.model))
+                throw new AiFailure('AI_MODEL_UNAVAILABLE');
+              await deps.store.update((state) => {
+                state.claudeModel = command.model;
+              });
+              break;
+            }
             const auth = await credential();
             if (catalogKey !== auth.key) await refreshModels();
             if (!models.some((model) => model.id === command.model))
@@ -319,6 +373,11 @@ export function createAiService(deps: {
       running.set(generationId, abort);
       const timer = setTimeout(() => abort.abort(), 120_000);
       try {
+        const state = await deps.store.read();
+        if (state.mode === 'claude-code') {
+          const model = state.claudeModel ?? DEFAULT_CLAUDE_CODE_MODEL;
+          return { text: await generateWithClaude(model, input, abort.signal) };
+        }
         let auth = await credential();
         if (auth.key !== catalogKey) {
           await refreshModels();

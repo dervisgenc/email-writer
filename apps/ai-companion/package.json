@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@email-writer/contracts": "workspace:*",
+    "@email-writer/ai-claude-code": "workspace:*",
     "@email-writer/ai-openai": "workspace:*",
     "proper-lockfile": "^4.1.2",
     "zod": "^4.6.7"

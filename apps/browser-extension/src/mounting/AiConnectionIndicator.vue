@@ -13,7 +13,12 @@ const summary = computed(() => connection?.summary.value ?? null);
 const label = computed(() => {
   if (!connection?.checked.value) return text.value.ai.checking;
   if (!summary.value?.ready) return text.value.ai.notReady;
-  return summary.value.mode === 'chatgpt' ? text.value.ai.usePlan : text.value.ai.useApi;
+  const labels = {
+    chatgpt: text.value.ai.usePlan,
+    'api-key': text.value.ai.useApi,
+    'claude-code': text.value.ai.useClaude,
+  };
+  return labels[summary.value.mode];
 });
 </script>
 

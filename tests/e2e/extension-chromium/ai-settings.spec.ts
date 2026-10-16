@@ -15,7 +15,7 @@ test('AI ayarları yerel bağlantı yokken kurulum yolunu ve eklenti kimliğini 
     fullPage: true,
     animations: 'disabled',
   });
-  await page.getByLabel('Tema', { exact: true }).selectOption('dark');
+  await page.getByText('Koyu', { exact: true }).click();
   await page.screenshot({
     path: 'test-results/ai-settings-dark.png',
     fullPage: true,
@@ -48,6 +48,7 @@ test('simüle yerel bağlantıyla ChatGPT hesabı, ilk kullanım bildirimi ve mo
       ready: false,
       signingIn: false,
       needsPlanAcknowledgement: false,
+      claudeCode: null,
       error: null,
     };
     runtime.connectNative = () => {
@@ -143,7 +144,7 @@ test('simüle yerel bağlantıyla ChatGPT hesabı, ilk kullanım bildirimi ve mo
     animations: 'disabled',
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByLabel('Tema', { exact: true }).selectOption('dark');
+  await page.getByText('Koyu', { exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Email Writer ayarları', exact: true })).toHaveCount(1);
   await page.getByRole('heading', { name: 'Email Writer ayarları', exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Email Writer ayarları', exact: true })).toBeInViewport();
