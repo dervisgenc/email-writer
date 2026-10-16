@@ -67,10 +67,11 @@ flowchart TD
 | `core` | `buildContext`, `prepareAction`, `reduceSession`, `validateApply/Undo`, yetenek hesaplama. Saf fonksiyonlar; saat ve kimlik dışarıdan verilir | Vue, WXT, Zod, `window`/`document`/`chrome`, UI, Outlook |
 | `ui` | Panel bileşenleri; salt okunur görünüm verisi alır, olay yayar. Metinler sözlükten gelir | `core`, Outlook bağlantısı, `chrome`/`browser`/`document` |
 | `outlook-web` | Sayfayı tanıma, okuma, seçim, gözlem, kontrollü yazma/geri alma. Bütün seçiciler `discovery/selectors.ts` içinde | Vue, WXT, `core`, UI, eklenti API'leri |
+| `email-format` | Modelin Markdown alt kümesini ayrıştırma; e-postaya uygun HTML, düz metin ve taslaktan geri okunacak metin üretme (saf fonksiyonlar) | Vue, WXT, tarayıcı API'leri, diğer iç paketler (yalnızca Zod kullanır) |
 | `browser-extension` | Parçaları birleştirir (`bootstrap/create-extension-session.ts`); tarayıcı API'leri yalnızca `src/platform/` içinde | — |
 
 Ek kurallar (ESLint):
-- `innerHTML`/`outerHTML` yazımı yasak; Vue'da `v-html` yasak.
+- `innerHTML`/`outerHTML` yazımı yasak; Vue'da `v-html` yasak. Tek istisna `ui/src/components/RichPreview.vue`: HTML yalnızca `email-format`'ın ayrıştırılmış yapıdan, bütün metni kaçışlayarak ürettiği çıktıdır.
 - `document.execCommand` yalnızca `outlook-web/src/writing/editor-writer.ts` içinde.
 - Başka paketin `src/` dosyalarına doğrudan erişim yasak; yalnızca paketin dışa aktardığı arayüz kullanılır.
 - `console` yasak; tek tanı çıkışı `src/platform/diagnostics.ts` (yalnızca hata kodu ve sayı, geliştirmede).
@@ -82,7 +83,7 @@ Ek kurallar (ESLint):
 | Content script | `entrypoints/outlook.content.ts` | Outlook bağlantısı, panel oturumu, başlatıcılar. E-posta oturumu ve AI önizlemesi bellekte |
 | Arka plan | `entrypoints/background.ts` | Kurulum, ayar okuma/yazma ve native AI mesaj yönlendirmesi. Chrome'da service worker, Firefox'ta background script |
 | Araç çubuğu penceresi | `entrypoints/popup/` | Destek durumu, "Bu sayfada paneli aç", ayarlara bağlantı; geliştirmede seçici tanılaması |
-| Ayarlar | `entrypoints/options/` | Arayüz dili, varsayılan hedef dil/ton, tema, sitede etkinleştirme |
+| Ayarlar | `entrypoints/options/` | AI bağlantısı, arayüz dili (Otomatik, Türkçe, English, Deutsch, Français, Español), varsayılan ve favori çeviri dilleri, kalıcı yazım talimatı, ton, tema, sitede etkinleştirme. Şema v2; v1 kayıtları taşınır |
 
 Ortamlar arası mesajlar (`contracts/src/runtime-messages.ts`): `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`. Her mesaj şema ile doğrulanır; gönderen tarayıcının verdiği bilgiyle kontrol edilir. AI_GENERATE yalnızca kullanıcının üretmek istediği metin/bağlamı taşır; sonuç tamamlanmış düz metin olarak döner. AI_STATUS/AI_COMMAND hesap yönetimi eklenti sayfalarıyla sınırlıdır; AI_SUMMARY içerik betiğine kimlik bilgisi vermez.
 
@@ -99,7 +100,15 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 3. Panel veya kart kendiliğinden açılmaz. E-posta açmak işlem başlatmaz; yalnızca okunan mesaj geçmişine eklenir (aşağıda).
 4. `prepareAction` değişmez bir işlem kaydı üretir. Sonucu `TextProcessor` verir. Normal/geliştirme derlemelerinde yerel AI bağlantısı, yalnızca test derlemesinde örnek sonuç kaynağı kullanılır.
 5. Önizleme elle düzenlenebilir. "Taslağa uygula" önce `core/editing/validate-apply.ts`, sonra bağlantının DOM kontrollerinden geçer. Yazma bir kez yapılır ve doğrulanır.
-6. "Son uygulamayı geri al", yalnızca araya başka düzenleme girmediyse çalışır.
+6. "Son uygulamayı geri al", yalnızca araya başka düzenleme girmediyse çalışır. Doğrulanmış geri almadan sonra aynı sonuç gövdeye yeniden uygulanabilir; seçim hedefinde yeniden seçim gerekir.
+7. **Sonucu değiştir** (`RefineBar`): Tablo yap / Madde madde / Grafik ekle / Kısalt / Daha resmî / Daha samimi veya serbest istek. Form sürümü değişmez; önceki sonuç işlem kaydına `refinement` olarak girer.
+8. **Biçimli sonuç:** Önizleme (`RichPreview`) e-postadaki görünümü gösterir; yazma `insertHTML` ile yapılır ve "görünen metin" (liste imleri, ` | ` hücre ayırıcıları) ile doğrulanır. Cümle içindeki seçime biçimli içerik yazılmaz.
+
+**Taslak sürümü ve Outlook'un kendi değişiklikleri:**
+- Sürüm (`observe-editor.ts`) yalnızca kullanıcının bölgesindeki metin (boşluklar sadeleştirilmiş) veya tablo/resim sayısı değişince artar. Outlook'un alıntıyı sonradan doldurması, sondaki boş satırı silmesi veya yazılan tabloyu yeniden düzenlemesi çalışmayı geçersiz kılmaz.
+- Outlook yanıtı konuşmaya geç bağlayabilir; bağlantı modülü bunu `composer-rebound` olarak bildirir (editör, sürüm, seçim ve geri alma kayıtları korunur). Araç çubuğunun anahtarı konuşma bağını içermez; etiket yerinde değişir.
+- Yazmadan önce editöre odak verilip Outlook'un tepkisi beklenir; son kontrol ile yazma arasında bekleme yoktur. Korunan bölge (imza, alıntı) aynı kalmalı ya da yalnızca sonuna içerik eklenmiş olmalıdır.
+- Kartın alt bölümü (Kopyala / Taslağa uygula) sabittir; kullanıcı düğmeye basılı tutarken araç çubuğu ve kart yer değiştirmez.
 
 **E-postalar arasında geçiş:** Oturum, kullanıcının o an baktığı e-postaya aittir (`PanelController` içindeki `followThread`).
 - Başka bir e-postaya geçilince veya başka bir konuşmanın taslağındaki düğmeye basılınca oturum o konuşmayla yeniden başlar; kullanıcıdan onay istenmez.
@@ -124,6 +133,7 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 - Arayüz Fluent UI v9 tasarım diline uyumludur (`packages/ui/src/styles/`: `tokens.css`, `base.css`, `writer-panel.css`, `context.css`, `compose.css`).
 - Tema ayarı "Otomatik" (`system`) ise Outlook'un o anki renkleri sayfadan okunur ve eklenti onlarla görünür (`MailPageProvider.readTheme`, `mounting/appearance.ts`). Böylece açık/koyu mod ve vurgu rengi takip edilir; okunamazsa işletim sistemi tercihi kullanılır.
 - Gölge kök konumu: WXT gölge kökün dış elemanına `all: initial !important` uygular. Bu yüzden yüzen düğmelerin konumu dış elemana değil, gölge kökün içindeki kapsayıcıya verilir.
+- Katman sırası: araç çubuğu/kart `999990`, panel `999991`; Outlook'un açılır katmanları (iletişim kutuları, menüler) `1000000`. Eklenti sayfa içeriğinin üstünde, Outlook'un onay pencerelerinin altında kalır.
 
 ## Yeni bir modül eklemek
 
@@ -134,12 +144,19 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 4. Panel, bağlam kuralları, önizleme ve yazma kuralları yeniden yazılmaz.
 
 **AI / metin işleme bağlantısı:**
-Sağlayıcılar `packages/ai-openai` ve `packages/ai-claude-code` içindedir; `apps/ai-companion` seçili yönteme göre yönlendirir. Sağlayıcı paketleri birbirini içe aktarmaz; ortak görev talimatı (`AI_TASK_INSTRUCTIONS`) ve `AiInput` `contracts`'tadır.
+Sağlayıcılar `packages/ai-openai` ve `packages/ai-claude-code` içindedir; `apps/ai-companion` seçili yönteme göre yönlendirir. Sağlayıcı paketleri birbirini içe aktarmaz; ortak istem (`buildTaskPrompt`, `contracts/src/ai-prompt.ts`) ve `AiInput` `contracts`'tadır.
 
 1. `contracts/src/text-processor.ts` içindeki `TextProcessor` arayüzünü uygulayan ayrı bir modül yazılır.
 2. Content script'te `loadTextProcessor()` bu modülü döndürür.
 3. Firefox'un veri paylaşımı beyanı (`wxt.config.ts` → `data_collection_permissions`) gerçek veri akışına göre **güncellenmek zorundadır**.
 4. `ui`, `core` ve bağlantı modülleri değişmez.
+
+**Yeni arayüz dili:**
+1. `contracts/src/languages.ts`: `UI_LANGUAGES` listesine kodu, `UI_LANGUAGE_NAMES`'e dilin kendi dilindeki adını ekleyin.
+2. `apps/browser-extension/src/locales/` içinde `<kod>.ts` ve `ai-<kod>.ts` dosyalarını İngilizce dosyalardan çevirin; `index.ts`'teki tabloya ekleyin. Tipler (`ExtensionText`, `AiText`) eksik anahtarı derlemede yakalar.
+3. Sayılı metinlerde `countWith('<kod>')` kullanın; tekil/çoğul kuralı `Intl.PluralRules`'tan gelir, dosyaya dile özel koşul yazılmaz. Dil adları (ör. çeviri menüsü) `Intl.DisplayNames` ile arayüz dilinde gösterilir.
+4. Marka ve düğme adları çevrilmez: "Email Writer", "Claude Code", OpenAI'ın zorunlu tuttuğu "Continue with ChatGPT" ve ChatGPT menü adları (Security and login → Sign in with ChatGPT).
+5. `tests/integration/extension/locales.test.ts` boş metni ve İngilizce bırakılmış cümleyi yakalar. Uzun etiketler için araç çubuğunu ve kartı dar pencerede görsel olarak kontrol edin.
 
 ## Testler
 

@@ -88,7 +88,7 @@ Bu yöntem, kullanıcının bilgisayarında kurulu ve **değiştirilmemiş** Cla
 | `--tools ""`, `--restricted` | Hiçbir araç yok: komut çalıştırma, dosya okuma/yazma ve web erişimi kapalı. |
 | `--restricted`, `--strict-mcp-config`, `--disable-slash-commands` | Kullanıcı/proje ayarları (hook'lar dahil), MCP sunucuları ve skill'ler yüklenmez. |
 | `--no-session-persistence` | E-posta metni Claude Code'un oturum kayıtlarına yazılmaz. |
-| `--system-prompt` | Claude Code'un kodlama talimatı yerine e-posta görev talimatı (`AI_TASK_INSTRUCTIONS`) kullanılır. |
+| `--system-prompt` | Claude Code'un kodlama talimatı yerine e-posta istemi (`buildTaskPrompt` sistem talimatı) kullanılır. |
 | İstem stdin'den, boş geçici klasör | E-posta metni süreç listesinde görünmez; proje dosyası veya `CLAUDE.md` erişilebilir değildir. Klasör iş bitince silinir. |
 
 stderr okunmaz; sonuç yalnızca `subtype: success` ve `stop_reason` `max_tokens` değilken kabul edilir. Hata mesajı kullanıcıya aktarılmaz, kararlı koda çevrilir. Üretim en fazla 120 saniye sürer; iptal edilen istek süreci sonlandırır.
@@ -100,7 +100,7 @@ stderr okunmaz; sonuç yalnızca `subtype: success` ve `stop_reason` `max_tokens
 1. Claude Code'u kurun ve terminalde `claude` → `/login` ile giriş yapın.
 2. `pnpm ai:install firefox` (veya ilgili tarayıcı) komutunu Claude Code'u kullandığınız terminalde çalıştırın. Kurucu `claude` yolunu ve varsa `CLAUDE_CONFIG_DIR` değerini başlatıcıya yazar. Tarayıcı yerel uygulamayı kısıtlı bir ortamla başlattığı için bu gereklidir.
 3. **Ayarlar → AI bağlantısı → Claude aboneliği**. Ekranda Claude Code hesabı, kuruluş ve plan görünür.
-4. Model: **Claude Sonnet** (varsayılan), **Claude Haiku** (daha hızlı) veya **Claude Opus**. Claude Code bu adları güncel modele çözer.
+4. Model: **Claude Sonnet** (varsayılan) veya **Claude Opus**. Claude Code bu adları güncel modele çözer. Claude Haiku sunulmaz: 16 Ekim 2026 denemelerinde Türkçe yanıtlarda harf tekrarı ("bbana", "bbizim") üretti; önceden Haiku seçilmişse Sonnet kullanılır.
 
 | Sorun | Yapılacak işlem |
 | --- | --- |
@@ -135,7 +135,9 @@ Outlook content script → doğrulanan background mesajı → native messaging
 | Yer | Sorumluluk |
 | --- | --- |
 | `packages/contracts/src/ai.ts` | Boyut sınırlı üretim girdisi, hesap/model görünümü, bağlantı komutları |
-| `packages/ai-openai` | OAuth/PKCE/OIDC, model listesi, e-posta prompt'u, Responses SSE ve kararlı hata kodları |
+| `packages/contracts/src/ai-prompt.ts` | İki sağlayıcının ortak kullandığı sistem talimatı ve etiketli kullanıcı mesajı |
+| `packages/email-format` | Modelin Markdown alt kümesini e-postaya uygun HTML'e, düz metne ve doğrulama metnine çevirme |
+| `packages/ai-openai` | OAuth/PKCE/OIDC, model listesi, Responses SSE ve kararlı hata kodları |
 | `packages/ai-claude-code` | Claude Code'u bulma, giriş durumunu okuma, kısıtlı `claude -p` çalıştırma ve hata eşleme |
 | `apps/ai-companion` | Loopback giriş dinleyicisi, native framing, korumalı dosya, hesap seçimi, iptal ve token yenileme |
 | `browser-extension/src/platform/` | Gönderici yetkisi, native port, istek eşleştirme, `TextProcessor` adaptörü |
@@ -143,7 +145,7 @@ Outlook content script → doğrulanan background mesajı → native messaging
 
 Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikinci sağlayıcı olarak ayrı bir paketle ve companion yönlendirmesiyle eklendi; önizleme/yazma kuralları değişmedi. Sağlayıcı paketleri birbirini içe aktarmaz (ESLint denetler); ortak görev talimatı `contracts`'tadır. Henüz ihtiyaç olmayan çok sağlayıcılı kayıt sistemi oluşturulmadı.
 
-- E-posta açmak veya bağlantı göstergesini okumak üretim isteği göndermez. Kullanıcı üretim istediğinde yalnızca seçili kaynak, talimat, dil/ton ve hazırlanmış bağlam gönderilir. Mailbox kimlikleri, DOM hedefleri ve diğer açılan mesajlar bu isteğe eklenmez.
+- E-posta açmak veya bağlantı göstergesini okumak üretim isteği göndermez. Kullanıcı üretim istediğinde yalnızca seçili kaynak, talimat, ton, (çeviride) hedef dil, ayarlardaki kalıcı talimat, çıktı biçimi ve hazırlanmış bağlam gönderilir; "Sonucu değiştir"de önceki sonuç ve değişiklik isteği de eklenir. Mailbox kimlikleri, DOM hedefleri ve bağlama seçilmemiş mesajlar bu isteğe eklenmez.
 - E-posta metni yalnızca işlem süresince content script, background ve companion belleğinden geçer. Uygulama bunları diske veya loglara yazmaz. OpenAI'a giden her üretimde `store: false`, `stream: true` kullanılır; bu, sağlayıcının bütün veri işleme/saklama politikalarının kapalı olduğu iddiası değildir.
 - Kimlik bilgileri `~/.config/email-writer/credentials.json` içinde tutulur. Dizin `0700`, atomik değiştirilen dosya `0600` iznine sahiptir. Bu dosya uygulama düzeyinde şifreli değildir; işletim sistemi kullanıcı erişimiyle korunur. macOS/Linux disk şifrelemesi/anahtarlık entegrasyonu ayrı bir geliştirme olabilir.
 - Eşzamanlı Chrome/Firefox süreçleri aynı dosyada işlem yapabilir: dosya kilidi refresh token döndürme ve kaydı sıralar. Hesap/model seçimi bu cihazdaki süreçler arasında ortaktır. Başka bir tarayıcıdan değişiklik yapıldıysa ayarlarda **Yenile** kullanın; devam eden başka süreçteki istek, başladığı hesabın isteği olarak tamamlanabilir.
@@ -152,6 +154,16 @@ Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikin
 - `response.completed` olmadan sonuç kabul edilmez. Geç gelen veya iptal edilmiş sonuç önizlemeyi değiştirmez. Token yenileme hatalarında geçici ağ sorunu ile geçersiz oturum ayrılır.
 - Üretim en fazla 120 saniye sürer; UI/host bağlantısının kaybolması başarı sayılmaz. Worker/host tekrar açılması üretimi otomatik tekrarlamaz. Bir native süreçte en fazla dört üretim aktiftir.
 - Native API yalnızca kayıtlı eklentiye açıktır. Content script hesap bağlama, API anahtarı veya tam hesap durumu mesajı gönderemez; background hem göndereni hem veriyi doğrular. İptal yalnızca isteği başlatan sekmeye aittir.
+
+## Yapay zekâya ne gönderiliyor? (istem yapısı)
+
+İstem `buildTaskPrompt` ile üretilir; ChatGPT ve Claude aynı metni alır.
+
+- **Sistem talimatı** bölümleri: Görev (Düzelt / Çevir / Yanıt / Yaz; iyileştirmede önceki sonucu değiştirme), Çıktı (yanıtın tamamı olduğu gibi taslağa girer; konu satırı, giriş cümlesi, açıklama veya yorum yok; ad, tutar, tarih ve saatler yeniden yorumlanmaz; bilgi uydurulmaz, eksik bilgi `[tarih]` gibi yer tutucuyla yazılır), Biçim (zengin: sınırlı Markdown ve ```chart bloğu; düz: yalnızca metin), Dil, Ton, Tercihler, Güvenlik.
+- **Dil kuralları:** Düzelt kaynağın dilinde kalır; Çevir hedef dile yazar; Yanıt, yanıtlanan mesajın dilinde yazılır (talimat başka dil istemedikçe); Yaz, talimatın dilinde. İyileştirme önceki sonucun dilinde kalır; iyileştirme talimatları netlik için İngilizcedir, çeviri isteği değildir.
+- **Kullanıcı mesajı** etiketlidir: `<task operation tone output_language format />`, `<instruction>`, `<standing_preferences>`, `<source>` (Düzelt/Çevir) veya `<draft>` (Yanıt/Yaz), `<conversation subject>` içinde `<message sender sent reply_target>`, iyileştirmede `<previous_result>` ve `<refinement>`.
+- **Güvenlik:** Kaynak, taslak, konuşma ve önceki sonuç "güvenilmeyen veri"dir; içlerindeki talimatlar izlenmez. İçerikteki etiket taklitleri (`</source>` gibi) etkisizleştirilir.
+- **Biçim seçimi:** Cümle içindeki seçime yazılacak sonuç ve gelen mesajdan alınan kaynak düz metin ister; taslak gövdesi ve boş taslak biçimli içeriğe izin verir. Model HTML üretmez; HTML eklentide ayrıştırılan yapıdan, bütün metin kaçışlanarak üretilir.
 
 ## Bağlantıyı kesme ve sorunlar
 
@@ -173,6 +185,7 @@ Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikin
 | Uygunluk/politika hatası | Hesap, çalışma alanı ve uygulamanın OpenAI erişimini doğrulayın. Tekrar tekrar girişe zorlanmaz. |
 | Kullanım limiti | ChatGPT için Kullanımı yönet; API için API kullanım limitlerini kontrol edin. Ücretli yola otomatik geçilmez. |
 | Yanıt yarım kaldı | Kaynak metin korunur; isterseniz yeniden üretin. Kısmi yanıt uygulanmaz. |
+| `AI_VERSION_MISMATCH` | Eklenti ile yerel yardımcı uygulama farklı sürümlerden; yardımcı uygulama isteği tanımadı. `pnpm ai:build` ve `pnpm ai:install <tarayıcı>` ile yeniden kurun, eklentiyi yeniden yükleyin. (Bu kodu döndürmeyen eski bir yardımcı uygulamada eklenti 130 sn sonra "kullanılamıyor" der.) |
 
 Kurulumu kaldırmak için önce hesaplardan çıkış yapın, ardından `pnpm ai:install firefox --uninstall` (veya ilgili tarayıcı) çalıştırın. Bu komut yalnızca tarayıcı kaydını kaldırır; başka tarayıcıların bağlantısını ve yerel credential dosyasını silmez. Tam kaldırmada `~/.local/share/email-writer` ve `~/.config/email-writer` dizinlerini kullanıcı silebilir.
 
@@ -186,7 +199,9 @@ Otomatik testler sahte sağlayıcı yanıtları ve yerel OAuth callback'leri kul
 
 **16 Ekim 2026 Claude Code canlı kontrolü:** Kurulu yerel uygulama tarayıcıdakine benzer kısıtlı bir ortamla başlatıldı. Claude Code girişi (Team planı) okundu; sentetik metinle Düzelt (~3 sn) ve Yanıt (~3 sn, Claude Sonnet) doğru sonuç verdi. Oturum kayıtlarına deneme metni yazılmadığı doğrulandı.
 
-Gerçek Outlook taslağına uygulamanın uçtan uca canlı doğrulaması ve Business hesabıyla bağlantı bekliyor. [OpenAI hata ve iyileşme rehberi](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
+**16 Ekim 2026 gerçek Outlook (Firefox, Claude Code):** Geçici yanıt taslağında uydurma metinle Düzelt → Tablo yap → Taslağa uygula → Geri al → yeniden uygula zinciri çalıştı; tablo Türkçe başlıklarla yazıldı, alıntı ve imza korundu, hiçbir şey gönderilmedi. Ayrıntı ve bulunan hatalar: `YAPILAN_ISLER.md` §23. Aynı gün Claude Haiku'nun Türkçe yanıtlarda harf tekrarı ürettiği görüldü; Haiku seçenekten kaldırıldı.
+
+ChatGPT ile gerçek taslağa uygulama ve Business hesabıyla bağlantı bekliyor. [OpenAI hata ve iyileşme rehberi](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
 
 Canlı denemede: giriş → model listesi → kişisel veri içermeyen kısa metinle Düzelt/Çevir/Yaz/Yanıt → önizleme → izin verilen test taslağına uygulama/geri alma → hesap değişimi → çıkış/yeniden giriş adımlarını kontrol edin. E-posta gönderilmesi gerekmez. Chrome, Firefox ve hesap/workspace varyantlarını ayrı kaydedin.
 
