@@ -49,6 +49,21 @@ Tek paket komutu: `pnpm --filter @email-writer/browser-extension exec wxt build 
 
 `pnpm dev` her açılışta geçici bir profil kullanır. Gerçek Outlook hesabıyla geliştirmek için `pnpm outlook:dev` kullanın: Outlook'a kalıcı profilde bir kez giriş yapılır, eklenti her çalıştırmada o pencereye yüklenir.
 
+## Windows'ta geliştirme
+
+16 Ekim 2026'da Windows 11 Pro (Node.js 24, pnpm 12.11, Chrome 155, Edge 155, Firefox 157) üzerinde `pnpm check`, `pnpm test:e2e` ve `pnpm test:firefox` geçti.
+
+- **Kurulum:** Node.js 22+ ve Git for Windows. `corepack enable` `Program Files\nodejs` içine yazmak için yönetici izni ister; bunun yerine `npm install -g pnpm@12` kullanılabilir. Ardından `pnpm install` ve `npx playwright install chromium`.
+- **Kabuk:** Komutlar PowerShell'de ve Git Bash'te aynıdır. Windows PowerShell 5.1, pnpm'in stderr'e yazdığı satırları kırmızı `NativeCommandError` olarak gösterebilir; sonucu çıkış kodu belirler.
+- **Satır sonları:** `.gitattributes` bütün metin dosyalarında LF'yi zorunlu kılar; `core.autocrlf` ayarına gerek yoktur.
+- **Testler:** İki birim testi yalnızca macOS/Linux'ta çalışır (çalıştırma izni ve sh başlatıcısı), Windows'ta atlanır. Windows'a özgü iki test (kimlik klasörünün ACL'i ve `.cmd` başlatıcının `cmd.exe` ile `ş`, boşluk, `&`, `%` içeren bir klasörden başlatılması) yalnızca Windows'ta çalışır. Her işletim sisteminin kurulum planı her makinede sınanır (`tests/unit/ai-companion-install.test.ts`).
+- **Firefox testleri:** Firefox PATH'te değil `%ProgramFiles%`, `%ProgramFiles(x86)%` ve `%LOCALAPPDATA%` altındaki `Mozilla Firefox\firefox.exe` olarak aranır; `FIREFOX_BIN` ile değiştirilebilir. Bir profile ait Firefox, `pkill` yerine PowerShell (`Get-CimInstance`) ile kapatılır.
+- **Chrome'da paketlenmemiş eklenti:** Chrome 137 ve sonrası `--load-extension` bayrağını yok sayar (Chrome 155'te doğrulandı). Elle yükleme `chrome://extensions` üzerinden yapılır. Otomasyonda Playwright `launchPersistentContext` (Chrome'un yolu, `--enable-unsafe-extension-debugging`) ve CDP `Extensions.loadUnpacked` kullanılabilir. Playwright testleri Chromium kullandığı için etkilenmez; Edge, Brave ve Opera bayrağı hâlâ kabul eder.
+- **Eklenti kimliği:** Paketlenmemiş eklentinin kimliği klasör yolundan türetilir; Windows'ta macOS'takinden farklıdır. Kurucuya kendi kimliğinizi verin.
+- **Windows araçları:** `reg`, `icacls`, `whoami` ve `rundll32` her zaman `%SystemRoot%\System32` altındaki tam yolla çağrılır. Git Bash PATH'te kendi `whoami` programını öne koyar.
+- **Toplu iş dosyaları:** `cmd.exe` `.cmd` dosyalarını konsol kod sayfasıyla (ör. 437) okur. Yardımcı uygulamanın başlatıcısı bu yüzden UTF-8 yazılır ve `chcp 65001 >nul` ile başlar.
+- **Kayıt defteri:** Kurulumdan sonra `reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.email_writer.ai"` manifest yolunu göstermelidir. Ayrıntılar ve tarayıcı başına anahtarlar: [AI bağlantısı rehberi](./AI_BAGLANTISI.md#windowsta-kurulum).
+
 ## Mimari
 
 ```mermaid
@@ -171,7 +186,7 @@ Sağlayıcılar `packages/ai-openai` ve `packages/ai-claude-code` içindedir; `a
 | Firefox eklentisi | `tests/e2e/extension-firefox/run-smoke.mjs` | WebDriver BiDi |
 | Gerçek Outlook incelemesi (elle) | `tests/manual/outlook-live/` | WebDriver BiDi + kalıcı Firefox profili |
 
-Firefox başlatma ve BiDi bağlantısı `tests/support/firefox/` içinde ortaktır. macOS'ta Firefox, uygulama olarak `open` ile başlatılır. Terminalden doğrudan başlatılan Firefox'u macOS gizlilik koruması terminalin izinleriyle değerlendirir. Terminalin diğer uygulamaların verilerine erişim izni yoksa Firefox kendi veri klasörünü okuyamaz ve "Profile Missing" hatası verir. Aynı nedenle `pnpm dev:firefox` (web-ext) macOS'ta terminale Tam Disk Erişimi verilmeden açılmayabilir.
+Firefox başlatma ve BiDi bağlantısı `tests/support/firefox/` içinde ortaktır. macOS'ta Firefox, uygulama olarak `open` ile başlatılır. Terminalden doğrudan başlatılan Firefox'u macOS gizlilik koruması terminalin izinleriyle değerlendirir. Terminalin diğer uygulamaların verilerine erişim izni yoksa Firefox kendi veri klasörünü okuyamaz ve "Profile Missing" hatası verir. Aynı nedenle `pnpm dev:firefox` (web-ext) macOS'ta terminale Tam Disk Erişimi verilmeden açılmayabilir. Windows'ta Firefox kurulum klasöründen doğrudan başlatılır (bkz. "Windows'ta geliştirme").
 
 jsdom'da `execCommand` bulunmadığı için Outlook bağlantısı testleri DOM işlemleriyle çalışan bir test yazıcısı kullanır. Bağlantının ön kontrol ve sonradan doğrulama kuralları aynen çalışır. Gerçek `execCommand` yazıcısı Chromium ve Firefox tarayıcı testlerinde sınanır.
 

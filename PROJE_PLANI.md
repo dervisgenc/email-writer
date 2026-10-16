@@ -81,7 +81,7 @@ Bunu mümkün kılmak için ilk geliştirme adımında, modüllerin hangi veriyi
 
 ## 4. API ve üyelik bağlantıları
 
-**İlk implementasyon:** ChatGPT plan kullanımı ve OpenAI API anahtarı, `packages/ai-openai` ve `apps/ai-companion` üzerinden bağlandı. Yerel uygulama macOS/Linux native messaging ile çalışır; tarayıcı token saklamaz. Gerçek hesapta giriş ve model listesi doğrulandı; üretim OpenAI uygunluk reddinde kalıyor. Başarılı üretim doğrulaması ve Windows kurucusu bekliyor. Özel dağıtım için OpenAI erişim uygunluğu ayrıca kontrol edilmeli. Ayrıntı: [AI bağlantısı](./docs/AI_BAGLANTISI.md).
+**İlk implementasyon:** ChatGPT plan kullanımı ve OpenAI API anahtarı, `packages/ai-openai` ve `apps/ai-companion` üzerinden bağlandı. Yerel uygulama macOS, Linux ve Windows'ta native messaging ile çalışır; tarayıcı token saklamaz. Gerçek hesapta giriş, model listesi ve üretim doğrulandı (bkz. `YAPILAN_ISLER.md` §19 ve §25). Özel dağıtım için OpenAI erişim uygunluğu ayrıca kontrol edilmeli. Ayrıntı: [AI bağlantısı](./docs/AI_BAGLANTISI.md).
 
 Kullanıcı AI sağlayıcısını seçtikten sonra, o sağlayıcının desteklediği yöntemle bağlantı kuracak. API kullanmak isteyen anahtarını ekleyebilecek; mevcut üyeliğini kullanmak isteyen ise destekleniyorsa hesabıyla giriş yapabilecek. Her iki yöntem de baştan bağlantı yapısının bir parçası olacak.
 

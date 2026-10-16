@@ -23,7 +23,7 @@ A browser extension that helps you write better emails without leaving your mail
 
 Under active development and not yet published to browser stores. Reading, context, preview and controlled writing to the draft have been verified live in Outlook on the web (Firefox on macOS, with Claude Code), including rich tables, undo and re-apply. Generation has also been verified with a ChatGPT Plus account.
 
-The local helper app currently runs on **macOS and Linux** and needs Node.js 22 or later. Windows support, single-file helper builds and one-command installers are in progress. A license will be chosen before the first public release.
+The local helper app runs on **macOS, Linux and Windows** (Windows verified on Windows 11 with Chrome, Edge, Brave and Firefox) and currently needs Node.js 22 or later. Single-file helper builds and one-command installers are in progress. A license will be chosen before the first public release.
 
 ## Getting started
 
