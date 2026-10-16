@@ -258,6 +258,8 @@ export const en: ExtensionText = {
         'Claude Code was not found. Install Claude Code and run pnpm ai:install again.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code is not signed in. Run claude in a terminal and sign in with /login.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL:
+        'Claude Code was found only as a command script (claude.cmd), which Email Writer cannot start safely. Install Claude Code with the official native installer and run pnpm ai:install again.',
       AI_VERSION_MISMATCH:
         'The extension and the local helper app are different versions. Run the install command from AI settings again.',
       CONTENT_SCRIPT_UNREACHABLE:

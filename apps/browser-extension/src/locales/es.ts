@@ -277,6 +277,8 @@ export const es: ExtensionText = {
         'No se encontró Claude Code. Instala Claude Code y vuelve a ejecutar pnpm ai:install.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code no tiene la sesión iniciada. Ejecuta claude en un terminal e inicia sesión con /login.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL:
+        'Claude Code solo se encontró como script de comandos (claude.cmd), que Email Writer no puede iniciar de forma segura. Instala Claude Code con el instalador nativo oficial y vuelve a ejecutar pnpm ai:install.',
       AI_VERSION_MISMATCH:
         'La extensión y la aplicación auxiliar local tienen versiones distintas. Vuelve a ejecutar el comando de instalación de la configuración de IA.',
       CONTENT_SCRIPT_UNREACHABLE:

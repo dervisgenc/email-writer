@@ -249,6 +249,8 @@ export const tr: ExtensionText = {
         'Claude Code bulunamadı. Claude Code’u kurup pnpm ai:install komutunu yeniden çalıştırın.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code’da oturum açık değil. Terminalde claude çalıştırıp /login ile giriş yapın.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL:
+        'Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; Email Writer bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurup pnpm ai:install komutunu yeniden çalıştırın.',
       AI_VERSION_MISMATCH:
         'Eklenti ile yerel yardımcı uygulamanın sürümleri uyuşmuyor. AI ayarlarındaki kurulum komutunu yeniden çalıştırın.',
       CONTENT_SCRIPT_UNREACHABLE:

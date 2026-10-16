@@ -1,8 +1,22 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createClaudeCodeProvider, findClaudeBinary } from '@email-writer/ai-claude-code';
-import { buildTaskPrompt, type AiInput } from '@email-writer/contracts';
+import { dirname, join } from 'node:path';
+import {
+  claudeCodeArgs,
+  createClaudeCodeProvider,
+  findClaudeBinary,
+  type ClaudeCommand,
+} from '@email-writer/ai-claude-code';
+import {
+  appError,
+  buildTaskPrompt,
+  err,
+  ok,
+  OPERATIONS,
+  type AiInput,
+  type AppError,
+  type Result,
+} from '@email-writer/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const input: AiInput = {
@@ -19,10 +33,10 @@ const input: AiInput = {
 
 /**
  * Stands in for the real CLI: records what it received and answers like
- * `claude -p --output-format json` or `claude auth status --json`.
+ * `claude -p --output-format json` or `claude auth status --json`. It runs as
+ * `node fake-claude.cjs`, so the same fake works on every operating system.
  */
-const FAKE_CLAUDE = `#!/usr/bin/env node
-const fs = require('node:fs');
+const FAKE_CLAUDE = `const fs = require('node:fs');
 const args = process.argv.slice(2);
 let input = '';
 process.stdin.on('data', (chunk) => (input += chunk));
@@ -50,22 +64,22 @@ process.stdin.on('end', () => {
 
 describe('Claude Code provider', () => {
   let directory: string;
-  let binary: string;
+  let fake: ClaudeCommand;
   let record: string;
-  const provider = (mode: string, findBinary?: () => Promise<string | null>) =>
+  const provider = (mode: string, findBinary?: () => Promise<Result<ClaudeCommand, AppError>>) =>
     createClaudeCodeProvider({
       env: { ...process.env, FAKE_MODE: mode, FAKE_RECORD: record },
-      findBinary: findBinary ?? (async () => binary),
+      findBinary: findBinary ?? (async () => ok(fake)),
     });
   const generate = (mode: string, model = 'sonnet', signal = new AbortController().signal) =>
     provider(mode).generate(input, model, signal);
 
   beforeEach(async () => {
     directory = await mkdtemp(join(tmpdir(), 'email-writer-fake-claude-'));
-    binary = join(directory, 'claude');
+    const script = join(directory, 'fake-claude.cjs');
     record = join(directory, 'record.json');
-    await writeFile(binary, FAKE_CLAUDE);
-    await chmod(binary, 0o700);
+    await writeFile(script, FAKE_CLAUDE);
+    fake = { file: process.execPath, args: [script] };
   });
   afterEach(async () => {
     await rm(directory, { recursive: true, force: true });
@@ -89,6 +103,7 @@ describe('Claude Code provider', () => {
         '--no-session-persistence',
       ]),
     );
+    // The empty tool list and the multi-line system prompt arrive unchanged (no shell re-parsing).
     expect(seen.args[seen.args.indexOf('--tools') + 1]).toBe('');
     expect(seen.args[seen.args.indexOf('--system-prompt') + 1]).toBe(buildTaskPrompt(input).system);
     expect(seen.args.join(' ')).not.toContain(input.source);
@@ -112,13 +127,12 @@ describe('Claude Code provider', () => {
       ok: false,
       error: { code: 'AI_MODEL_UNAVAILABLE' },
     });
-    expect(
-      await provider('success', async () => null).generate(input, 'sonnet', new AbortController().signal),
-    ).toMatchObject({
+    const missing = provider('success', async () => err(appError('AI_CLAUDE_NOT_INSTALLED')));
+    expect(await missing.generate(input, 'sonnet', new AbortController().signal)).toMatchObject({
       ok: false,
       error: { code: 'AI_CLAUDE_NOT_INSTALLED' },
     });
-    const vanished = provider('success', async () => join(directory, 'missing'));
+    const vanished = provider('success', async () => ok({ file: join(directory, 'missing'), args: [] }));
     expect(await vanished.generate(input, 'sonnet', new AbortController().signal)).toMatchObject({
       ok: false,
       error: { code: 'AI_CLAUDE_NOT_INSTALLED' },
@@ -155,26 +169,112 @@ describe('Claude Code provider', () => {
       account: null,
       organization: null,
     });
-    expect((await provider('success', async () => null).status()).installed).toBe(false);
+    expect(await provider('success', async () => err(appError('AI_CLAUDE_NOT_INSTALLED'))).status()).toEqual({
+      installed: false,
+      loggedIn: false,
+      subscription: false,
+      plan: null,
+      account: null,
+      organization: null,
+    });
   });
 
-  it('finds the recorded path first, then PATH, then the usual install locations', async () => {
-    const home = join(directory, 'home');
-    const pathDirectory = join(directory, 'bin');
-    await mkdir(join(home, '.local', 'bin'), { recursive: true });
-    await mkdir(pathDirectory);
-    const local = join(home, '.local', 'bin', 'claude');
-    const onPath = join(pathDirectory, 'claude');
-    await writeFile(local, FAKE_CLAUDE, { mode: 0o700 });
-    await writeFile(onPath, FAKE_CLAUDE, { mode: 0o600 });
+  it('reports an installation that cannot be started safely instead of "not installed"', async () => {
+    const scriptOnly = provider('success', async () => err(appError('AI_CLAUDE_UNSUPPORTED_INSTALL')));
+    expect(await scriptOnly.status()).toMatchObject({
+      installed: false,
+      problem: 'AI_CLAUDE_UNSUPPORTED_INSTALL',
+    });
+    expect(await scriptOnly.generate(input, 'sonnet', new AbortController().signal)).toMatchObject({
+      ok: false,
+      error: { code: 'AI_CLAUDE_UNSUPPORTED_INSTALL' },
+    });
+  });
 
-    expect(await findClaudeBinary({ EMAIL_WRITER_CLAUDE_PATH: binary, PATH: pathDirectory }, home, [])).toBe(
-      binary,
+  it('keeps the command line far below the Windows limit; the email itself goes to stdin', () => {
+    const lengths = OPERATIONS.flatMap((operation) =>
+      (['plain', 'rich'] as const).flatMap((format) =>
+        [null, { instruction: 'x'.repeat(500), previous: 'y'.repeat(30_000) }].map((refinement) => {
+          const prompt = buildTaskPrompt({
+            ...input,
+            operation,
+            format,
+            refinement,
+            standingInstructions: 'z'.repeat(1_000),
+          });
+          return claudeCodeArgs('sonnet', prompt.system).join(' ').length;
+        }),
+      ),
     );
-    // Not executable, and relative PATH entries are ignored.
-    expect(await findClaudeBinary({ PATH: `bin:${pathDirectory}` }, home, [])).toBe(local);
-    await chmod(onPath, 0o700);
-    expect(await findClaudeBinary({ PATH: pathDirectory }, home, [])).toBe(onPath);
-    expect(await findClaudeBinary({}, join(directory, 'empty'), [])).toBeNull();
+    // CreateProcess accepts 32,767 characters; quoting adds little.
+    expect(Math.max(...lengths)).toBeLessThan(16_000);
+  });
+});
+
+describe('Finding Claude Code', () => {
+  let directory: string;
+  const file = async (path: string, content: string | Buffer = 'program') => {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, content, { mode: 0o700 });
+    return path;
+  };
+  /** npm's global layout on Windows: claude.cmd next to the package that holds claude.exe. */
+  const npmInstall = async (prefix: string, executable: string | Buffer) => {
+    const script = await file(join(prefix, 'claude.cmd'), '@"%~dp0\\node_modules\\claude.exe" %*');
+    const packageDirectory = join(prefix, 'node_modules', '@anthropic-ai', 'claude-code');
+    await file(join(packageDirectory, 'package.json'), JSON.stringify({ bin: { claude: 'bin/claude.exe' } }));
+    await file(join(packageDirectory, 'bin', 'claude.exe'), executable);
+    return { script, executable: join(packageDirectory, 'bin', 'claude.exe') };
+  };
+  const program = Buffer.from('MZ program');
+
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), 'email-writer-find-claude-'));
+  });
+  afterEach(async () => {
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  it('returns the first existing location and skips missing paths and directories', async () => {
+    const first = await file(join(directory, 'a', 'claude'));
+    await file(join(directory, 'b', 'claude'));
+    await mkdir(join(directory, 'folder', 'claude'), { recursive: true });
+
+    expect(
+      await findClaudeBinary([
+        join(directory, 'none', 'claude'),
+        join(directory, 'folder', 'claude'),
+        first,
+        join(directory, 'b', 'claude'),
+      ]),
+    ).toEqual(ok({ file: first, args: [] }));
+    expect(await findClaudeBinary([join(directory, 'none', 'claude')])).toEqual(
+      err(appError('AI_CLAUDE_NOT_INSTALLED')),
+    );
+  });
+
+  it("starts the program behind npm's claude.cmd directly instead of running the script", async () => {
+    const npm = await npmInstall(join(directory, 'npm'), program);
+    expect(await findClaudeBinary([npm.script])).toEqual(ok({ file: npm.executable, args: [] }));
+  });
+
+  it('reports a script it cannot resolve, unless a usable installation comes later', async () => {
+    // npm leaves a text placeholder instead of the program when its install script did not run.
+    const placeholder = await npmInstall(join(directory, 'npm'), '#!/bin/sh\necho placeholder');
+    const other = await file(join(directory, 'pnpm', 'claude.cmd'), '@node claude.js %*');
+    const later = await file(join(directory, 'native', 'claude.exe'), program);
+
+    expect(await findClaudeBinary([placeholder.script, other])).toEqual(
+      err(appError('AI_CLAUDE_UNSUPPORTED_INSTALL')),
+    );
+    expect(await findClaudeBinary([other, later])).toEqual(ok({ file: later, args: [] }));
+  });
+
+  // Windows has no execute permission bit; there every existing file counts.
+  it.skipIf(process.platform === 'win32')('skips files that are not executable', async () => {
+    const plain = join(directory, 'plain', 'claude');
+    await mkdir(dirname(plain));
+    await writeFile(plain, 'program', { mode: 0o600 });
+    expect(await findClaudeBinary([plain])).toEqual(err(appError('AI_CLAUDE_NOT_INSTALLED')));
   });
 });

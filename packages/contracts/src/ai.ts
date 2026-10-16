@@ -6,6 +6,11 @@ import { targetLanguageSchema } from './languages';
 import { MAX_WRITING_INSTRUCTIONS } from './settings';
 
 export const NATIVE_HOST_NAME = 'com.email_writer.ai';
+/**
+ * Firefox eklenti kimliği; Firefox paketi ve yerel uygulama kurucusu bunu kullanır. Geçici
+ * değerdir: AMO kaydından önce kalıcı kimlik seçilmeli (bkz. docs/GELISTIRICI_REHBERI.md).
+ */
+export const FIREFOX_EXTENSION_ID = 'email-writer@example.invalid';
 
 /** Üretim yöntemi: ChatGPT planı, OpenAI API anahtarı veya bilgisayardaki Claude Code. */
 export const AI_MODES = ['chatgpt', 'api-key', 'claude-code'] as const;

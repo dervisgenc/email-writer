@@ -1,25 +1,34 @@
 import { spawn } from 'node:child_process';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { createClaudeCodeProvider } from '@email-writer/ai-claude-code';
+import { createClaudeCodeProvider, findClaudeBinary } from '@email-writer/ai-claude-code';
 import { createOpenAiOAuth, createOpenAiProvider, failureCode } from '@email-writer/ai-openai';
 import { PROTOCOL_VERSION, runtimeRequestSchema } from '@email-writer/contracts';
 
 import { createAiService } from './ai-service';
 import { createCredentialStore } from './credential-store';
 import { encodeNativeMessage, NativeMessageDecoder, rejectionFor } from './native-protocol';
+import { hostPlatform } from './platform';
 
+const platform = hostPlatform();
 // Native hosts write ONLY framed protocol messages to stdout, never logs or email content.
 const service = createAiService({
-  store: createCredentialStore(join(homedir(), '.config', 'email-writer')),
+  store: createCredentialStore(platform.credentialsDirectory, {
+    restrictDirectory: platform.restrictDirectory,
+  }),
   oauth: createOpenAiOAuth(),
   provider: createOpenAiProvider(),
-  claude: createClaudeCodeProvider({ env: process.env }),
+  claude: createClaudeCodeProvider({
+    env: process.env,
+    findBinary: () => findClaudeBinary(platform.claudeLocations),
+  }),
   openBrowser: (url) =>
     new Promise<void>((resolve, reject) => {
-      const child = spawn(process.platform === 'darwin' ? '/usr/bin/open' : 'xdg-open', [url], {
-        stdio: 'ignore',
-      });
+      // Only the HTTPS sign-in page is opened: the system opener would also start local files.
+      if (new URL(url).protocol !== 'https:') {
+        reject(new Error('Browser could not open.'));
+        return;
+      }
+      const opener = platform.urlOpener(url);
+      const child = spawn(opener.file, opener.args, { stdio: 'ignore' });
       child.once('error', () => reject(new Error('Browser could not open.')));
       child.once('exit', (code) => (code === 0 ? resolve() : reject(new Error('Browser could not open.'))));
     }),

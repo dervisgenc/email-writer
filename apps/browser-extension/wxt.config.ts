@@ -1,3 +1,4 @@
+import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
 import { defineConfig } from 'wxt';
 
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/supported-sites';
@@ -25,7 +26,7 @@ export default defineConfig({
           browser_specific_settings: {
             gecko: {
               // Mağaza kaydından önce kalıcı kimlik kararı verilmeli (bkz. docs/GELISTIRICI_REHBERI.md).
-              id: 'email-writer@example.invalid',
+              id: FIREFOX_EXTENSION_ID,
               // Yerleşik veri paylaşımı beyanı Firefox 140 ile geldi.
               strict_min_version: '140.0',
               // Yalnızca kullanıcı üretim istediğinde seçilen metin OpenAI'a gönderilir.

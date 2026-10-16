@@ -51,6 +51,8 @@ export const ERROR_CODES = [
   'AI_BUSY',
   'AI_CLAUDE_NOT_INSTALLED',
   'AI_CLAUDE_NOT_LOGGED_IN',
+  /** Claude Code yalnızca kabuk olmadan güvenle başlatılamayan bir komut betiği (claude.cmd) olarak bulundu. */
+  'AI_CLAUDE_UNSUPPORTED_INSTALL',
   /** Eklenti ve yerel yardımcı uygulama farklı sürümlerden; istek tanınmadı. */
   'AI_VERSION_MISMATCH',
   'CONTENT_SCRIPT_UNREACHABLE',

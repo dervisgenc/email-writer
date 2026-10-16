@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ClaudeCodeProvider, ClaudeCodeStatus } from '@email-writer/ai-claude-code';
@@ -23,6 +24,7 @@ import {
   NativeMessageDecoder,
   rejectionFor,
 } from '../../apps/ai-companion/src/native-protocol';
+import { hostPlatform } from '../../apps/ai-companion/src/platform';
 import { createSignIn } from '../../apps/ai-companion/src/sign-in';
 
 const input: AiInput = {
@@ -303,7 +305,7 @@ describe('AI service and protected storage', () => {
     await expect(result).rejects.toThrow('Aborted');
   });
 
-  it('serializes token refresh across native processes and saves replacements with owner-only permissions', async () => {
+  it('serializes token refresh across native processes and replaces the file in one step', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
     temporary.push(directory);
     const store = createCredentialStore(directory);
@@ -323,9 +325,56 @@ describe('AI service and protected storage', () => {
       accessToken: 'rotated-access',
       refreshToken: 'rotated-refresh',
     });
-    expect((await stat(directory)).mode & 0o777).toBe(0o700);
-    expect((await stat(join(directory, 'credentials.json'))).mode & 0o777).toBe(0o600);
     expect(await readFile(join(directory, 'credentials.json'), 'utf8')).not.toContain('"source"');
+    expect((await readdir(directory)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('keeps the credential directory and file private to the owner on this system', async () => {
+    const parent = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    temporary.push(parent);
+    const directory = join(parent, 'email-writer');
+    const store = createCredentialStore(directory, { restrictDirectory: hostPlatform().restrictDirectory });
+    await store.update((state) => Object.assign(state, initial()));
+    const file = join(directory, 'credentials.json');
+    if (process.platform === 'win32') {
+      // Windows ignores mode bits: only this user and SYSTEM may access, nothing inherited.
+      const system32 = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32');
+      const whoami = execFileSync(join(system32, 'whoami.exe'), ['/user', '/fo', 'csv', '/nh'], {
+        encoding: 'utf8',
+      });
+      const user = /"(S-1-[\d-]+)"/.exec(whoami)?.[1];
+      const access = (path: string) => {
+        const sddl = execFileSync(
+          join(system32, 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+          ['-NoProfile', '-NonInteractive', '-Command', '(Get-Acl -LiteralPath $env:EW_TARGET).Sddl'],
+          { encoding: 'utf8', env: { ...process.env, EW_TARGET: path } },
+        ).trim();
+        const dacl = sddl.slice(sddl.indexOf('D:'));
+        return {
+          flags: /^D:([A-Z]*)\(/.exec(dacl)?.[1],
+          trustees: [...dacl.matchAll(/;([^;()]+)\)/g)].map((m) => m[1]).sort(),
+        };
+      };
+      expect(access(directory)).toEqual({ flags: 'PAI', trustees: [user, 'SY'].sort() });
+      expect(access(file).trustees).toEqual([user, 'SY'].sort());
+    } else {
+      expect((await stat(directory)).mode & 0o777).toBe(0o700);
+      expect((await stat(file)).mode & 0o777).toBe(0o600);
+    }
+  });
+
+  it('does not keep a new directory whose access could not be restricted', async () => {
+    const parent = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    temporary.push(parent);
+    const directory = join(parent, 'email-writer');
+    const restrictDirectory = vi.fn().mockRejectedValueOnce(new Error('denied')).mockResolvedValue(undefined);
+    const store = createCredentialStore(directory, { restrictDirectory });
+
+    await expect(store.read()).rejects.toThrow('denied');
+    expect(await readdir(parent)).toEqual([]);
+    // The next attempt creates and restricts the directory again.
+    expect((await store.read()).accounts).toEqual([]);
+    expect(restrictDirectory).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -717,6 +766,26 @@ describe('Claude Code method', () => {
     await expect(service.generate('00000000-0000-4000-8000-000000000004', input)).rejects.toThrow(
       'AI_CLAUDE_NOT_INSTALLED',
     );
+  });
+
+  it('explains an installation that cannot be started safely through the error field', async () => {
+    const deps = dependencies(memoryStore(claudeState()));
+    deps.claude.status.mockResolvedValue({
+      ...claudeSignedIn,
+      installed: false,
+      loggedIn: false,
+      problem: 'AI_CLAUDE_UNSUPPORTED_INSTALL',
+    });
+    const service = createAiService(deps);
+
+    const status = await service.status();
+    expect(status).toMatchObject({ ready: false, error: 'AI_CLAUDE_UNSUPPORTED_INSTALL' });
+    // The extension's status schema is strict: the reason travels only as the error code.
+    expect(status.claudeCode).not.toHaveProperty('problem');
+    await expect(service.generate('00000000-0000-4000-8000-000000000006', input)).rejects.toThrow(
+      'AI_CLAUDE_UNSUPPORTED_INSTALL',
+    );
+    expect(deps.claude.generate).not.toHaveBeenCalled();
   });
 
   it('passes provider failures through and checks the sign-in again after a sign-out', async () => {

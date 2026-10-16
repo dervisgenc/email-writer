@@ -15,7 +15,7 @@ import {
 } from '@email-writer/contracts';
 import { z } from 'zod';
 
-import { findClaudeBinary } from './binary';
+import type { ClaudeCommand } from './binary';
 
 /**
  * Claude Code resolves these aliases to the latest model of each family. Haiku is not
@@ -35,6 +35,8 @@ export interface ClaudeCodeStatus {
   readonly plan: string | null;
   readonly account: string | null;
   readonly organization: string | null;
+  /** Set when Claude Code was found but cannot be started safely (e.g. only a claude.cmd script). */
+  readonly problem?: ErrorCode;
 }
 
 const MAX_OUTPUT_BYTES = 1_000_000;
@@ -45,6 +47,7 @@ const STATUS_TIMEOUT_MS = 15_000;
  * Print-mode arguments. Email is untrusted input, so Claude Code runs without tools,
  * MCP servers, skills or user/project settings (which may define hooks), and never
  * saves the conversation to its session transcripts. The prompt itself goes to stdin.
+ * The system prompt holds no email content and stays far below Windows' command line limit.
  */
 export function claudeCodeArgs(model: string, systemPrompt: string): string[] {
   return [
@@ -72,16 +75,18 @@ interface RunOutcome {
 }
 
 function run(
-  binary: string,
+  command: ClaudeCommand,
   args: readonly string[],
   options: { cwd: string; env: NodeJS.ProcessEnv; input: string; signal: AbortSignal },
 ): Promise<RunOutcome> {
   return new Promise((resolve) => {
-    const child = spawn(binary, args, {
+    // Never through a shell: the system prompt is an argument and must reach Claude Code unchanged.
+    const child = spawn(command.file, [...command.args, ...args], {
       cwd: options.cwd,
       env: options.env,
       // stderr is never read: it may contain fragments of the request.
       stdio: ['pipe', 'pipe', 'ignore'],
+      windowsHide: true,
     });
     const chunks: Buffer[] = [];
     let size = 0;
@@ -163,16 +168,18 @@ function parseJson(text: string): unknown {
  */
 export function createClaudeCodeProvider(options: {
   env: NodeJS.ProcessEnv;
-  findBinary?: () => Promise<string | null>;
+  /** Locates Claude Code on this computer (see `findClaudeBinary`). */
+  findBinary: () => Promise<Result<ClaudeCommand, AppError>>;
 }) {
-  const findBinary = options.findBinary ?? (() => findClaudeBinary(options.env));
+  const { findBinary } = options;
   const withWorkspace = async <T>(operation: (cwd: string) => Promise<T>): Promise<T> => {
     // An empty private directory: no project instructions or files are in reach.
     const cwd = await mkdtemp(join(tmpdir(), 'email-writer-claude-'));
     try {
       return await operation(cwd);
     } finally {
-      await rm(cwd, { recursive: true, force: true });
+      // Windows may release the finished process's hold on the directory a moment later.
+      await rm(cwd, { recursive: true, force: true, maxRetries: 3 });
     }
   };
 
@@ -189,9 +196,12 @@ export function createClaudeCodeProvider(options: {
         organization: null,
       };
       const binary = await findBinary();
-      if (binary === null) return missing;
+      if (!binary.ok)
+        return binary.error.code === 'AI_CLAUDE_NOT_INSTALLED'
+          ? missing
+          : { ...missing, problem: binary.error.code };
       const outcome = await withWorkspace((cwd) =>
-        run(binary, ['auth', 'status', '--json'], {
+        run(binary.value, ['auth', 'status', '--json'], {
           cwd,
           env: options.env,
           input: '',
@@ -215,10 +225,10 @@ export function createClaudeCodeProvider(options: {
     async generate(input: AiInput, model: string, signal: AbortSignal): Promise<Result<string, AppError>> {
       if (!CLAUDE_CODE_MODELS.some((item) => item.id === model)) return err(appError('AI_MODEL_UNAVAILABLE'));
       const binary = await findBinary();
-      if (binary === null) return err(appError('AI_CLAUDE_NOT_INSTALLED'));
+      if (!binary.ok) return err(binary.error);
       const prompt = buildTaskPrompt(input);
       const outcome = await withWorkspace((cwd) =>
-        run(binary, claudeCodeArgs(model, prompt.system), {
+        run(binary.value, claudeCodeArgs(model, prompt.system), {
           cwd,
           env: options.env,
           input: prompt.user,

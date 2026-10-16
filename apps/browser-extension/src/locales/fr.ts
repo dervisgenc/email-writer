@@ -280,6 +280,8 @@ export const fr: ExtensionText = {
         'Claude Code est introuvable. Installez Claude Code et exécutez à nouveau pnpm ai:install.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code n’est pas connecté. Exécutez claude dans un terminal et connectez-vous avec /login.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL:
+        'Claude Code n’a été trouvé que sous forme de script de commandes (claude.cmd), qu’Email Writer ne peut pas lancer en toute sécurité. Installez Claude Code avec le programme d’installation natif officiel, puis exécutez à nouveau pnpm ai:install.',
       AI_VERSION_MISMATCH:
         'L’extension et l’application d’assistance locale n’ont pas la même version. Exécutez à nouveau la commande d’installation indiquée dans les paramètres IA.',
       CONTENT_SCRIPT_UNREACHABLE:

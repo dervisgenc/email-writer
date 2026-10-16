@@ -162,6 +162,14 @@ export function createAiService(deps: {
     const usable = claudeMode
       ? claude?.installed === true && claude.loggedIn
       : connected && key === catalogKey;
+    // An installation that cannot be started safely is explained through the error field.
+    let claudeCode: AiStatus['claudeCode'] = null;
+    let claudeProblem: ErrorCode | null = null;
+    if (claudeMode && claude) {
+      const { problem, ...view } = claude;
+      claudeCode = view;
+      claudeProblem = problem ?? null;
+    }
     return {
       mode: state.mode,
       accounts: state.accounts.map((account) => ({
@@ -180,8 +188,8 @@ export function createAiService(deps: {
       signingIn: signIn.pending(),
       needsPlanAcknowledgement:
         state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE) && !active.welcomed,
-      claudeCode: claudeMode ? claude : null,
-      error: signIn.error() ?? lastError,
+      claudeCode,
+      error: signIn.error() ?? lastError ?? claudeProblem,
     };
   };
 
@@ -216,11 +224,15 @@ export function createAiService(deps: {
     let claude = await claudeStatus();
     // The user may have just installed Claude Code or signed in; check again before failing.
     if (!claude.installed || !claude.loggedIn) claude = await claudeStatus(true);
-    if (!claude.installed) throw new AiFailure('AI_CLAUDE_NOT_INSTALLED');
+    if (!claude.installed) throw new AiFailure(claude.problem ?? 'AI_CLAUDE_NOT_INSTALLED');
     if (!claude.loggedIn) throw new AiFailure('AI_CLAUDE_NOT_LOGGED_IN');
     const result = await deps.claude.generate(input, model, signal);
     if (result.ok) return result.value;
-    if (result.error.code === 'AI_CLAUDE_NOT_LOGGED_IN' || result.error.code === 'AI_CLAUDE_NOT_INSTALLED')
+    if (
+      result.error.code === 'AI_CLAUDE_NOT_LOGGED_IN' ||
+      result.error.code === 'AI_CLAUDE_NOT_INSTALLED' ||
+      result.error.code === 'AI_CLAUDE_UNSUPPORTED_INSTALL'
+    )
       claudeCache = null;
     throw new AiFailure(result.error.code);
   };

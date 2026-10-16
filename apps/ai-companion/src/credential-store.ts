@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { lock } from 'proper-lockfile';
 import { AI_MODES } from '@email-writer/contracts';
@@ -48,18 +48,53 @@ export interface CredentialStore {
   update<T>(operation: (state: CredentialState) => Promise<T> | T): Promise<T>;
 }
 
+const errorCode = (error: unknown) => (error instanceof Error && 'code' in error ? error.code : undefined);
+
+/**
+ * Replaces the credential file in one step. Windows briefly refuses to replace a file that
+ * another program (antivirus, search indexing) has just opened; the store's lock is held,
+ * so trying again is safe.
+ */
+async function replaceFile(source: string, target: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(source, target);
+      return;
+    } catch (error) {
+      const code = errorCode(error);
+      if (attempt >= 8 || (code !== 'EPERM' && code !== 'EACCES' && code !== 'EBUSY')) throw error;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 50));
+    }
+  }
+}
+
 /** Private runtime storage, atomic replacement and a cross-process lock for rotating refresh tokens. */
-export function createCredentialStore(directory: string): CredentialStore {
+export function createCredentialStore(
+  directory: string,
+  options: {
+    /** Limits a newly created directory to its owner where mode bits cannot (Windows ACL). */
+    restrictDirectory?: ((directory: string) => Promise<void>) | null;
+  } = {},
+): CredentialStore {
   const file = join(directory, 'credentials.json');
   const prepare = async () => {
-    await mkdir(directory, { recursive: true, mode: 0o700 });
+    const created = await mkdir(directory, { recursive: true, mode: 0o700 });
+    if (created !== undefined && options.restrictDirectory) {
+      try {
+        await options.restrictDirectory(directory);
+      } catch (error) {
+        // Never keep an unprotected directory: the next attempt creates and restricts it again.
+        await rmdir(directory).catch(() => undefined);
+        throw error;
+      }
+    }
     await chmod(directory, 0o700);
   };
   const readState = async (): Promise<CredentialState> => {
     try {
       return stateSchema.parse(JSON.parse(await readFile(file, 'utf8')));
     } catch (error) {
-      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+      if (errorCode(error) !== 'ENOENT') throw error;
       return {
         version: 1,
         hostId: `urn:uuid:${randomUUID()}`,
@@ -82,7 +117,7 @@ export function createCredentialStore(directory: string): CredentialStore {
       const state = await readState();
       const result = await operation(state);
       await writeFile(temporary, JSON.stringify(stateSchema.parse(state)), { mode: 0o600, flag: 'wx' });
-      await rename(temporary, file);
+      await replaceFile(temporary, file);
       return result;
     } finally {
       await rm(temporary, { force: true });
