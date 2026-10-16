@@ -203,7 +203,8 @@ try {
   firefox?.stop();
   server?.kill('SIGTERM');
   await sleep(300);
-  rmSync(profile, { recursive: true, force: true });
+  // Windows'ta kapanan Firefox'un alt süreçleri profil dosyalarını kısa bir süre daha tutabilir.
+  rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 }
 
 const failed = steps.filter((step) => !step.ok);

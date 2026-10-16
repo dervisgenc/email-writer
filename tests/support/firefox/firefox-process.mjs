@@ -4,10 +4,22 @@
 // olarak başlatılan Firefox'u macOS gizlilik koruması terminalin izinleriyle
 // değerlendirir; terminalin "diğer uygulamaların verileri" izni yoksa Firefox
 // kendi veri klasörünü okuyamaz ve "Profile Missing" hatasıyla kapanır.
+//
+// Windows'ta Firefox PATH'te bulunmaz; kurulum klasörlerinde aranır.
 import { execFileSync, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { connect } from 'node:net';
+import { join } from 'node:path';
 
 const MAC_DEFAULT_APP = '/Applications/Firefox.app';
+
+/** Firefox'un Windows'taki olağan kurulum yerleri (sistem geneli, 32 bit, kullanıcı düzeyi). */
+function windowsFirefox(env) {
+  const candidates = [env.ProgramFiles, env['ProgramFiles(x86)'], env.LOCALAPPDATA]
+    .filter(Boolean)
+    .map((directory) => join(directory, 'Mozilla Firefox', 'firefox.exe'));
+  return candidates.find((candidate) => existsSync(candidate)) ?? 'firefox.exe';
+}
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -18,6 +30,7 @@ export function resolveFirefox(env = process.env) {
     const app = binary?.includes('.app/') ? binary.slice(0, binary.indexOf('.app/') + 4) : MAC_DEFAULT_APP;
     return { kind: 'mac-app', app, binary: `${app}/Contents/MacOS/firefox` };
   }
+  if (process.platform === 'win32') return { kind: 'binary', binary: binary ?? windowsFirefox(env) };
   return { kind: 'binary', binary: binary ?? 'firefox' };
 }
 
@@ -102,7 +115,29 @@ export async function launchFirefox({ profile, port, headless = false, urls = []
  */
 export async function stopFirefoxWithProfile(profile, port = null, timeoutMs = 15_000) {
   try {
-    execFileSync('pkill', ['-TERM', '-f', `firefox .*--profile ${profile}`]);
+    if (process.platform === 'win32') {
+      // pkill yok: komut satırında bu profilin yolu geçen Firefox süreçleri PowerShell ile
+      // kapatılır. Yol boşluk içerirse tırnaklanır, bu yüzden yalnızca yolun kendisi aranır.
+      // Profil yolu betiğe ortam değişkeniyle verilir; komut metnine eklenmez.
+      execFileSync(
+        join(
+          process.env.SystemRoot ?? 'C:\\Windows',
+          'System32',
+          'WindowsPowerShell',
+          'v1.0',
+          'powershell.exe',
+        ),
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          "Get-CimInstance -ClassName Win32_Process | Where-Object { $_.Name -eq 'firefox.exe' -and $_.CommandLine -and $_.CommandLine.Contains($env:EW_FIREFOX_PROFILE) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+        ],
+        { env: { ...process.env, EW_FIREFOX_PROFILE: profile }, stdio: 'ignore' },
+      );
+    } else {
+      execFileSync('pkill', ['-TERM', '-f', `firefox .*--profile ${profile}`]);
+    }
   } catch {
     // Bu profille çalışan Firefox yok.
   }
