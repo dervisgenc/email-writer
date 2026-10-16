@@ -353,3 +353,30 @@ Kullanıcının bildirdiği sorun: Başka bir e-postaya geçip taslaktaki "Çevi
 - **Hata:** Native süreç her başlatıldığında model kataloğu bellekte boş başlıyordu. Outlook'taki gösterge (5 saniyede bir `AI_SUMMARY`) bağlı hesabı "Üretim için AI hesabınızı bağlayın" diye gösteriyordu. Bu durum yalnızca ayarlardaki Yenile veya bir üretimle düzeliyordu. Firefox arka planı yeniden başlattığında ve `pnpm outlook:dev` her derlemede eklentiyi yeniden yüklediğinde tekrar ediyordu.
 - **Düzeltme** (`apps/ai-companion/src/ai-service.ts`): Bağlı hesabın durumu sorulunca katalog süreç ve hesap başına bir kez yüklenir (yalnızca `GET /v1/models`; üretim isteği yok). Girişten sonraki yükleme de bu tek denemeye sayılır. Başarısız yükleme her sorguda tekrarlanmaz; hata ayarlarda görünür, Yenile veya üretim yeniden dener. Eşzamanlı sorgular aynı yüklemeyi bekler.
 - Doğrulama: `pnpm check` geçti (219 test). Native host yeniden derlenip Firefox için kuruldu; yeni süreçte ilk durum sorgusu `ready: true` döndü.
+
+## 20. 16 Ekim 2026 — Claude aboneliği (bilgisayardaki Claude Code)
+
+- **Karar:** Kullanıcı Claude için yalnızca bilgisayardaki Claude Code yolunu seçti. Anthropic'in sayfaları 16 Ekim 2026'da okundu: destek makalesi `claude -p` ve üçüncü taraf uygulamaların abonelik limitleriyle kullanılabildiğini söylüyor; geliştirici kuralları uygulama içinde Claude girişi sunmayı ve kimlik bilgisi toplamayı yasaklıyor, son kullanıcının değiştirilmemiş Claude Code'a kendi aboneliğiyle girişine izin veriyor. Dağıtılan uygulamalar açıkça ele alınmıyor; yöntem varsayılan değil ve herkese açık yayından önce Anthropic'ten yazılı teyit gerekiyor.
+- **Yeni paket `packages/ai-claude-code`:** Claude Code'u bulur (kurucunun kaydettiği yol, PATH, bilinen konumlar), giriş durumunu `claude auth status --json` ile okur, üretimi `claude -p` ile yapar. Araçlar, kullanıcı/proje ayarları ve hook'lar, MCP sunucuları, skill'ler ve oturum kaydı kapalıdır; istem stdin'den, boş ve sonra silinen geçici klasörde çalışır. stderr okunmaz; hata mesajları kararlı koda çevrilir.
+- **Yerel uygulama:** Yeni yöntem `claude-code`. Giriş durumu 30 saniye önbelleğe alınır (gösterge 5 saniyede bir sorar); "girişsiz" yanıtı üretimden önce yeniden denetlenir. Model seçimi saklanır (Sonnet varsayılan, Haiku, Opus). Eski kimlik dosyaları değişmeden okunur. OpenAI kimlik yolu bu yöntemde hiç çalışmaz.
+- **Kurucu:** `claude` yolunu, `CLAUDE_CONFIG_DIR` değerini ve Node.js klasörünü başlatıcıya yazar; `USER` yoksa `id -un` ile tamamlar (macOS'ta Claude Code anahtar zinciri girişini kullanıcı adıyla bulur). Bu olmadan kısıtlı ortamda giriş "yok" görünüyordu.
+- **Ortak talimat:** E-posta görev talimatı `contracts` içine (`AI_TASK_INSTRUCTIONS`) taşındı; iki sağlayıcı aynı talimatı kullanır. Sağlayıcı paketlerinin birbirini içe aktarması ESLint ile engellendi.
+- **Arayüz:** Ayarlarda üçüncü yöntem "Claude aboneliği": Claude Code hesabı, kuruluş ve plan, kurulum/giriş yönlendirmesi, API ile faturalanma uyarısı ve Anthropic gizlilik notu. Gösterge "Claude aboneliği kullanılıyor" yazar. Yeni hata kodları: `AI_CLAUDE_NOT_INSTALLED`, `AI_CLAUDE_NOT_LOGGED_IN`.
+- **Canlı doğrulama:** Kurulu yerel uygulama kısıtlı ortamla başlatıldı; Claude Code girişi (Team) okundu, sentetik Düzelt ve Yanıt üretimleri ~3 saniyede doğru sonuç verdi; Claude Code oturum kayıtlarında deneme metni yok. Kullanıcının seçili yöntemi denemeden sonra geri yüklendi.
+- Doğrulama: `pnpm check` (240 test); sahte bir `claude` programıyla argümanlar, stdin, geçici klasör, iptal ve hata eşlemeleri test edildi.
+
+## 21. 16 Ekim 2026 — "Kaynak değişti" hatası ve ayarlar sayfasının yeniden tasarımı
+
+**Hata:** Yanıt hazırlandıktan sonra "Taslağa uygula" çalışmıyor, önizlemede "Kaynak değişti" yazıyordu.
+- **Kök neden:** Kart kapatılıp aynı düğmeyle ("Yanıt yaz") yeniden açılınca taslak yeniden okunuyordu. Metin aynı olsa bile form sürümü artıyor, hazır yanıt eskimiş sayılıyor ve uygulama engelleniyordu. Testle yeniden üretildi (sürüm 4 → 5, uygulama 0).
+- **Düzeltme** (`core/session/reduce-session.ts`): Kaynak yeniden alındığında form sürümü yalnızca metin gerçekten değiştiyse artar; aynıysa taslağın güncel sürümü kaydedilir ve sonuç o sürüme uygulanır. Taslağa yazı eklendiyse önizleme yine eskir ve uygulanmaz.
+- Testler: aynı metinle yeniden alma, değişen metin, kartı yeniden açıp uygulama ve taslağa yazı ekledikten sonra yeniden açma.
+
+**Ayarlar sayfası:**
+- Kartlara bölündü: AI bağlantısı, Bağlantı rehberi, Yazma tercihleri, Gizlilik ve veriler. Başlıkta uygulama simgesi; renkler Fluent belirteçlerinden, açık/koyu temada ve telefon genişliğinde (yatay kaydırma yok) doğrulandı.
+- AI bağlantısı: durum rozeti (Hazır / Kurulum gerekli / Bağlantı gerekli), simgeli ve açıklamalı yöntem kartları (gerçek radyo düğmeleri; klavyeyle gezinilebilir), yönteme özel içerik ayrı alanda, gizlilik notu kalkan simgesiyle. Koyu temada "Continue with ChatGPT" beyaz düğme.
+- **Bağlantı rehberi** (`AiConnectionGuide`): her yöntem için Gerekenler, Adımlar, Bilmeniz gerekenler; yardımcı uygulama bölümü. Seçili yöntem açık gelir; resmî kurulum sayfalarına bağlantılar. Claude bölümü hesap bilgisine erişilmediğini, ortak limiti, Pro/Max eğitim ayarını ve yöntemin deneysel olduğunu açıkça söyler.
+- Yazma tercihleri: dil ve ton yan yana, tema için parçalı seçim, Outlook ayarı için anahtar düğmesi, kaydedilmemiş değişiklik uyarısı. Sayfanın dili arayüz diliyle eşitlenir.
+- Gizlilik ve veriler: tek paragraf yerine maddeler.
+- Doğrulama: `pnpm check` (247 test), Chromium uçtan uca 8/8, Firefox duman testi; ekran görüntüleriyle görsel kontrol.
+

@@ -1,4 +1,4 @@
-# ChatGPT ve OpenAI bağlantısı
+# AI bağlantısı: ChatGPT, OpenAI API ve Claude Code
 
 Son kontrol: 16 Ekim 2026. Entegrasyon, OpenAI'ın belgelenmiş **Sign in with ChatGPT / ChatGPT plan usage** akışını kullanır. Eklenti ChatGPT çerezlerini veya başka bir uygulamanın oturum dosyasını okumaz; özel `backend-api` uçlarına bağlanmaz.
 
@@ -70,11 +70,65 @@ Aynı ayarlar ekranında **OpenAI API anahtarı** seçilebilir. Anahtar, yalnız
 
 API ücretlendirmesi ChatGPT aboneliğinden ayrıdır. Limit/erişim hatası bir yöntemi diğerine otomatik geçirmez. İstekler hata halinde kendiliğinden tekrarlanmaz. [Model ve üretim protokolü](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference).
 
+## Claude aboneliği (bilgisayardaki Claude Code)
+
+Bu yöntem, kullanıcının bilgisayarında kurulu ve **değiştirilmemiş** Claude Code'u yazdırma modunda (`claude -p`) çalıştırır. Claude girişi yalnızca Claude Code'un kendi akışıyla yapılır (terminalde `claude` → `/login`). Email Writer Claude hesap bilgilerini veya oturum token'larını okumaz, saklamaz ve aracılık etmez; giriş durumunu yalnızca `claude auth status --json` çıktısından öğrenir. Kullanım, Claude planının (Claude Code ile ortak) limitlerinden düşer.
+
+**Kural dayanağı (16 Ekim 2026'da okundu):**
+
+- Destek makalesi: "You can still use the Claude Agent SDK, `claude -p`, and third-party apps with your subscription limits." ([kaynak](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan))
+- Geliştiriciler için kurallar: ürün geliştirenler API anahtarı kullanmalı; uygulamalar kendi içinde Claude.ai girişi sunamaz, Free/Pro/Max planları üzerinden kullanıcılar adına istek yönlendiremez, Claude kimlik bilgilerini toplayamaz/saklayamaz. İstisna olarak son kullanıcı, değiştirilmemiş Claude Code'a kendi aboneliğiyle giriş yapabilir. Anthropic bu kuralları önceden haber vermeden uygulayabilir. ([kaynak](https://code.claude.com/docs/en/legal-and-compliance))
+- Dağıtılan bir uygulamanın kullanıcının kendi Claude Code'unu çalıştırması bu sayfalarda açıkça ele alınmıyor. Bu yöntem varsayılan değildir, kullanıcı ayarlardan kendisi seçer. Herkese açık yayından önce Anthropic'ten yazılı teyit alınmalıdır. Ürün adında "Claude Code" kullanılmaz.
+- Max ve Team planlarının aylık API kredileri ([kaynak](https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans)) yalnızca bağlı Console organizasyonunun API anahtarıyla harcanır. Claude Code planla oturum açmışken bu krediler kullanılmaz.
+
+**Güvenlik:** E-posta güvenilmeyen girdidir; Claude Code ise komut çalıştırabilen bir ajandır. Bu yüzden her üretim şu ayarlarla çalışır (`packages/ai-claude-code/src/provider.ts`):
+
+| Ayar | Neden |
+| --- | --- |
+| `--tools ""`, `--restricted` | Hiçbir araç yok: komut çalıştırma, dosya okuma/yazma ve web erişimi kapalı. |
+| `--restricted`, `--strict-mcp-config`, `--disable-slash-commands` | Kullanıcı/proje ayarları (hook'lar dahil), MCP sunucuları ve skill'ler yüklenmez. |
+| `--no-session-persistence` | E-posta metni Claude Code'un oturum kayıtlarına yazılmaz. |
+| `--system-prompt` | Claude Code'un kodlama talimatı yerine e-posta görev talimatı (`AI_TASK_INSTRUCTIONS`) kullanılır. |
+| İstem stdin'den, boş geçici klasör | E-posta metni süreç listesinde görünmez; proje dosyası veya `CLAUDE.md` erişilebilir değildir. Klasör iş bitince silinir. |
+
+stderr okunmaz; sonuç yalnızca `subtype: success` ve `stop_reason` `max_tokens` değilken kabul edilir. Hata mesajı kullanıcıya aktarılmaz, kararlı koda çevrilir. Üretim en fazla 120 saniye sürer; iptal edilen istek süreci sonlandırır.
+
+**Gizlilik:** Üretim istendiğinde metin, talimat ve seçilen bağlam Claude Code üzerinden Anthropic'e gider. Pro ve Max planları Anthropic tüketici koşullarına tabidir: Claude gizlilik ayarlarında model eğitimi kapatılmadıysa içerik eğitimde kullanılabilir. Team ve Enterprise planları ticari koşullara tabidir.
+
+**Kurulum:**
+
+1. Claude Code'u kurun ve terminalde `claude` → `/login` ile giriş yapın.
+2. `pnpm ai:install firefox` (veya ilgili tarayıcı) komutunu Claude Code'u kullandığınız terminalde çalıştırın. Kurucu `claude` yolunu ve varsa `CLAUDE_CONFIG_DIR` değerini başlatıcıya yazar. Tarayıcı yerel uygulamayı kısıtlı bir ortamla başlattığı için bu gereklidir.
+3. **Ayarlar → AI bağlantısı → Claude aboneliği**. Ekranda Claude Code hesabı, kuruluş ve plan görünür.
+4. Model: **Claude Sonnet** (varsayılan), **Claude Haiku** (daha hızlı) veya **Claude Opus**. Claude Code bu adları güncel modele çözer.
+
+| Sorun | Yapılacak işlem |
+| --- | --- |
+| `AI_CLAUDE_NOT_INSTALLED` | Claude Code bulunamadı. Kurulumdan sonra `pnpm ai:install ...` komutunu yeniden çalıştırın; ardından ayarlarda Yenile. |
+| `AI_CLAUDE_NOT_LOGGED_IN` | Terminalde `claude` → `/login`. Birden fazla Claude yapılandırması kullanıyorsanız (`CLAUDE_CONFIG_DIR`), kurucuyu doğru yapılandırmanın açık olduğu terminalde çalıştırın. |
+| "API anahtarı gibi başka bir yöntemle oturum açmış" uyarısı | Claude Code aboneliğiniz yerine API anahtarıyla çalışıyor; kullanım o hesaptan ücretlendirilir. |
+| `AI_LIMIT_REACHED` | Claude planının limiti doldu; limit Claude Code kullanımınızla ortaktır. Limit yenilenince tekrar deneyin. |
+
+## Ayarlardaki bağlantı rehberi
+
+Son kullanıcı için gerekenler ve adımlar eklentinin **Ayarlar → Bağlantı rehberi** kartında, her yöntem için ayrı bölümde yer alır: Gerekenler, Adımlar ve Bilmeniz gerekenler (ChatGPT üyeliği, OpenAI API anahtarı, Claude aboneliği, yardımcı uygulama). Seçili yöntemin bölümü açık gelir. Metinler `apps/browser-extension/src/locales/ai-tr.ts` ve `ai-en.ts` içindeki `guide` alanındadır; resmî bağlantılar `contracts` sabitlerinden gelir.
+
+## Dağıtım öncesi yapılacaklar
+
+Eklenti mağazalarda dağıtılmadan önce:
+
+1. **Yardımcı uygulama kurucusu:** Son kullanıcı `pnpm` kullanmaz. macOS için imzalı/notarize edilmiş bir paket, Linux için bir paket veya tek komutluk kurucu gerekir. Kurucu mağaza eklenti kimliklerini kullanmalı ve Claude Code'un yolunu bulmalıdır. Windows desteği yoktur.
+2. **Eklenti kimlikleri ve izin:** Chrome Web Store ve Firefox AMO kimlikleri sabitlenmeli; `nativeMessaging` izni mağaza incelemesinde gerekçelendirilmelidir.
+3. **ChatGPT:** OpenAI plan kullanımını açık kaynak ortaklara ve seçili özel istemcilere açıyor. Depo açık kaynak yapılmayacaksa OpenAI'ın [ilgi formu](https://openai.com/form/sign-in-with-chatgpt-interest/) ile erişim istenmelidir.
+4. **Claude:** Kullanıcının kendi Claude Code'unu çalıştırma yöntemi için Anthropic'ten yazılı teyit alınmalı; ürün adında "Claude Code" kullanılmamalıdır.
+5. **Gizlilik politikası:** Mağazalar ister. Veri akışı, sağlayıcılar (OpenAI, Anthropic) ve yerel saklama bu belgedeki bilgilerle yazılabilir.
+
 ## Modül sınırları ve veri akışı
 
 ```text
 Outlook content script → doğrulanan background mesajı → native messaging
   → apps/ai-companion → packages/ai-openai → OpenAI Responses API
+                      → packages/ai-claude-code → kullanıcının Claude Code'u (claude -p)
   ← tamamlanmış düz metin ← mevcut önizleme / kontrollü taslağa uygulama
 ```
 
@@ -82,11 +136,12 @@ Outlook content script → doğrulanan background mesajı → native messaging
 | --- | --- |
 | `packages/contracts/src/ai.ts` | Boyut sınırlı üretim girdisi, hesap/model görünümü, bağlantı komutları |
 | `packages/ai-openai` | OAuth/PKCE/OIDC, model listesi, e-posta prompt'u, Responses SSE ve kararlı hata kodları |
+| `packages/ai-claude-code` | Claude Code'u bulma, giriş durumunu okuma, kısıtlı `claude -p` çalıştırma ve hata eşleme |
 | `apps/ai-companion` | Loopback giriş dinleyicisi, native framing, korumalı dosya, hesap seçimi, iptal ve token yenileme |
 | `browser-extension/src/platform/` | Gönderici yetkisi, native port, istek eşleştirme, `TextProcessor` adaptörü |
 | `packages/ui` | Yalnızca görünüm verisi ve olaylar; hesap kartı ve tema stilleri |
 
-Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. İkinci sağlayıcı için yeni bir sağlayıcı paketi ve companion yönlendirmesi eklenir; önizleme/yazma kuralları aynı kalır. İlk provider sınırı OpenAI'a özeldir; henüz ihtiyaç olmayan çok sağlayıcılı kayıt sistemi oluşturulmadı.
+Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikinci sağlayıcı olarak ayrı bir paketle ve companion yönlendirmesiyle eklendi; önizleme/yazma kuralları değişmedi. Sağlayıcı paketleri birbirini içe aktarmaz (ESLint denetler); ortak görev talimatı `contracts`'tadır. Henüz ihtiyaç olmayan çok sağlayıcılı kayıt sistemi oluşturulmadı.
 
 - E-posta açmak veya bağlantı göstergesini okumak üretim isteği göndermez. Kullanıcı üretim istediğinde yalnızca seçili kaynak, talimat, dil/ton ve hazırlanmış bağlam gönderilir. Mailbox kimlikleri, DOM hedefleri ve diğer açılan mesajlar bu isteğe eklenmez.
 - E-posta metni yalnızca işlem süresince content script, background ve companion belleğinden geçer. Uygulama bunları diske veya loglara yazmaz. OpenAI'a giden her üretimde `store: false`, `stream: true` kullanılır; bu, sağlayıcının bütün veri işleme/saklama politikalarının kapalı olduğu iddiası değildir.
@@ -128,6 +183,8 @@ Email Writer, ChatGPT içine kurulan bir plugin değildir; ChatGPT hesabıyla ye
 Otomatik testler sahte sağlayıcı yanıtları ve yerel OAuth callback'leri kullanır. **16 Ekim 2026 canlı kontrolü:** Kullanıcının tamamladığı kişisel hesap girişinin doğrulandığı, geçerli oturum ve `chatgpt.tokens.use.direct` izni bulunduğu görüldü. Kullanıcı Plus aboneliğinin aktif olduğunu bildirdi. `GET /v1/models` başarılı oldu; kişisel veri içermeyen tek bir minimal `POST /v1/responses` isteği `403 / subscription_sharing_user_not_eligible` ile reddedildi. Yanıt `x-request-id` taşımıyordu. Hesap/token bilgileri çıktıya veya belgelere eklenmedi; gerçek e-posta gönderilmedi.
 
 **16 Ekim 2026 ikinci canlı kontrol** (aynı oturum, yeniden giriş yok): Kişisel veri içermeyen kısa bir `POST /v1/responses` isteği HTTP 200 ve `response.completed` ile tamamlandı. Kurulu native host üzerinden sentetik bir **Düzelt** isteği de doğru sonuç verdi. Birkaç dakika arayla alınan model listeleri 3 modelden 7 modele çıktı. İlk reddin, Plus planının OpenAI tarafında henüz etkinleşmemesinden kaynaklandığı düşünülüyor; bu bir çıkarımdır.
+
+**16 Ekim 2026 Claude Code canlı kontrolü:** Kurulu yerel uygulama tarayıcıdakine benzer kısıtlı bir ortamla başlatıldı. Claude Code girişi (Team planı) okundu; sentetik metinle Düzelt (~3 sn) ve Yanıt (~3 sn, Claude Sonnet) doğru sonuç verdi. Oturum kayıtlarına deneme metni yazılmadığı doğrulandı.
 
 Gerçek Outlook taslağına uygulamanın uçtan uca canlı doğrulaması ve Business hesabıyla bağlantı bekliyor. [OpenAI hata ve iyileşme rehberi](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
 

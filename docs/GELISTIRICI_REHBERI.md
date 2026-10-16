@@ -2,7 +2,7 @@
 
 İlgili belgeler: [Proje planı](../PROJE_PLANI.md) · [İmplementasyon detayları](../implementation_details.md) · [Outlook doğrulama](./outlook-web-dogrulama.md) · [Tarayıcı matrisi](../tests/manual/browser-matrix.md) · [Yapılan işler](../YAPILAN_ISLER.md)
 
-AI bağlantısının güncel kurulumu, veri akışı ve sınırları: [ChatGPT / OpenAI rehberi](./AI_BAGLANTISI.md).
+AI bağlantısının güncel kurulumu, veri akışı ve sınırları: [AI bağlantısı rehberi (ChatGPT, OpenAI API, Claude Code)](./AI_BAGLANTISI.md).
 
 ## Gereksinimler
 
@@ -111,7 +111,7 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 
 - `controllers/message-history.ts`, kullanıcının açtığı her mesajı sayfa oturumu boyunca bellekte tutar.
   - Okuma bölmesi yalnızca seçili mesajı gösterdiğinde, aynı konuşmanın önceki mesajlarına başka yoldan ulaşılamaz.
-  - Geçmiş kalıcı saklanmaz; yalnızca üretim için seçilen bağlam OpenAI’a gönderilir. Hesap değişince silinir ve en fazla 40 mesaj tutar.
+  - Geçmiş kalıcı saklanmaz; yalnızca üretim için seçilen bağlam seçili AI sağlayıcısına (OpenAI veya Anthropic) gönderilir. Hesap değişince silinir ve en fazla 40 mesaj tutar.
 - `core/context/message-history.ts` (saf fonksiyonlar):
   - Aynı konuşmadan veya aynı konudan (`RE:`/`FW:`/`YNT:`/`İLT:` önekleri yok sayılarak) okunan mesajlar **ilişkili** sayılır ve bağlama varsayılan olarak girer.
   - Başka konuşmalardan okunanlar panelde "Diğer açılan e-postalar" altında seçilmemiş durur.
@@ -134,7 +134,7 @@ Aynı oturum iki yüzeyde gösterilir (`PanelSurface`): sağdaki panel ve tasla�
 4. Panel, bağlam kuralları, önizleme ve yazma kuralları yeniden yazılmaz.
 
 **AI / metin işleme bağlantısı:**
-İlk bağlantı `packages/ai-openai` ve `apps/ai-companion` içinde geliştirildi. Yeni sağlayıcılar aynı TextProcessor ve AiInput sınırını kullanabilir.
+Sağlayıcılar `packages/ai-openai` ve `packages/ai-claude-code` içindedir; `apps/ai-companion` seçili yönteme göre yönlendirir. Sağlayıcı paketleri birbirini içe aktarmaz; ortak görev talimatı (`AI_TASK_INSTRUCTIONS`) ve `AiInput` `contracts`'tadır.
 
 1. `contracts/src/text-processor.ts` içindeki `TextProcessor` arayüzünü uygulayan ayrı bir modül yazılır.
 2. Content script'te `loadTextProcessor()` bu modülü döndürür.
@@ -162,8 +162,8 @@ jsdom'da `execCommand` bulunmadığı için Outlook bağlantısı testleri DOM i
 
 ## Gizlilik ve güvenlik kuralları (özet)
 
-- E-posta içeriği, bağlam, önizleme ve geri alma verisi kalıcı saklanmaz. Üretimde seçili metin background/companion belleğinden geçer ve OpenAI’a iletilir. Ayarlar `storage.local` içinde, tek sürümlü kayıt olarak tutulur.
-- Kullanıcı üretim istediğinde seçili metin OpenAI’a gönderilir. Analitik ve hata toplama hizmeti yoktur. OAuth token’ları tarayıcı depolamasında bulunmaz; credential dosyası yerel uygulamanın kullanıcı dizinindedir.
+- E-posta içeriği, bağlam, önizleme ve geri alma verisi kalıcı saklanmaz. Üretimde seçili metin background/companion belleğinden geçer ve seçili sağlayıcıya iletilir; Claude Code yönteminde oturum kaydı kapalıdır. Ayarlar `storage.local` içinde, tek sürümlü kayıt olarak tutulur.
+- Kullanıcı üretim istediğinde seçili metin seçili sağlayıcıya (OpenAI veya Anthropic) gönderilir. Analitik ve hata toplama hizmeti yoktur. OAuth token’ları tarayıcı depolamasında bulunmaz; credential dosyası yerel uygulamanın kullanıcı dizinindedir.
 - Kayıtlarda e-posta gövdesi, konu, adres, kaynak metin, önizleme veya tam URL bulunmaz.
 - Gelen e-posta güvenilmeyen veridir: HTML çalıştırılmaz, bağlantı/görsel açılmaz, içindeki talimatlar komut sayılmaz.
 - İzinler: `storage`, `nativeMessaging` ve desteklenen Outlook adreslerine statik content script eşleşmeleri. Firefox veri paylaşımı beyanı AI akışını içerir.
