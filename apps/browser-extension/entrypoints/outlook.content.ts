@@ -9,7 +9,8 @@ import { OWN_UI_SELECTOR } from '../src/bootstrap/mail-provider';
 import { OUTLOOK_WEB_MATCHES } from '../src/bootstrap/supported-sites';
 import { reportDiagnostic } from '../src/platform/diagnostics';
 import { createConnectedProcessor } from '../src/platform/connected-processor';
-import { sendToBackground } from '../src/platform/extension-browser';
+import { localSettingsArea, sendToBackground } from '../src/platform/extension-browser';
+import { createSettingsStore } from '../src/platform/settings-store';
 
 /**
  * Normal ve geliştirme derlemeleri gerçek AI bağlantısını kullanır.
@@ -18,7 +19,10 @@ import { sendToBackground } from '../src/platform/extension-browser';
  */
 async function loadTextProcessor(): Promise<TextProcessor | null> {
   if (import.meta.env.MODE !== 'test') {
-    return createConnectedProcessor(sendToBackground);
+    const settings = createSettingsStore(localSettingsArea);
+    return createConnectedProcessor(sendToBackground, async () => ({
+      standingInstructions: (await settings.read()).settings.writingInstructions,
+    }));
   }
   const { createFixtureProcessor } = await import('../src/development/fixture-results');
   return createFixtureProcessor();

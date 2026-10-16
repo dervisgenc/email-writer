@@ -12,8 +12,8 @@
   border-radius: var(--ew-radius-large);
   box-shadow: var(--ew-shadow-28);
   overflow: hidden;
-  /* Sayfadaki başlatıcıların (2147483000) üstünde kalır. */
-  z-index: 2147483001;
+  /* Sayfadaki başlatıcıların (999990) üstünde, Outlook'un açılır katmanlarının (1000000) altında kalır. */
+  z-index: 999991;
   animation: ew-slide-in var(--ew-duration) var(--ew-ease);
 }
 

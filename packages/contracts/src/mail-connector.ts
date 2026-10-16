@@ -33,6 +33,16 @@ export type MailEvent =
   | { readonly type: 'composer-added'; readonly ref: ComposerRef }
   | { readonly type: 'composer-removed'; readonly ref: ComposerRef }
   | {
+      /**
+       * Aynı editörün ait olduğu konuşma sonradan anlaşıldı (ör. Outlook yanıtı
+       * konuşmaya geç bağladı). Editör, sürümü ve kayıtları aynı kalır; yalnızca
+       * kimlik kaydı yenilenir.
+       */
+      readonly type: 'composer-rebound';
+      readonly previous: ComposerRef;
+      readonly ref: ComposerRef;
+    }
+  | {
       readonly type: 'composer-changed';
       readonly ref: ComposerRef;
       readonly revision: number;
@@ -43,6 +53,12 @@ export interface ApplyRequest {
   readonly applyOperationId: string;
   readonly target: ApplyTarget;
   readonly text: string;
+  /**
+   * Biçimli içerik (liste, tablo, grafik). Yalnızca taslağın tamamına veya boş
+   * taslağa yazarken verilir; `text` aynı içeriğin düz metin karşılığıdır.
+   * `visibleText`, yazmadan sonra editörde okunması beklenen metindir.
+   */
+  readonly rich?: { readonly html: string; readonly visibleText: string };
 }
 
 export type ApplyOutcome =

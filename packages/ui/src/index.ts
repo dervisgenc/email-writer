@@ -4,6 +4,9 @@ export { default as ComposeToolbar } from './components/ComposeToolbar.vue';
 export { default as ContextInspector } from './components/ContextInspector.vue';
 export { default as ContextMessageCard } from './components/ContextMessageCard.vue';
 export { default as InlineAssistant } from './components/InlineAssistant.vue';
+export { default as RefineBar } from './components/RefineBar.vue';
+export { default as RichPreview } from './components/RichPreview.vue';
+export { default as LanguagePicker } from './components/LanguagePicker.vue';
 export { default as OperationSelector } from './components/OperationSelector.vue';
 export { default as ResultPreview } from './components/ResultPreview.vue';
 export { default as SourceEditor } from './components/SourceEditor.vue';
@@ -13,6 +16,7 @@ export { default as WriterPanel } from './components/WriterPanel.vue';
 export type { IconName } from './components/icons';
 
 export { describeNotice, provideUiText, useUiText } from './i18n';
+export { languageLabel, languageOptions, matchLanguage, type LanguageOption } from './languages';
 export type { UiText } from './i18n';
 export type * from './view-model';
 export type { AiGuideItem, AiGuideText, AiText } from './ai-text';

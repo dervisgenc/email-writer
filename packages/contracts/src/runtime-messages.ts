@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ERROR_CODES } from './errors';
 import { aiCommandSchema, aiInputSchema, aiStatusSchema, aiSummarySchema } from './ai';
-import { settingsChangesSchema, settingsV1Schema } from './settings';
+import { settingsChangesSchema, settingsSchema } from './settings';
 
 /**
  * Ortamlar arası şema doğrulamalı mesajlar. AI_GENERATE yalnızca kullanıcının
@@ -105,7 +105,7 @@ export const selectorReportSchema = z
 
 export type SelectorReport = z.infer<typeof selectorReportSchema>;
 
-export const settingsResultSchema = z.object({ settings: settingsV1Schema }).strict();
+export const settingsResultSchema = z.object({ settings: settingsSchema }).strict();
 
 /**
  * `conflict`: kayıt bu sırada başka bir ekranda değişmişti; yalnızca istenen
@@ -113,9 +113,9 @@ export const settingsResultSchema = z.object({ settings: settingsV1Schema }).str
  * kayıt korunuyor, üzerine yazılmadı.
  */
 export const patchSettingsResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('saved'), settings: settingsV1Schema }).strict(),
-  z.object({ status: z.literal('conflict'), settings: settingsV1Schema }).strict(),
-  z.object({ status: z.literal('read-only'), settings: settingsV1Schema }).strict(),
+  z.object({ status: z.literal('saved'), settings: settingsSchema }).strict(),
+  z.object({ status: z.literal('conflict'), settings: settingsSchema }).strict(),
+  z.object({ status: z.literal('read-only'), settings: settingsSchema }).strict(),
 ]);
 
 /** Her istek türünün yanıt şeması. */

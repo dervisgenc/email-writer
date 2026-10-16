@@ -40,6 +40,8 @@ const isOpen = toRef(() => props.open.value);
       @refresh-context="handlers.refreshContext"
       @prepare="handlers.prepare"
       @preview-change="handlers.previewChange"
+      @refine="handlers.refine"
+      @refine-custom="handlers.refineCustom"
       @apply="handlers.apply"
       @copy="handlers.copy"
       @undo="handlers.undo"

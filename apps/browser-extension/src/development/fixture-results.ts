@@ -1,4 +1,12 @@
-import { appError, err, ok, type Operation, type TextProcessor } from '@email-writer/contracts';
+import {
+  appError,
+  err,
+  ok,
+  REFINEMENT_INSTRUCTIONS,
+  type Operation,
+  type PreparedAction,
+  type TextProcessor,
+} from '@email-writer/contracts';
 
 /**
  * YALNIZCA GELİŞTİRME VE TEST DERLEMESİ. Normal paketten derleme sırasında
@@ -20,6 +28,25 @@ const SAMPLE_TEXTS: Readonly<Record<Operation, string>> = {
   compose:
     'Merhaba,\n\nPerşembe 14:00 için kısa bir toplantı önermek istiyorum. Uygun olup olmadığınızı paylaşır mısınız?\n\nİyi çalışmalar',
 };
+
+/** "Sonucu değiştir" örnekleri: biçimli içerik akışını (önizleme, taslağa yazma) denemek için. */
+const REFINED_TEXTS = {
+  table:
+    'Merhaba,\n\nGüncel teklif aşağıdadır:\n\n| Kalem | Tutar |\n| --- | ---: |\n| Lisans | 40.000 TL |\n| Kurulum | 8.500 TL |\n\nSaygılarımla',
+  list: 'Merhaba,\n\n- Toplantı perşembe 14:00\n- Gündem: bütçe ve takvim\n\nSaygılarımla',
+  chart:
+    'Merhaba,\n\nÇeyrek satışları:\n\n```chart\n{"title":"Satışlar","unit":"k€","data":[{"label":"Ç1","value":120},{"label":"Ç2","value":135}]}\n```\n\nSaygılarımla',
+  other: 'Merhaba,\n\nKısaca: yarın görüşebiliriz.\n\nSaygılarımla',
+} as const;
+
+function sampleText(action: PreparedAction): string {
+  const refinement = action.refinement?.instruction;
+  if (refinement === undefined) return SAMPLE_TEXTS[action.operation];
+  if (refinement === REFINEMENT_INSTRUCTIONS.table) return REFINED_TEXTS.table;
+  if (refinement === REFINEMENT_INSTRUCTIONS.list) return REFINED_TEXTS.list;
+  if (refinement === REFINEMENT_INSTRUCTIONS.chart) return REFINED_TEXTS.chart;
+  return REFINED_TEXTS.other;
+}
 
 export type FixtureScenario = 'success' | 'error';
 
@@ -55,7 +82,7 @@ export function createFixtureProcessor(options: FixtureOptions = {}): TextProces
         requestId: action.requestId,
         sessionId: action.sessionId,
         formRevision: action.formRevision,
-        text: options.text ?? SAMPLE_TEXTS[action.operation],
+        text: options.text ?? sampleText(action),
         sample: true,
       });
     },

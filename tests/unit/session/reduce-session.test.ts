@@ -1,5 +1,11 @@
 import { appError, DEFAULT_CONTEXT_SELECTION } from '@email-writer/contracts';
-import { buildContext, deriveCapabilities, reduceSession, validateApply } from '@email-writer/core';
+import {
+  buildContext,
+  deriveCapabilities,
+  reduceSession,
+  validateApply,
+  type SessionState,
+} from '@email-writer/core';
 import { describe, expect, it } from 'vitest';
 
 import { meetingThread, threadA, threadB } from '../../fixtures/synthetic-mail/threads';
@@ -141,6 +147,31 @@ describe('reduceSession — dış değişiklikler', () => {
     });
 
     expect(capabilities(state).applyBlocker?.code).toBe('TARGET_MISSING');
+  });
+
+  it('aynı taslak konuşmaya sonradan bağlanınca çalışma geçerli kalır ve yeni kimlikle uygulanır', () => {
+    const rebound = { ...composerRef, threadKey: 'thread-late' };
+    const state = reduceSession(sessionWithPreview(), {
+      type: 'mail-event',
+      event: { type: 'composer-rebound', previous: composerRef, ref: rebound },
+    });
+
+    expect(state.staleReason).toBeNull();
+    expect(capabilities(state).applyBlocker).toBeNull();
+    const request = validateApply(state);
+    expect(request.ok && request.value.target.composerRef).toEqual(rebound);
+
+    // Başka bir taslağın yeniden bağlanması bu çalışmayı etkilemez.
+    const other = reduceSession(sessionWithPreview(), {
+      type: 'mail-event',
+      event: {
+        type: 'composer-rebound',
+        previous: { ...composerRef, composerKey: 'c2' },
+        ref: { ...composerRef, composerKey: 'c2', threadKey: 'thread-late' },
+      },
+    });
+    const otherRequest = validateApply(other);
+    expect(otherRequest.ok && otherRequest.value.target.composerRef).toEqual(composerRef);
   });
 
   it('hesap değişince içerik temizlenir', () => {
@@ -334,6 +365,49 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
       event: { type: 'composer-changed', ref: composerRef, revision: 7 },
     });
     expect(capabilities(typed).canUndo).toBe(false);
+  });
+
+  it('geri almadan sonra seçim hedefi yeniden seçim ister; gövde hedefine aynı sonuç yeniden uygulanabilir', () => {
+    const undo = (state: SessionState) => {
+      const request = validateApply(state);
+      if (!request.ok) throw new Error(request.error.code);
+      return reduceAll(state, [
+        { type: 'apply-started', operationId: 'w1', applyOperationId: request.value.applyOperationId },
+        {
+          type: 'apply-finished',
+          operationId: 'w1',
+          applyOperationId: request.value.applyOperationId,
+          outcome: { status: 'applied', composerRevision: 6, undoId: 'u1' },
+        },
+        { type: 'undo-started', operationId: 'u-op' },
+        { type: 'undo-finished', operationId: 'u-op', outcome: { status: 'undone', composerRevision: 7 } },
+      ]);
+    };
+
+    const selection = undo(sessionWithPreview());
+    expect(capabilities(selection).applyBlocker?.code).toBe('SELECTION_INVALID');
+
+    const body = undo(
+      reduceSession(sessionWithPreview(), {
+        type: 'source-loaded',
+        operationId: null,
+        text: selectionBinding.loadedText,
+        binding: {
+          kind: 'draft',
+          composerRef,
+          composerRevision: 5,
+          loadedText: selectionBinding.loadedText,
+          canReplaceBody: true,
+          canInsertIntoEmptyBody: false,
+        },
+      }),
+    );
+    const again = validateApply(body);
+    expect(again.ok && again.value.target).toEqual({
+      mode: 'replace-body',
+      composerRef,
+      expectedRevision: 7,
+    });
   });
 
   it('belirsiz yazmada aynı işlem otomatik tekrarlanmaz', () => {

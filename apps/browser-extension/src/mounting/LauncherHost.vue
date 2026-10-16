@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { LanguageCode, Operation } from '@email-writer/contracts';
+import type { Operation, TargetLanguage } from '@email-writer/contracts';
 import { isSessionBusy } from '@email-writer/core';
 import {
   ComposeToolbar,
@@ -12,6 +12,7 @@ import { computed, onScopeDispose, shallowRef, type Ref } from 'vue';
 
 import type { PanelSessionDependencies } from '../composables/use-panel-session';
 import type { PanelSurface } from '../controllers/panel-controller';
+import { requestOpenOptions } from '../platform/extension-client';
 import type { Appearance } from './appearance';
 import InlineAssistantHost from './InlineAssistantHost.vue';
 import type { LauncherTarget } from './mount-launchers';
@@ -19,10 +20,12 @@ import type { LauncherTarget } from './mount-launchers';
 const props = defineProps<{
   text: Readonly<Ref<UiText>>;
   appearance: Readonly<Ref<Appearance>>;
-  target: LauncherTarget;
+  /** Yerinde güncellenir: taslak sonradan yanıta bağlanınca etiket değişir, düğme yeniden kurulmaz. */
+  target: Readonly<Ref<LauncherTarget>>;
   session: PanelSessionDependencies;
   surface: Readonly<Ref<PanelSurface>>;
-  defaultLanguage: Readonly<Ref<LanguageCode>>;
+  defaultLanguage: Readonly<Ref<TargetLanguage>>;
+  favoriteLanguages: Readonly<Ref<readonly TargetLanguage[]>>;
 }>();
 
 const emit = defineEmits<{
@@ -42,10 +45,9 @@ onScopeDispose(unsubscribe);
 /** Kart yalnızca işlemin başlatıldığı taslağın araç çubuğunda açılır. */
 const cardOpen = computed(() => {
   const surface = props.surface.value;
+  const target = props.target.value;
   return (
-    props.target.kind === 'composer' &&
-    surface.kind === 'inline' &&
-    surface.composerKey === props.target.composerKey
+    target.kind === 'composer' && surface.kind === 'inline' && surface.composerKey === target.composerKey
   );
 });
 
@@ -56,15 +58,17 @@ const busyOperation = computed<Operation | null>(() =>
 
 <template>
   <div class="ew-root" :data-theme="appearance.value.theme" :style="appearance.value.style">
-    <ThreadLauncher v-if="target.kind === 'thread'" @open="emit('open-thread')" />
+    <ThreadLauncher v-if="target.value.kind === 'thread'" @open="emit('open-thread')" />
     <div v-else class="ew-compose-anchor">
       <InlineAssistantHost v-if="cardOpen" :session="session" />
       <ComposeToolbar
-        :is-reply="target.isReply"
+        :is-reply="target.value.isReply"
         :busy-operation="busyOperation"
         :default-language="defaultLanguage.value"
+        :favorite-languages="favoriteLanguages.value"
         @quick-action="emit('quick-action', $event)"
         @open-panel="emit('open-panel')"
+        @manage-languages="requestOpenOptions()"
       />
     </div>
   </div>

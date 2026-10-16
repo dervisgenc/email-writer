@@ -12,7 +12,8 @@
     "typecheck": "vue-tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@email-writer/contracts": "workspace:*"
+    "@email-writer/contracts": "workspace:*",
+    "@email-writer/email-format": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

@@ -143,11 +143,17 @@ export function createAiService(deps: {
     };
   };
 
+  /** Saved choice, or the default when that model is no longer offered (e.g. Haiku). */
+  const claudeModelOf = (state: CredentialState): string =>
+    deps.claude.models.some((model) => model.id === state.claudeModel)
+      ? (state.claudeModel as string)
+      : DEFAULT_CLAUDE_CODE_MODEL;
+
   const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): AiStatus => {
     const { active, key, connected } = usage(state);
     const claudeMode = state.mode === 'claude-code';
     const selectedModel = claudeMode
-      ? (state.claudeModel ?? DEFAULT_CLAUDE_CODE_MODEL)
+      ? claudeModelOf(state)
       : state.mode === 'api-key'
         ? state.apiModel
         : (active?.model ?? null);
@@ -375,7 +381,7 @@ export function createAiService(deps: {
       try {
         const state = await deps.store.read();
         if (state.mode === 'claude-code') {
-          const model = state.claudeModel ?? DEFAULT_CLAUDE_CODE_MODEL;
+          const model = claudeModelOf(state);
           return { text: await generateWithClaude(model, input, abort.signal) };
         }
         let auth = await credential();

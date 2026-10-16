@@ -15,6 +15,7 @@ const INTERNAL_PACKAGES = [
   '@email-writer/outlook-web',
   '@email-writer/ai-openai',
   '@email-writer/ai-claude-code',
+  '@email-writer/email-format',
 ];
 
 const deepImportBan = {
@@ -101,6 +102,23 @@ export default tseslint.config(
             'contracts yalnızca zod ve kendi tiplerini kullanır.',
           ),
           patterns: [deepImportBan, { group: ['wxt/*'], message: 'contracts çalışma ortamını bilmez.' }],
+        },
+      ],
+      'no-restricted-globals': ['error', ...browserGlobals],
+    },
+  },
+  {
+    // email-format: Markdown → e-posta HTML'i; ortamdan ve diğer paketlerden bağımsız saf fonksiyonlar.
+    files: ['packages/email-format/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: restrictImports(
+            ['vue', 'wxt', '#imports', ...INTERNAL_PACKAGES],
+            'email-format yalnızca zod ve kendi tiplerini kullanır.',
+          ),
+          patterns: [deepImportBan],
         },
       ],
       'no-restricted-globals': ['error', ...browserGlobals],

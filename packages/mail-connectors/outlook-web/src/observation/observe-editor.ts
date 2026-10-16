@@ -25,6 +25,8 @@ export interface ObserveEditorOptions {
   /** Editörün içerik ve yapı parmak izi. */
   readonly fingerprint: (editor: HTMLElement) => string;
   readonly onRevision: (revision: number) => void;
+  /** Birleştirilen her DOM değişikliğinden sonra çağrılır; sürüm değişmemiş olabilir. */
+  readonly onSettled?: () => void;
   /** Eklentinin kendi arayüzüne ait düğümler; oraya geçen odak seçimi silmez. */
   readonly isOwnUi: (node: Node) => boolean;
   /** Pahalı metin çıkarımının birleştirileceği süre. */
@@ -62,6 +64,7 @@ export function observeEditor(editor: HTMLElement, options: ObserveEditorOptions
       timer = null;
       if (!disposed) {
         sync();
+        options.onSettled?.();
       }
     }, options.debounceMs ?? 120);
   };

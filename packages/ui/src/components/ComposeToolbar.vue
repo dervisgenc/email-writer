@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { LANGUAGE_CODES, type LanguageCode, type Operation } from '@email-writer/contracts';
+import type { Operation, TargetLanguage } from '@email-writer/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef } from 'vue';
 
 import { useUiText } from '../i18n';
+import { languageLabel } from '../languages';
 import type { QuickActionRequest } from '../view-model';
 import AppIcon from './AppIcon.vue';
 
@@ -11,12 +12,15 @@ const props = defineProps<{
   isReply: boolean;
   /** Çalışan işlem; düğmesinde ilerleme gösterilir, diğerleri beklerken kapanır. */
   busyOperation: Operation | null;
-  defaultLanguage: LanguageCode;
+  defaultLanguage: TargetLanguage;
+  /** Menüde gösterilen diller; varsayılan dil her zaman ilk sıradadır. */
+  favoriteLanguages: readonly TargetLanguage[];
 }>();
 
 const emit = defineEmits<{
   'quick-action': [request: QuickActionRequest];
   'open-panel': [];
+  'manage-languages': [];
 }>();
 
 const text = useUiText();
@@ -47,7 +51,9 @@ async function toggleMenu(): Promise<void> {
 
 /** Menüde ok tuşlarıyla gezinme; Escape menüyü kapatır. */
 function onMenuKeydown(event: KeyboardEvent): void {
-  const items = [...(menu.value?.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ?? [])];
+  const items = [
+    ...(menu.value?.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="menuitem"]') ?? []),
+  ];
   const index = items.indexOf(event.target as HTMLElement);
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault();
@@ -60,6 +66,16 @@ function onMenuKeydown(event: KeyboardEvent): void {
 }
 
 const isBusy = (operation: Operation) => props.busyOperation === operation;
+const label = (language: TargetLanguage) => languageLabel(language, text.value.locale);
+const menuLanguages = computed(() => [
+  props.defaultLanguage,
+  ...props.favoriteLanguages.filter((language) => language !== props.defaultLanguage),
+]);
+
+function manageLanguages(): void {
+  menuOpen.value = false;
+  emit('manage-languages');
+}
 const writeOperation = computed(() => (props.isReply ? 'reply' : 'compose'));
 </script>
 
@@ -96,7 +112,7 @@ const writeOperation = computed(() => (props.isReply ? 'reply' : 'compose'));
       <button
         type="button"
         class="ew-bar-btn"
-        :title="text.compose.translateTooltip(text.options.languages[defaultLanguage])"
+        :title="text.compose.translateTooltip(label(defaultLanguage))"
         :disabled="busyOperation !== null"
         @pointerdown="keepEditorSelection"
         @click="run({ operation: 'translate', language: defaultLanguage })"
@@ -129,17 +145,37 @@ const writeOperation = computed(() => (props.isReply ? 'reply' : 'compose'));
         @keydown="onMenuKeydown"
       >
         <button
-          v-for="code in LANGUAGE_CODES"
-          :key="code"
+          v-for="language in menuLanguages"
+          :key="language"
           type="button"
           class="ew-menu__item"
           role="menuitemradio"
-          :aria-checked="code === defaultLanguage"
+          :aria-checked="language === defaultLanguage"
           @pointerdown="keepEditorSelection"
-          @click="run({ operation: 'translate', language: code })"
+          @click="run({ operation: 'translate', language })"
         >
-          <span>{{ text.options.languages[code] }}</span>
-          <AppIcon v-if="code === defaultLanguage" name="check" />
+          <span>{{ label(language) }}</span>
+          <AppIcon v-if="language === defaultLanguage" name="check" />
+        </button>
+        <div class="ew-menu__separator" role="separator" />
+        <!-- Seçim önce yakalanır; dil kartta yazılır veya seçilir. -->
+        <button
+          type="button"
+          class="ew-menu__item"
+          role="menuitem"
+          @pointerdown="keepEditorSelection"
+          @click="run({ operation: 'translate', language: null })"
+        >
+          <span>{{ text.options.otherLanguage }}</span>
+        </button>
+        <button
+          type="button"
+          class="ew-menu__item ew-menu__item--subtle"
+          role="menuitem"
+          @pointerdown="keepEditorSelection"
+          @click="manageLanguages"
+        >
+          <span>{{ text.options.manageLanguages }}</span>
         </button>
       </div>
     </div>

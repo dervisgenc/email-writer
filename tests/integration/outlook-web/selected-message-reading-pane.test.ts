@@ -1,4 +1,4 @@
-import type { ThreadSnapshot } from '@email-writer/contracts';
+import type { MailEvent, ThreadSnapshot } from '@email-writer/contracts';
 import type { OutlookWebConnection } from '@email-writer/outlook-web';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -185,14 +185,18 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
 
   it('Outlook editörü boş açıp alıntıyı sonra doldursa da konuşma korunur ve taslak sonunda yanıt olarak bağlanır', async () => {
     const thread = connection.connector.getPageState().activeThread!;
-    const events: string[] = [];
-    connection.connector.subscribe((event) => events.push(event.type));
+    const events: MailEvent[] = [];
+    connection.connector.subscribe((event) => events.push(event));
 
     loadFixture('selected-message-reply-compose.html');
     for (const quote of document.querySelectorAll('#appendonsend, #divRplyFwdMsg')) quote.remove();
     await settle();
     expect(connection.connector.getPageState().activeThread).toEqual(thread);
-    expect(connection.connector.getPageState().composers[0]?.threadKey).toBeNull();
+    const early = connection.connector.getPageState().composers[0]!;
+    expect(early.threadKey).toBeNull();
+    const before = await connection.connector.readComposer(early);
+    if (!before.ok) throw new Error(before.error.code);
+    const [earlyAnchor] = connection.locateLauncherAnchors();
 
     // Outlook alıntıyı doldurur.
     const quote = document.createElement('div');
@@ -202,9 +206,30 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     // Editörün içi önce editör izleyicisinde birleştirilir, sonra sayfa yeniden değerlendirilir.
     await settle(400);
 
-    expect(connection.connector.getPageState().composers[0]?.threadKey).toBe(thread.threadKey);
-    expect(events).not.toContain('active-thread-changed');
-    expect(events).toEqual(expect.arrayContaining(['composer-removed', 'composer-added']));
+    const late = connection.connector.getPageState().composers[0]!;
+    expect(late).toEqual({ ...early, threadKey: thread.threadKey });
+    const types = events.map((event) => event.type);
+    expect(types).not.toContain('active-thread-changed');
+    // Aynı editördür: kaldırılıp yeniden eklenmez, açık çalışma "taslak kapandı" saymaz.
+    expect(types.filter((type) => type === 'composer-removed' || type === 'composer-added')).toEqual([
+      'composer-added',
+    ]);
+    expect(events).toContainEqual({ type: 'composer-rebound', previous: early, ref: late });
+    // Araç çubuğu (ve içindeki kart) yeniden kurulmaz; yalnızca hedefi yanıt olur.
+    expect(connection.locateLauncherAnchors()).toEqual([
+      { ...earlyAnchor, target: { kind: 'composer', composer: late } },
+    ]);
+    // Kullanıcının bölgesi değişmedi: sürüm aynı kalır, eski kimlikle de aynı editöre
+    // ulaşılır ve işlem başlamadan önce hazırlanan sonuç yazılabilir.
+    const read = await connection.connector.readComposer(early);
+    expect(read.ok && read.value).toMatchObject({ ref: late, revision: before.value.revision });
+    const outcome = await connection.connector.applyText({
+      applyOperationId: 'late-quote',
+      target: { mode: 'replace-body', composerRef: early, expectedRevision: before.value.revision },
+      text: 'Teşekkürler, uygundur.',
+    });
+    expect(outcome.status).toBe('applied');
+    expect(document.getElementById('divRplyFwdMsg')?.textContent).toBe('From: Deniz Yılmaz');
   });
 
   it('listede başka bir satır seçiliyken açılan yanıt taslağı (ör. Taslaklar klasörü) son konuşmaya bağlanmaz', () => {

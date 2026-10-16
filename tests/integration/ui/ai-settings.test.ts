@@ -240,7 +240,7 @@ describe('AI connection settings', () => {
       mode: 'claude-code' as const,
       models: [
         { id: 'sonnet', label: 'Claude Sonnet' },
-        { id: 'haiku', label: 'Claude Haiku' },
+        { id: 'opus', label: 'Claude Opus' },
       ],
       selectedModel: 'sonnet',
     };
@@ -271,8 +271,8 @@ describe('AI connection settings', () => {
       expect(wrapper.text()).not.toContain(tr.ui.ai.privacy);
       expect(wrapper.find('input[type=password]').exists()).toBe(false);
       expect(wrapper.text()).not.toContain('Continue with ChatGPT');
-      await wrapper.get('select').setValue('haiku');
-      expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'set-model', model: 'haiku' }]);
+      await wrapper.get('select').setValue('opus');
+      expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'set-model', model: 'opus' }]);
       wrapper.unmount();
     });
 

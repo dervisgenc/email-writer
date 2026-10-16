@@ -9,13 +9,14 @@ import {
 } from '@email-writer/contracts';
 import { isSessionBusy, validateApply, validateUndo, type IdGenerator } from '@email-writer/core';
 
+import { clipboardContent, withRichContent, type ClipboardContent } from './rich-content';
 import type { SessionStore } from './session-store';
 
 export interface ApplyControllerDependencies {
   readonly store: SessionStore;
   readonly connector: MailConnector;
   readonly ids: IdGenerator;
-  readonly copyText: (text: string) => Promise<Result<void, AppError>>;
+  readonly copyText: (content: ClipboardContent) => Promise<Result<void, AppError>>;
 }
 
 export type BindResult =
@@ -55,7 +56,7 @@ export function createApplyController(deps: ApplyControllerDependencies): ApplyC
         operationId,
         applyOperationId: request.value.applyOperationId,
       });
-      const outcome = await connector.applyText(request.value);
+      const outcome = await connector.applyText(withRichContent(request.value));
       store.dispatch({
         type: 'apply-finished',
         operationId,
@@ -84,7 +85,7 @@ export function createApplyController(deps: ApplyControllerDependencies): ApplyC
       if (preview === null || preview.text.trim().length === 0) {
         return Promise.resolve({ ok: false, error: appError('RESULT_INVALID') });
       }
-      return deps.copyText(preview.text);
+      return deps.copyText(clipboardContent(preview.text));
     },
 
     async bindComposer(composer, allowReplace) {

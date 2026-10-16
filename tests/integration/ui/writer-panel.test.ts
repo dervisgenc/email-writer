@@ -54,6 +54,7 @@ function view(overrides: Partial<PanelView> = {}): PanelView {
     fieldErrors: {},
     prepare: { canPrepare: false, blocker: 'PROCESSING_UNAVAILABLE', isPreparing: false },
     preview: null,
+    refine: { available: false, rich: true },
     apply: {
       mode: 'replace-selection',
       canApply: false,
@@ -333,14 +334,23 @@ describe('ContextInspector', () => {
 });
 
 describe('ComposeToolbar', () => {
-  function toolbar(props: Partial<{ isReply: boolean; busyOperation: string | null }> = {}) {
+  function toolbar(
+    props: Partial<{ isReply: boolean; busyOperation: string | null; defaultLanguage: string }> = {},
+  ) {
     const requests: unknown[] = [];
     const wrapper = withText(
       ComposeToolbar,
-      { isReply: true, busyOperation: null, defaultLanguage: 'en', ...props },
+      {
+        isReply: true,
+        busyOperation: null,
+        defaultLanguage: 'en',
+        favoriteLanguages: ['en', 'tr', 'de', 'pt-BR', 'Kurmancî'],
+        ...props,
+      },
       {
         onQuickAction: (request: QuickActionRequest) => requests.push(request),
         onOpenPanel: () => requests.push('panel'),
+        onManageLanguages: () => requests.push('languages'),
       },
     );
     return { wrapper, requests };
@@ -379,6 +389,22 @@ describe('ComposeToolbar', () => {
 
     expect(requests).toEqual([{ operation: 'compose' }, { operation: 'translate', language: 'de' }]);
     expect(wrapper.find('[role="menu"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('Çevir menüsü varsayılan dili başta, favorileri yerelleştirilmiş adlarıyla ve elle yazılan dili olduğu gibi gösterir', async () => {
+    const { wrapper, requests } = toolbar({ defaultLanguage: 'de' });
+    await wrapper.get('button[aria-haspopup="menu"]').trigger('click');
+
+    const items = wrapper.findAll('[role="menuitemradio"]').map((item) => item.text());
+    expect(items).toEqual(['Almanca', 'İngilizce', 'Türkçe', 'Brezilya Portekizcesi', 'Kurmancî']);
+    const actions = wrapper.findAll('[role="menuitem"]');
+    await actions[0]!.trigger('click');
+    await wrapper.get('button[aria-haspopup="menu"]').trigger('click');
+    await wrapper.findAll('[role="menuitem"]')[1]!.trigger('click');
+
+    // "Başka bir dil…" dili sormak için dilsiz çeviri ister; "Dilleri düzenle" ayarları açar.
+    expect(requests).toEqual([{ operation: 'translate', language: null }, 'languages']);
     wrapper.unmount();
   });
 

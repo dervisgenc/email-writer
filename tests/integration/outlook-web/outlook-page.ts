@@ -33,6 +33,12 @@ export function createDomWriter(): EditorWriter & { calls: number } {
       }
       return true;
     },
+    insertHtml(_editor: HTMLElement, range: Range, html: string) {
+      writer.calls += 1;
+      range.deleteContents();
+      range.insertNode(range.createContextualFragment(html));
+      return true;
+    },
   };
   return writer;
 }

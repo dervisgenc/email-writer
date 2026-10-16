@@ -61,7 +61,11 @@ export interface ActionController {
   loadSource(kind: SourceKind, composer: ComposerRef | null): Promise<LoadSourceResult>;
   /** Hızlı işlemde önce geçerli seçim, yoksa güvenle ayrılmış taslak gövdesi alınır. */
   loadFromComposer(composer: ComposerRef): Promise<LoadSourceResult>;
-  prepare(): Promise<void>;
+  /**
+   * İşlemi hazırlar ve sonucu ister. `refinement` verilirse hazır sonuç bu
+   * talimatla değiştirilir (ör. tabloya çevir); görev baştan üretilmez.
+   */
+  prepare(options?: { readonly refinement?: string }): Promise<void>;
   /** Devam eden okuma ve sonuç beklemesini iptal eder; tamamlanmış girdi korunur. */
   cancelPending(): void;
   dispose(): void;
@@ -314,7 +318,7 @@ export function createActionController(deps: ActionControllerDependencies): Acti
       return fromSelection === 'nothing-selected' ? readSource(() => readDraft(composer)) : fromSelection;
     },
 
-    async prepare() {
+    async prepare(options = {}) {
       const state = store.getState();
       const capabilities = deriveCapabilities(state, { processingAvailable: deps.processor !== null });
       if (capabilities.isBusy || capabilities.prepareBlocker !== null || deps.processor === null) {
@@ -341,6 +345,10 @@ export function createActionController(deps: ActionControllerDependencies): Acti
             context: capabilities.usesContext ? state.context : null,
             target: effectiveApplyTarget(state),
           },
+          refinement:
+            options.refinement !== undefined && state.preview !== null
+              ? { instruction: options.refinement, previous: state.preview.text }
+              : null,
         },
         { clock, ids },
       );

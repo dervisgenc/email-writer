@@ -93,6 +93,11 @@ function threadSignature(thread: LocatedThread): string {
   return `${bodies.length}:${queryAll(thread.root, 'collapsedMessage').length}:${length}`;
 }
 
+/** Editör kaydı; konuşma bağı, editör aynı kalırken sonradan anlaşılabilir. */
+interface TrackedComposer extends ComposerHandle {
+  readonly binding: { ref: ComposerRef; isReply: boolean };
+}
+
 /**
  * Outlook Web için `MailConnector`. Outlook'un dahili JavaScript durumuna,
  * belgelenmemiş ağ uçlarına veya oturum çerezlerine bağlanmaz; yalnızca
@@ -109,7 +114,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
   const selections = createSelectionRegistry();
   const undo = createUndoStore();
   const attempts: WriteDependencies['attempts'] = new Map();
-  const composers = new Map<string, ComposerHandle>();
+  const composers = new Map<string, TrackedComposer>();
   const listeners = new Set<(event: MailEvent) => void>();
 
   let thread: LocatedThread | null = null;
@@ -140,10 +145,13 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
   };
 
   const addComposer = (editor: HTMLElement, isReply: boolean) => {
-    const ref: ComposerRef = {
-      scope: registry.scope(),
-      composerKey: registry.keyFor(editor, 'composer'),
-      threadKey: isReply ? (threadRef?.threadKey ?? null) : null,
+    const binding: TrackedComposer['binding'] = {
+      ref: {
+        scope: registry.scope(),
+        composerKey: registry.keyFor(editor, 'composer'),
+        threadKey: isReply ? (threadRef?.threadKey ?? null) : null,
+      },
+      isReply,
     };
     const tracker = observeEditor(editor, {
       document,
@@ -152,23 +160,29 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
         (node instanceof Element ? node : node.parentElement)?.closest(ownUiSelector) != null,
       onRevision: (revision) => {
         // Editör değişince eski seçim kayıtları geçersiz olur.
-        selections.forgetComposer(ref.composerKey);
-        emit({ type: 'composer-changed', ref, revision });
+        selections.forgetComposer(binding.ref.composerKey);
+        emit({ type: 'composer-changed', ref: binding.ref, revision });
+      },
+      onSettled: () => {
         // Editörün içi sayfa gözleminin dışındadır. Outlook yanıt alıntısını editörü
-        // açtıktan sonra doldurur; "yeni ileti" sayılan taslak yanıta dönüşmüş olabilir.
-        if (!isReply && queryFirst(editor, 'quoteStart') !== null) {
+        // açtıktan sonra doldurur (sürüm değişmez); "yeni ileti" sayılan taslak yanıta
+        // dönüşmüş olabilir.
+        if (!binding.isReply && queryFirst(editor, 'quoteStart') !== null) {
           observer.request();
         }
       },
     });
-    const handle: ComposerHandle = {
-      ref,
+    const handle: TrackedComposer = {
+      get ref() {
+        return binding.ref;
+      },
+      binding,
       editor,
       tracker,
-      readAnatomy: () => readComposerAnatomy(editor, { classify, isReply }),
+      readAnatomy: () => readComposerAnatomy(editor, { classify, isReply: binding.isReply }),
     };
-    composers.set(ref.composerKey, handle);
-    emit({ type: 'composer-added', ref });
+    composers.set(binding.ref.composerKey, handle);
+    emit({ type: 'composer-added', ref: binding.ref });
   };
 
   const refresh = () => {
@@ -227,10 +241,20 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     for (const { editor, isReply } of found) {
       const key = registry.keyFor(editor, 'composer');
       const threadKey = isReply ? (threadRef?.threadKey ?? null) : null;
-      if (composers.get(key)?.ref.threadKey !== threadKey) {
-        // Taslağın hangi konuşmaya ait olduğu sonradan anlaşıldı (ör. Outlook
-        // alıntıyı editörü açtıktan sonra doldurdu); kayıt yenilenir.
-        removeComposer(key, true);
+      const tracked = composers.get(key);
+      if (tracked !== undefined) {
+        tracked.binding.isReply = isReply;
+        if (tracked.ref.threadKey === null && threadKey !== null) {
+          // Taslağın hangi konuşmaya ait olduğu sonradan anlaşıldı (ör. Outlook
+          // alıntıyı editörü açtıktan sonra doldurdu). Editör aynıdır: sürümü,
+          // seçim ve geri alma kayıtları korunur; açık çalışma geçerli kalır.
+          const previous = tracked.ref;
+          tracked.binding.ref = { ...previous, threadKey };
+          emit({ type: 'composer-rebound', previous, ref: tracked.ref });
+        } else if (tracked.ref.threadKey !== threadKey) {
+          // Başka bir konuşmaya bağlanan veya bağı kopan taslak yeni kayıt sayılır.
+          removeComposer(key, true);
+        }
       }
       if (!composers.has(key)) {
         addComposer(editor, isReply);

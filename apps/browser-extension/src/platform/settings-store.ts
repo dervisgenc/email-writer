@@ -2,6 +2,7 @@ import {
   DEFAULT_SETTINGS,
   SETTINGS_SCHEMA_VERSION,
   settingsChangesSchema,
+  settingsSchema,
   settingsV1Schema,
   type Settings,
   type SettingsChanges,
@@ -15,7 +16,7 @@ export interface SettingsStorageArea {
   set(items: Record<string, unknown>): Promise<void>;
 }
 
-export type StoredSettingsIssue = 'missing' | 'invalid' | 'newer-schema' | null;
+export type StoredSettingsIssue = 'missing' | 'invalid' | 'migrated' | 'newer-schema' | null;
 
 export interface StoredSettings {
   readonly settings: Settings;
@@ -46,7 +47,7 @@ function salvage(raw: Record<string, unknown>): Settings {
     typeof raw.revision === 'number' && Number.isInteger(raw.revision) && raw.revision > 0
       ? raw.revision
       : DEFAULT_SETTINGS.revision;
-  const parsed = settingsV1Schema.safeParse({ ...DEFAULT_SETTINGS, ...recovered, revision });
+  const parsed = settingsSchema.safeParse({ ...DEFAULT_SETTINGS, ...recovered, revision });
   return parsed.success ? parsed.data : DEFAULT_SETTINGS;
 }
 
@@ -64,9 +65,13 @@ export function parseStoredSettings(raw: unknown): StoredSettings {
   if (typeof raw.schemaVersion === 'number' && raw.schemaVersion > SETTINGS_SCHEMA_VERSION) {
     return { settings: DEFAULT_SETTINGS, issue: 'newer-schema', writable: false };
   }
-  const parsed = settingsV1Schema.safeParse(raw);
+  const parsed = settingsSchema.safeParse(raw);
   if (parsed.success) {
     return { settings: parsed.data, issue: null, writable: true };
+  }
+  if (settingsV1Schema.safeParse(raw).success) {
+    // İlk sürümün bütün alanları ikinci sürümde de geçerlidir; yeni alanlar varsayılanla gelir.
+    return { settings: salvage(raw), issue: 'migrated', writable: true };
   }
   return { settings: salvage(raw), issue: 'invalid', writable: true };
 }
@@ -81,7 +86,7 @@ export function applySettingsChanges(
   expectedRevision: number,
   changes: SettingsChanges,
 ): PatchSettingsResult {
-  const next = settingsV1Schema.parse({
+  const next = settingsSchema.parse({
     ...current,
     ...changes,
     revision: current.revision + 1,

@@ -180,10 +180,62 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       return next;
     }
 
+    case 'composer-rebound': {
+      const composer = trackedComposer(state);
+      if (composer === null || !isSameComposer(composer, event.previous)) {
+        return state;
+      }
+      // Aynı editör konuşmaya sonradan bağlandı; çalışma geçerli kalır, kayıtlar yeni kimliği taşır.
+      return rebindComposer(state, event.ref);
+    }
+
     case 'composer-added':
     case 'page-state-changed':
       return state;
   }
+}
+
+/**
+ * Geri alma taslağı sonucun hazırlandığı metne döndürdü (bağlantı modülü doğruladı).
+ * Gövde veya boş taslak hedefinde aynı sonuç yeniden uygulanabilir; seçim kaydı ise
+ * geri almayla geçersizleşir, kullanıcı metni yeniden seçer.
+ */
+function afterUndo(state: SessionState, revision: number): SessionState {
+  const next: SessionState = { ...state, lastChange: null, targetComposerRevision: revision };
+  const target = effectiveApplyTarget(state);
+  if (target === null) {
+    return next;
+  }
+  if (target.mode === 'replace-selection') {
+    return state.staleReason === null ? markStale(next, 'selection-invalid') : next;
+  }
+  return {
+    ...next,
+    binding:
+      state.binding.kind === 'draft' ? { ...state.binding, composerRevision: revision } : state.binding,
+    explicitTarget:
+      state.explicitTarget === null ? null : { ...state.explicitTarget, expectedRevision: revision },
+  };
+}
+
+function rebindComposer(state: SessionState, ref: ComposerRef): SessionState {
+  const { binding, explicitTarget, lastChange } = state;
+  const matches = (current: ComposerRef) => isSameComposer(current, ref);
+  return {
+    ...state,
+    binding:
+      (binding.kind === 'draft' || binding.kind === 'draft-selection') && matches(binding.composerRef)
+        ? { ...binding, composerRef: ref }
+        : binding,
+    explicitTarget:
+      explicitTarget !== null && matches(explicitTarget.composerRef)
+        ? { ...explicitTarget, composerRef: ref }
+        : explicitTarget,
+    lastChange:
+      lastChange !== null && matches(lastChange.composerRef)
+        ? { ...lastChange, composerRef: ref }
+        : lastChange,
+  };
 }
 
 /**
@@ -448,7 +500,7 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
       }
       const { outcome } = event;
       if (outcome.status === 'undone') {
-        return rest({ ...state, lastChange: null, targetComposerRevision: outcome.composerRevision });
+        return rest(afterUndo(state, outcome.composerRevision));
       }
       return {
         ...state,

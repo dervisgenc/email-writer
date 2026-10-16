@@ -178,6 +178,9 @@ importers:
       '@email-writer/core':
         specifier: workspace:*
         version: link:packages/core
+      '@email-writer/email-format':
+        specifier: workspace:*
+        version: link:packages/email-format
       '@email-writer/outlook-web':
         specifier: workspace:*
         version: link:packages/mail-connectors/outlook-web
@@ -275,6 +278,9 @@ importers:
       '@email-writer/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@email-writer/email-format':
+        specifier: workspace:*
+        version: link:../../packages/email-format
       '@email-writer/outlook-web':
         specifier: workspace:*
         version: link:../../packages/mail-connectors/outlook-web
@@ -331,6 +337,12 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/email-format:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
   packages/mail-connectors/outlook-web:
     dependencies:
       '@email-writer/contracts':
@@ -342,6 +354,9 @@ importers:
       '@email-writer/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@email-writer/email-format':
+        specifier: workspace:*
+        version: link:../email-format
       vue:
         specifier: ^3.5.0
         version: 3.5.43(typescript@6.0.3)

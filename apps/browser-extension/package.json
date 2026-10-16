@@ -23,6 +23,7 @@
   "dependencies": {
     "@email-writer/contracts": "workspace:*",
     "@email-writer/core": "workspace:*",
+    "@email-writer/email-format": "workspace:*",
     "@email-writer/outlook-web": "workspace:*",
     "@email-writer/ui": "workspace:*",
     "vue": "^3.5.43",

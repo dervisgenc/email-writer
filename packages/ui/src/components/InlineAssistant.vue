@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { isInstructionOperation, type ErrorCode } from '@email-writer/contracts';
+import {
+  isInstructionOperation,
+  type ErrorCode,
+  type RefinementKind,
+  type TargetLanguage,
+} from '@email-writer/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 
 import { useUiText } from '../i18n';
-import { inputValue } from '../input-value';
+import { languageLabel } from '../languages';
 import type { PanelView } from '../view-model';
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
+import LanguagePicker from './LanguagePicker.vue';
+import RefineBar from './RefineBar.vue';
+import RichPreview from './RichPreview.vue';
 
 const props = defineProps<{
   view: PanelView;
@@ -16,6 +24,9 @@ const emit = defineEmits<{
   close: [];
   expand: [];
   'submit-instruction': [text: string];
+  'translate-to': [language: TargetLanguage];
+  refine: [kind: RefinementKind];
+  'refine-custom': [instruction: string];
   'preview-change': [text: string];
   apply: [];
   copy: [];
@@ -29,6 +40,9 @@ const titleId = useId();
 const instructionId = useId();
 const instructionField = useTemplateRef<HTMLTextAreaElement>('instructionField');
 const instruction = ref(props.view.source.instruction);
+const languageId = useId();
+const languageRow = useTemplateRef<HTMLElement>('languageRow');
+const language = ref<TargetLanguage>(props.view.options.targetLanguage);
 
 const OPERATION_ICONS: Record<PanelView['operation'], IconName> = {
   reply: 'sparkle',
@@ -44,6 +58,10 @@ const showInstruction = computed(
   () => isInstructionOperation(operation.value) && props.view.preview === null && !isPreparing.value,
 );
 const includedContext = computed(() => props.view.context.messages.filter((m) => m.included).length);
+/** Çeviride dil satırı her zaman görünür; sonuç geldikten sonra başka dile çevirmeye de yarar. */
+const showLanguage = computed(() => operation.value === 'translate' && !isPreparing.value);
+const awaitsLanguage = computed(() => showLanguage.value && props.view.preview === null);
+const translatedLabel = computed(() => languageLabel(props.view.options.targetLanguage, text.value.locale));
 
 /** Kartta gösterilecek tek bir sorun: işlem hatası, alan hatası veya hazırlığı engelleyen durum. */
 const problem = computed<ErrorCode | null>(() => {
@@ -64,6 +82,29 @@ watch(
     instruction.value = value;
   },
 );
+
+watch(
+  () => props.view.options.targetLanguage,
+  (value) => {
+    language.value = value;
+  },
+);
+
+// "Başka bir dil…" ile açılınca dil alanı yazmaya hazır gelir.
+watch(
+  awaitsLanguage,
+  async (waiting) => {
+    if (waiting) {
+      await nextTick();
+      languageRow.value?.querySelector('input')?.focus({ preventScroll: true });
+    }
+  },
+  { immediate: true },
+);
+
+function translate(): void {
+  if (props.view.prepare.canPrepare) emit('translate-to', language.value);
+}
 
 // Bağlam okunurken talimat alanı gizlidir; alan göründüğü anda yazmaya hazır olur.
 watch(
@@ -102,8 +143,8 @@ function onEscape(event: KeyboardEvent): void {
     <header class="ew-card__header">
       <AppIcon class="ew-card__icon" :name="OPERATION_ICONS[operation]" />
       <h2 :id="titleId" class="ew-card__title">{{ text.inline.titles[operation] }}</h2>
-      <span v-if="operation === 'translate'" class="ew-badge">
-        {{ text.options.languages[view.options.targetLanguage] }}
+      <span v-if="operation === 'translate' && view.preview !== null" class="ew-badge">
+        {{ translatedLabel }}
       </span>
       <!-- Örnek sonuçlar gerçek sonuç gibi gösterilmez; tam açıklama ipucunda ve ekran okuyucuda. -->
       <span
@@ -146,6 +187,25 @@ function onEscape(event: KeyboardEvent): void {
         <button type="button" class="ew-link" @click="emit('expand')">{{ text.inline.openPanel }}</button>
       </div>
     </div>
+
+    <form v-if="showLanguage" ref="languageRow" class="ew-card__language" @submit.prevent="translate">
+      <label class="ew-card__language-label" :for="languageId">{{ text.inline.translateLanguage }}</label>
+      <LanguagePicker
+        :id="languageId"
+        v-model="language"
+        :invalid="view.fieldErrors.targetLanguage !== undefined"
+        @submit="translate"
+      />
+      <button
+        type="submit"
+        class="ew-btn ew-btn--small"
+        :class="{ 'ew-btn--primary': view.preview === null || language !== view.options.targetLanguage }"
+        :disabled="view.preview !== null && language === view.options.targetLanguage"
+      >
+        <AppIcon name="translate" :size="14" />
+        {{ view.preview === null ? text.inline.translate : text.inline.translateAgain }}
+      </button>
+    </form>
 
     <form v-if="showInstruction" class="ew-card__instruction" @submit.prevent="submit">
       <label class="ew-visually-hidden" :for="instructionId">{{ text.inline.instructionLabel }}</label>
@@ -219,14 +279,23 @@ function onEscape(event: KeyboardEvent): void {
 
     <template v-if="view.preview !== null">
       <p v-if="view.preview.stale" class="ew-alert ew-alert--warning">{{ text.preview.stale }}</p>
-      <textarea
-        class="ew-card__result"
-        dir="auto"
-        :aria-label="text.preview.title"
-        :value="view.preview.text"
+      <RichPreview
+        size="card"
+        :text="view.preview.text"
+        :label="text.preview.title"
         :disabled="view.apply.isApplying"
-        @input="emit('preview-change', inputValue($event))"
+        @change="emit('preview-change', $event)"
       />
+      <RefineBar
+        v-if="view.refine.available || isPreparing"
+        :rich="view.refine.rich"
+        :disabled="!view.refine.available"
+        @refine="emit('refine', $event)"
+        @refine-custom="emit('refine-custom', $event)"
+      />
+      <p v-if="view.apply.blocker !== null && view.apply.canCopy" class="ew-muted">
+        {{ text.errors[view.apply.blocker] }}
+      </p>
       <footer class="ew-card__footer">
         <p v-if="status.kind === 'success'" class="ew-card__success" role="status">
           <AppIcon name="check" />
@@ -262,9 +331,6 @@ function onEscape(event: KeyboardEvent): void {
           {{ text.apply.apply }}
         </button>
       </footer>
-      <p v-if="view.apply.blocker !== null && view.apply.canCopy" class="ew-muted">
-        {{ text.errors[view.apply.blocker] }}
-      </p>
     </template>
   </section>
 </template>

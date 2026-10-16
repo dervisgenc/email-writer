@@ -48,8 +48,42 @@ describe('Ayar deposu', () => {
     expect(result.settings).toMatchObject({ uiLanguage: 'en', tone: 'neutral', revision: 4 });
   });
 
+  it('ilk sürüm kaydını ikinci sürüme taşır; seçimleri korur, yeni alanları varsayılanla doldurur', async () => {
+    const v1 = {
+      schemaVersion: 1,
+      revision: 7,
+      uiLanguage: 'en',
+      targetLanguage: 'de',
+      tone: 'formal',
+      theme: 'dark',
+      siteEnabled: { 'outlook-web': false },
+      onboardingSeen: true,
+    };
+    const area = memoryArea({ [SETTINGS_STORAGE_KEY]: v1 });
+    const stored = await createSettingsStore(area).ensureInitialized();
+
+    expect(stored.issue).toBe('migrated');
+    expect(stored.settings).toEqual({
+      ...v1,
+      schemaVersion: 2,
+      favoriteLanguages: ['en', 'tr', 'de', 'fr', 'es'],
+      writingInstructions: '',
+    });
+    expect(area.data[SETTINGS_STORAGE_KEY]).toEqual(stored.settings);
+  });
+
+  it('kalıcı talimat ve favori diller sınırları aşamaz; elle yazılan dil adı kabul edilir', () => {
+    const current = { ...DEFAULT_SETTINGS, revision: 2 };
+    expect(
+      applySettingsChanges(current, 2, { favoriteLanguages: ['en', 'Kurmancî'] }).settings.favoriteLanguages,
+    ).toEqual(['en', 'Kurmancî']);
+    expect(() => applySettingsChanges(current, 2, { writingInstructions: 'x'.repeat(1001) })).toThrow();
+    expect(() => applySettingsChanges(current, 2, { favoriteLanguages: ['en', 'en'] })).toThrow();
+    expect(() => applySettingsChanges(current, 2, { targetLanguage: 'line\nbreak' })).toThrow();
+  });
+
   it('daha yeni şemayla yazılmış kaydı bozmadan korur', async () => {
-    const future = { schemaVersion: 2, revision: 9, somethingNew: true };
+    const future = { schemaVersion: 3, revision: 9, somethingNew: true };
     const area = memoryArea({ [SETTINGS_STORAGE_KEY]: future });
     const store = createSettingsStore(area);
 

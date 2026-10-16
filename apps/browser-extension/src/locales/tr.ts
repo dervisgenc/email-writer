@@ -5,6 +5,7 @@ const plural = (count: number, word: string) => `${count} ${word}`;
 
 export const tr: ExtensionText = {
   ui: {
+    locale: 'tr',
     ai: aiTr,
     panelTitle: 'Yazma yardımcısı',
     close: 'Kapat',
@@ -39,6 +40,9 @@ export const tr: ExtensionText = {
       contextReading: 'Bağlam okunuyor…',
       openPanel: 'Panelde aç',
       translatedTo: (language) => `${language}`,
+      translateLanguage: 'Hedef dil',
+      translate: 'Çevir',
+      translateAgain: 'Bu dile çevir',
     },
     operations: { revise: 'Düzelt', translate: 'Çevir', reply: 'Yanıt hazırla', compose: 'Yaz' },
     prepareButton: { revise: 'Düzelt', translate: 'Çevir', reply: 'Yanıt hazırla', compose: 'Metni yaz' },
@@ -79,8 +83,10 @@ export const tr: ExtensionText = {
       targetLanguage: 'Hedef dil',
       tone: 'Ton',
       tones: { neutral: 'Nötr', formal: 'Resmi', friendly: 'Samimi' },
-      languages: { tr: 'Türkçe', en: 'İngilizce', de: 'Almanca', fr: 'Fransızca', es: 'İspanyolca' },
       useConversation: 'Konuşmayı da kullan',
+      languagePlaceholder: 'Dil seçin veya yazın',
+      otherLanguage: 'Başka bir dil…',
+      manageLanguages: 'Dilleri düzenle',
     },
     context: {
       title: 'Bağlam',
@@ -137,6 +143,22 @@ export const tr: ExtensionText = {
       sampleShort: 'Örnek',
       stale: 'Kaynak değişti. Bu önizleme kopyalanabilir ama taslağa uygulanamaz.',
       unchanged: 'Metinde değişiklik yok.',
+      editSource: 'Kaynağı düzenle',
+      showFormatted: 'Biçimli göster',
+    },
+    refine: {
+      title: 'Sonucu değiştir',
+      kinds: {
+        table: 'Tablo yap',
+        list: 'Madde madde',
+        chart: 'Grafik ekle',
+        shorter: 'Kısalt',
+        formal: 'Daha resmî',
+        friendly: 'Daha samimi',
+      },
+      customLabel: 'Sonuçta yapılacak değişiklik',
+      customPlaceholder: 'Başka bir değişiklik isteyin, ör. son paragrafı kaldır',
+      customSubmit: 'Değişikliği uygula',
     },
     apply: {
       scopeLabel: 'Değişecek bölüm',
@@ -227,6 +249,8 @@ export const tr: ExtensionText = {
         'Claude Code bulunamadı. Claude Code’u kurup pnpm ai:install komutunu yeniden çalıştırın.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code’da oturum açık değil. Terminalde claude çalıştırıp /login ile giriş yapın.',
+      AI_VERSION_MISMATCH:
+        'Eklenti ile yerel yardımcı uygulamanın sürümleri uyuşmuyor. AI ayarlarındaki kurulum komutunu yeniden çalıştırın.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Eklenti bu sekmeye ulaşamıyor. Site erişimini kontrol edin veya sayfayı yenileyin.',
       MESSAGE_REJECTED: 'Geçersiz bir eklenti mesajı reddedildi.',
@@ -255,8 +279,32 @@ export const tr: ExtensionText = {
     preferencesTitle: 'Yazma tercihleri',
     preferencesDescription: 'Yeni çalışmalarda kullanılacak dil, ton ve görünüm.',
     uiLanguage: 'Arayüz dili',
-    uiLanguages: { tr: 'Türkçe', en: 'English' },
-    targetLanguage: 'Varsayılan hedef dil',
+    uiLanguageAuto: 'Otomatik (tarayıcı dili)',
+    targetLanguage: 'Varsayılan çeviri dili',
+    targetLanguageHint: '“Çevir” düğmesi bu dile çevirir. Listeden seçin veya dil adını yazın.',
+    favoriteLanguages: 'Çeviri menüsündeki diller',
+    favoriteLanguagesHint:
+      'Çevir menüsünde hızlıca seçebileceğiniz diller. Listede olmayan bir dili adını yazarak ekleyebilirsiniz.',
+    addLanguage: 'Ekle',
+    removeLanguage: (language) => `${language} dilini kaldır`,
+    favoritesFull: 'En fazla 10 dil eklenebilir.',
+    languagesTitle: 'Diller',
+    languagesDescription: 'Arayüz dili, çeviri dili ve Çevir menüsündeki diller.',
+    instructionsTitle: 'Kalıcı talimat',
+    instructionsDescription:
+      'Her yazma, yanıt, düzeltme ve çeviri isteğine eklenir. O anki talimatınız bununla çelişirse o anki talimat geçerli olur.',
+    instructionsLabel: 'Yazım tercihleriniz',
+    instructionsPlaceholder:
+      'Örneğin: Kurumsal ve resmi bir dil kullan. Kısa paragraflar yaz. Hitapta “Sayın” kullan, “Saygılarımla” ile bitir.',
+    instructionsExamplesLabel: 'Hızlı ekle',
+    instructionsExamples: [
+      'Kurumsal ve resmi bir dil kullan.',
+      'Kısa ve net yaz; gereksiz giriş cümlesi kullanma.',
+      'Samimi ama profesyonel bir dil kullan.',
+      'E-postayı “Saygılarımla” ile bitir.',
+      'Teknik terimleri açıklamadan kullanma.',
+    ],
+    instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Varsayılan ton',
     theme: 'Tema',
     themes: { system: 'Otomatik (Outlook ile aynı)', light: 'Açık', dark: 'Koyu' },

@@ -18,7 +18,11 @@ import {
   type CredentialState,
   type CredentialStore,
 } from '../../apps/ai-companion/src/credential-store';
-import { encodeNativeMessage, NativeMessageDecoder } from '../../apps/ai-companion/src/native-protocol';
+import {
+  encodeNativeMessage,
+  NativeMessageDecoder,
+  rejectionFor,
+} from '../../apps/ai-companion/src/native-protocol';
 import { createSignIn } from '../../apps/ai-companion/src/sign-in';
 
 const input: AiInput = {
@@ -27,6 +31,9 @@ const input: AiInput = {
   instruction: '',
   tone: 'neutral',
   targetLanguage: null,
+  standingInstructions: '',
+  format: 'rich',
+  refinement: null,
   messages: [],
 };
 const initial = (): CredentialState => ({
@@ -93,7 +100,7 @@ const dependencies = (store = memoryStore()) => ({
   claude: {
     models: [
       { id: 'sonnet', label: 'Claude Sonnet' },
-      { id: 'haiku', label: 'Claude Haiku' },
+      { id: 'opus', label: 'Claude Opus' },
     ],
     status: vi.fn().mockResolvedValue(claudeSignedIn),
     generate: vi.fn().mockResolvedValue(ok('claude complete')),
@@ -607,6 +614,19 @@ describe('Native framing', () => {
     decoder.end();
     expect(received).toEqual([{ text: 'İyi' }, { id: 2 }]);
   });
+  it('answers an unrecognised request at once instead of leaving the extension waiting', () => {
+    // E.g. an older helper that does not know a newer input field.
+    expect(
+      rejectionFor({ protocolVersion: 1, requestId: 'r1', type: 'AI_GENERATE', payload: {} }, 1),
+    ).toEqual({
+      protocolVersion: 1,
+      requestId: 'r1',
+      ok: false,
+      error: { code: 'AI_VERSION_MISMATCH' },
+    });
+    expect(rejectionFor({ type: 'AI_STATUS' }, 1)).toBeNull();
+    expect(rejectionFor({ requestId: 'x'.repeat(65) }, 1)).toBeNull();
+  });
   it('rejects oversized input before allocating its payload', async () => {
     const decoder = new NativeMessageDecoder();
     const error = new Promise<Error>((resolve) => decoder.once('error', resolve));
@@ -631,7 +651,7 @@ describe('Claude Code method', () => {
       mode: 'claude-code',
       ready: true,
       selectedModel: 'sonnet',
-      models: [{ id: 'sonnet' }, { id: 'haiku' }],
+      models: [{ id: 'sonnet' }, { id: 'opus' }],
       claudeCode: claudeSignedIn,
       error: null,
     });
@@ -649,13 +669,24 @@ describe('Claude Code method', () => {
     const deps = dependencies(memoryStore(state));
     const service = createAiService(deps);
 
-    expect((await service.command({ action: 'set-model', model: 'haiku' })).selectedModel).toBe('haiku');
-    expect(state.claudeModel).toBe('haiku');
+    expect((await service.command({ action: 'set-model', model: 'opus' })).selectedModel).toBe('opus');
+    expect(state.claudeModel).toBe('opus');
     await expect(service.command({ action: 'set-model', model: 'gpt-5' })).rejects.toThrow(
       'AI_MODEL_UNAVAILABLE',
     );
     await service.generate('00000000-0000-4000-8000-000000000002', input);
-    expect(deps.claude.generate).toHaveBeenCalledWith(input, 'haiku', expect.any(AbortSignal));
+    expect(deps.claude.generate).toHaveBeenCalledWith(input, 'opus', expect.any(AbortSignal));
+  });
+
+  it('falls back to the default when the saved Claude model is no longer offered', async () => {
+    const state = claudeState();
+    state.claudeModel = 'haiku';
+    const deps = dependencies(memoryStore(state));
+    const service = createAiService(deps);
+
+    expect((await service.status()).selectedModel).toBe('sonnet');
+    await service.generate('00000000-0000-4000-8000-000000000003', input);
+    expect(deps.claude.generate).toHaveBeenCalledWith(input, 'sonnet', expect.any(AbortSignal));
   });
 
   it('reuses the sign-in check while the indicator polls; Refresh checks again', async () => {

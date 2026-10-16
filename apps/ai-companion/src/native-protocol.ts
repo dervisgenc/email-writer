@@ -4,6 +4,17 @@ import { Transform, type TransformCallback } from 'node:stream';
 const MAX_BYTES = 900_000;
 const littleEndian = endianness() === 'LE';
 
+/**
+ * Tanınmayan bir isteğe verilecek yanıt. İstek kimliği okunabiliyorsa eklenti uzun
+ * süre beklemez: büyük olasılıkla eklenti ile yardımcı uygulama farklı sürümlerdendir.
+ */
+export function rejectionFor(raw: unknown, protocolVersion: number): object | null {
+  if (typeof raw !== 'object' || raw === null || !('requestId' in raw)) return null;
+  const { requestId } = raw;
+  if (typeof requestId !== 'string' || requestId.length === 0 || requestId.length > 64) return null;
+  return { protocolVersion, requestId, ok: false, error: { code: 'AI_VERSION_MISMATCH' } };
+}
+
 export function encodeNativeMessage(value: unknown): Buffer {
   const json = Buffer.from(JSON.stringify(value), 'utf8');
   if (json.length > MAX_BYTES) throw new Error('Native message too large.');

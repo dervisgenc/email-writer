@@ -46,8 +46,8 @@ function setup(options: { processorDelayMs?: number; processor?: boolean } = {})
     store,
     connector,
     ids,
-    copyText: async (text) => {
-      copied.push(text);
+    copyText: async (content) => {
+      copied.push(content.text);
       return { ok: true, value: undefined };
     },
   });
@@ -92,6 +92,8 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().phase.status).toBe('applied');
     expect(view().status).toEqual({ kind: 'success', message: 'applied' });
     expect(view().apply.canUndo).toBe(true);
+    // Aynı sonuç ikinci kez yazılmaz; kendi yazmamız "taslak değişti" diye açıklanmaz.
+    expect(view().apply).toMatchObject({ canApply: false, blocker: null });
   });
 
   it('normal derlemede (metin işleme yok) düğme nedenini açıklar ve işlem kaydı oluşmaz', async () => {
@@ -268,6 +270,54 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().preview).toMatchObject({ stale: true });
     await applier.apply();
     expect(connector.applied).toHaveLength(0);
+  });
+
+  it('"Başka bir dil…" kartı açar ve dil bekler; karttan seçilen dille çeviri hazırlanır', async () => {
+    current = setup();
+    const { panel, store, connector, view, actions } = current;
+    await panel.runQuickAction(connector.composer, { operation: 'translate', language: null });
+
+    expect(panel.surface()).toEqual({ kind: 'inline', composerKey: 'c1' });
+    expect(view().source.text).toBe('toplantı');
+    expect(store.getState().preview).toBeNull();
+
+    // Kartın dil satırı: dili kaydeder ve hazırlar.
+    store.dispatch({ type: 'form-changed', changes: { operation: 'translate', targetLanguage: 'Kurmancî' } });
+    await actions.prepare();
+    expect(store.getState().action?.targetLanguage).toBe('Kurmancî');
+    expect(view().preview).not.toBeNull();
+  });
+
+  it('yanıtın işlem kaydında hedef dil yoktur; yanıt konuşmanın dilini izler', async () => {
+    current = setup();
+    const { panel, store, connector, actions } = current;
+    await panel.runQuickAction(connector.composer, { operation: 'reply' });
+    store.dispatch({ type: 'form-changed', changes: { instruction: 'Teşekkür et', targetLanguage: 'de' } });
+    await actions.prepare();
+
+    expect(store.getState().action).toMatchObject({ operation: 'reply', targetLanguage: null });
+  });
+
+  it('hazır sonuç "Kısalt" ile değiştirilir: önceki sonuç ve talimat gider, yeni sonuç doğrudan uygulanabilir', async () => {
+    current = setup();
+    const { panel, store, connector, view, actions, applier } = current;
+    connector.selection = null;
+    await panel.runQuickAction(connector.composer, { operation: 'revise' });
+    const first = store.getState().preview!.text;
+    expect(view().refine).toEqual({ available: true, rich: true });
+
+    await actions.prepare({ refinement: 'Make it shorter.' });
+    expect(store.getState().action?.refinement).toEqual({ instruction: 'Make it shorter.', previous: first });
+    expect(view().preview?.stale).toBe(false);
+    await applier.apply();
+    expect(connector.applied).toHaveLength(1);
+  });
+
+  it('cümle içindeki seçimde biçim gerektiren düzenlemeler sunulmaz', async () => {
+    current = setup();
+    const { panel, connector, view } = current;
+    await panel.runQuickAction(connector.composer, { operation: 'revise' });
+    expect(view().refine).toEqual({ available: true, rich: false });
   });
 
   it('kopyalama yalnızca önizleme metnini panoya verir', async () => {

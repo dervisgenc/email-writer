@@ -12,6 +12,7 @@ import { textFor } from '../locales';
 import { resolveAppearance } from '../mounting/appearance';
 import { createLauncherMounter } from '../mounting/mount-launchers';
 import { mountPanel } from '../mounting/mount-panel';
+import { removeOrphanedUi } from '../mounting/orphaned-ui';
 import { copyText } from '../platform/clipboard';
 import { reportDiagnostic } from '../platform/diagnostics';
 import {
@@ -76,6 +77,8 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   const appearance = computed(() => resolveAppearance(settings.value.theme, pageTheme.value));
   const surface = shallowRef(panel.surface());
 
+  // Önceki (durdurulmuş) betiğin sahipsiz kalmış arayüzü yeni arayüzden önce kaldırılır.
+  removeOrphanedUi(document);
   const mountedPanel = await mountPanel(ctx, { session, text, appearance });
   const stopSurface = panel.onSurfaceChange((next) => {
     surface.value = next;
@@ -90,6 +93,7 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
     session,
     surface,
     defaultLanguage: computed(() => settings.value.targetLanguage),
+    favoriteLanguages: computed(() => settings.value.favoriteLanguages),
     onOpenThread(anchor, opener) {
       if (anchor.target.kind === 'thread') {
         mountedPanel.rememberOpener(opener);
@@ -121,7 +125,8 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
     if (
       event.type === 'page-state-changed' ||
       event.type === 'composer-added' ||
-      event.type === 'composer-removed'
+      event.type === 'composer-removed' ||
+      event.type === 'composer-rebound'
     ) {
       refreshPageTheme();
       syncLaunchers();

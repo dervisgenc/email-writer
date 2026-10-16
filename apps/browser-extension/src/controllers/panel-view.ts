@@ -255,10 +255,20 @@ function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyVi
     binding.loadedText.trim() !== '' &&
     binding.canReplaceBody;
 
+  // Bu sonuç az önce yazıldıysa taslağın sürümü eklentinin kendi yazmasıyla ilerlemiştir;
+  // "taslak değişti" gerekçesi yanıltıcı olur (yazma sonucu ayrıca gösterilir).
+  const { lastChange, preview } = state;
+  const writtenThisPreview =
+    lastChange !== null &&
+    preview !== null &&
+    lastChange.requestId === preview.requestId &&
+    lastChange.previewRevision === preview.previewRevision;
+  const blocker = capabilities.applyBlocker?.code ?? null;
+
   return {
     mode: capabilities.applyTarget?.mode ?? null,
     canApply: !capabilities.isBusy && capabilities.applyBlocker === null,
-    blocker: capabilities.applyBlocker?.code ?? null,
+    blocker: writtenThisPreview && blocker === 'TARGET_CHANGED' ? null : blocker,
     canCopy: capabilities.canCopy,
     canUndo: capabilities.canUndo,
     isApplying: state.phase.status === 'applying',
@@ -328,7 +338,8 @@ export function toPanelView(input: PanelViewInput): PanelView {
     options: {
       targetLanguage: form.targetLanguage,
       tone: form.tone,
-      showTargetLanguage: form.operation !== 'revise',
+      // Hedef dil yalnızca çeviride seçilir; yanıt ve yeni ileti konuşmanın veya talimatın dilini izler.
+      showTargetLanguage: form.operation === 'translate',
       showTone: form.operation !== 'translate',
       useConversation: form.useConversation,
       showUseConversation: !isInstructionOperation(form.operation) && state.thread !== null,
@@ -349,6 +360,15 @@ export function toPanelView(input: PanelViewInput): PanelView {
             stale: capabilities.previewIsStale,
             unchanged: state.preview.text === form.sourceText,
           },
+    refine: {
+      available:
+        state.preview !== null &&
+        !isOtherOperationsPreview(state, capabilities) &&
+        !capabilities.isBusy &&
+        capabilities.prepareBlocker === null,
+      // Tablo, liste ve grafik yalnızca taslağın tamamına yazılan sonuçlarda sunulur.
+      rich: capabilities.applyTarget?.mode !== 'replace-selection' && binding.kind !== 'received-message',
+    },
     apply: applyView(input, composer),
     status: statusView(state, ui),
     staleNotice: state.staleReason === null ? null : STALE_NOTICES[state.staleReason],

@@ -1,4 +1,9 @@
-import { PROTOCOL_VERSION, type PreparedAction, type RuntimeRequest } from '@email-writer/contracts';
+import {
+  PROTOCOL_VERSION,
+  type AiInput,
+  type PreparedAction,
+  type RuntimeRequest,
+} from '@email-writer/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAiHandlers } from '../../../apps/browser-extension/src/platform/ai-background';
@@ -23,6 +28,7 @@ const action: PreparedAction = {
   tone: 'neutral',
   context: null,
   target: null,
+  refinement: null,
   createdAt: '2026-10-15T00:00:00Z',
 };
 
@@ -75,6 +81,9 @@ describe('AI message boundaries', () => {
           instruction: '',
           tone: 'neutral',
           targetLanguage: null,
+          standingInstructions: '',
+          format: 'rich',
+          refinement: null,
           messages: [],
         },
       },
@@ -105,10 +114,55 @@ describe('AI message boundaries', () => {
         payload: { text: 'Fixed' },
       };
     });
-    expect(await createConnectedProcessor(transport).process(action, { aborted: false })).toEqual({
+    expect(
+      await createConnectedProcessor(transport, async () => ({ standingInstructions: '' })).process(action, {
+        aborted: false,
+      }),
+    ).toEqual({
       ok: true,
       value: { requestId: 'action', sessionId: 'session', formRevision: 4, text: 'Fixed', sample: false },
     });
+  });
+
+  it('adds the standing instructions read at generation time and picks the output format from the target', async () => {
+    const inputs: AiInput[] = [];
+    const transport = vi.fn<(message: unknown) => Promise<unknown>>().mockImplementation(async (raw) => {
+      const request = raw as RuntimeRequest & { payload: { input: AiInput } };
+      inputs.push(request.payload.input);
+      return {
+        protocolVersion: PROTOCOL_VERSION,
+        requestId: request.requestId,
+        ok: true,
+        payload: { text: 'x' },
+      };
+    });
+    let instructions = 'Kurumsal yaz.';
+    const processor = createConnectedProcessor(transport, async () => ({
+      standingInstructions: instructions,
+    }));
+    const composerRef = {
+      scope: { providerId: 'p', accountScopeId: 'a', documentInstanceId: 'd' },
+      composerKey: 'c',
+      threadKey: null,
+    };
+
+    await processor.process(
+      { ...action, target: { mode: 'replace-body', composerRef, expectedRevision: 1 } },
+      { aborted: false },
+    );
+    instructions = 'Kısa yaz.';
+    await processor.process(
+      {
+        ...action,
+        target: { mode: 'replace-selection', composerRef, expectedRevision: 1, selectionId: 's' },
+      },
+      { aborted: false },
+    );
+
+    expect(inputs.map((input) => [input.standingInstructions, input.format])).toEqual([
+      ['Kurumsal yaz.', 'rich'],
+      ['Kısa yaz.', 'plain'],
+    ]);
   });
 
   it('cancels requests on conversation changes and drops late results', async () => {
@@ -134,7 +188,10 @@ describe('AI message boundaries', () => {
           });
       });
     });
-    const pending = createConnectedProcessor(transport).process(action, abort.signal);
+    const pending = createConnectedProcessor(transport, async () => ({ standingInstructions: '' })).process(
+      action,
+      abort.signal,
+    );
     abort.abort();
     await vi.advanceTimersByTimeAsync(50);
     finish();

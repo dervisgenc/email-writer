@@ -12,6 +12,8 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       headless: true,
+      // Arayüz dili varsayılan olarak tarayıcı dilini izler; testler Türkçe metinleri doğrular.
+      locale: 'tr-TR',
       args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
     });
     await use(context);

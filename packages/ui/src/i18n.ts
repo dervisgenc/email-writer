@@ -2,7 +2,7 @@ import type {
   ApplyMode,
   ContextNotice,
   ErrorCode,
-  LanguageCode,
+  RefinementKind,
   Operation,
   SourceOrigin,
   Tone,
@@ -18,6 +18,8 @@ type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
  * `locales/` dosyalarından sağlanır.
  */
 export interface UiText {
+  /** Dil adlarının ve sıralamanın yapıldığı yerel ayar (BCP 47). */
+  readonly locale: string;
   readonly ai: AiText;
   readonly panelTitle: string;
   readonly close: string;
@@ -50,6 +52,9 @@ export interface UiText {
     readonly contextReading: string;
     readonly openPanel: string;
     readonly translatedTo: (language: string) => string;
+    readonly translateLanguage: string;
+    readonly translate: string;
+    readonly translateAgain: string;
   };
   readonly operations: Readonly<Record<Operation, string>>;
   readonly prepareButton: Readonly<Record<Operation, string>>;
@@ -80,8 +85,10 @@ export interface UiText {
     readonly targetLanguage: string;
     readonly tone: string;
     readonly tones: Readonly<Record<Tone, string>>;
-    readonly languages: Readonly<Record<LanguageCode, string>>;
     readonly useConversation: string;
+    readonly languagePlaceholder: string;
+    readonly otherLanguage: string;
+    readonly manageLanguages: string;
   };
   readonly context: {
     readonly title: string;
@@ -121,6 +128,16 @@ export interface UiText {
     readonly sampleShort: string;
     readonly stale: string;
     readonly unchanged: string;
+    readonly editSource: string;
+    readonly showFormatted: string;
+  };
+  /** Hazır sonucu değiştirme çubuğu. */
+  readonly refine: {
+    readonly title: string;
+    readonly kinds: Readonly<Record<RefinementKind, string>>;
+    readonly customLabel: string;
+    readonly customPlaceholder: string;
+    readonly customSubmit: string;
   };
   readonly apply: {
     readonly scopeLabel: string;

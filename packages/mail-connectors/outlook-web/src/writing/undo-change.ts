@@ -1,8 +1,8 @@
 import { appError, type UndoOutcome } from '@email-writer/contracts';
 
 import { rangeForOffsets } from '../selection/text-range-map';
-import { comparableText, isEditorWritable } from './composer-handle';
-import type { WriteDependencies } from './apply-text';
+import { comparableText, isEditorWritable, isProtectedIntact } from './composer-handle';
+import { focusEditor, type WriteDependencies } from './apply-text';
 
 function invalid(): UndoOutcome {
   return { status: 'rejected', error: appError('UNDO_INVALID') };
@@ -15,6 +15,12 @@ function invalid(): UndoOutcome {
  * geri gelir; o bölümdeki biçimlendirme geri getirilmez.
  */
 export async function undoChange(undoId: string, deps: WriteDependencies): Promise<UndoOutcome> {
+  const pending = deps.undo.find(undoId);
+  if (pending === null) {
+    return invalid();
+  }
+  await focusEditor(pending.composerRef, deps);
+  // Bekleme sırasında aynı kayıt başka bir çağrıyla geri alınmış olabilir.
   const record = deps.undo.find(undoId);
   if (record === null) {
     return invalid();
@@ -32,7 +38,7 @@ export async function undoChange(undoId: string, deps: WriteDependencies): Promi
   const insertedEnd = record.start + record.insertedText.length;
   const isIntact =
     current.editableText.slice(record.start, insertedEnd) === record.insertedText &&
-    comparableText(current.protectedText) === comparableText(record.protectedText);
+    isProtectedIntact(record.protectedText, current.protectedText);
   const range = isIntact
     ? rangeForOffsets(deps.document, current.editableSegments, record.start, insertedEnd)
     : null;
@@ -51,7 +57,7 @@ export async function undoChange(undoId: string, deps: WriteDependencies): Promi
   const after = handle.readAnatomy();
   const restored =
     comparableText(after.editableText) === comparableText(record.editableTextBefore) &&
-    comparableText(after.protectedText) === comparableText(record.protectedText);
+    isProtectedIntact(current.protectedText, after.protectedText);
   if (!restored) {
     return { status: 'uncertain', error: appError('WRITE_UNCERTAIN') };
   }

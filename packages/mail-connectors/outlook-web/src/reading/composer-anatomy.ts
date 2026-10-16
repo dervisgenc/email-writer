@@ -99,13 +99,51 @@ export function readComposerAnatomy(editor: HTMLElement, options: AnatomyOptions
 }
 
 /** Düzenlenebilir bölgenin tamamını kapsayan aralık (sınır elemanının öncesine kadar). */
+const isBlankText = (node: Node) =>
+  node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() === '';
+
+/** Boşluk metinlerini atlayarak komşu düğümü bulur. */
+function sibling(node: Node | null, direction: 'previous' | 'next'): Node | null {
+  let current = node;
+  while (current !== null && isBlankText(current)) {
+    current = direction === 'previous' ? current.previousSibling : current.nextSibling;
+  }
+  return current;
+}
+
+/**
+ * Kullanıcının yazdığı bölümün tamamı. Uçlar blokların arasına değil, ilk ve son
+ * bloğun içine konur: tarayıcı silip yazarken son satırı sonraki bloğa (ör. imzanın
+ * ilk satırına) birleştirmez; içerik gövde paragrafının içinde kalır.
+ */
 export function editableRegionRange(anatomy: ComposerAnatomy): Range {
-  const range = anatomy.editor.ownerDocument.createRange();
-  range.setStart(anatomy.editor, 0);
-  if (anatomy.boundary === null) {
-    range.setEnd(anatomy.editor, anatomy.editor.childNodes.length);
+  const { editor, boundary } = anatomy;
+  const range = editor.ownerDocument.createRange();
+  const first = sibling(editor.firstChild, 'next');
+  if (
+    first !== null &&
+    first !== boundary &&
+    first.nodeType === Node.ELEMENT_NODE &&
+    !first.contains(boundary)
+  ) {
+    range.setStart(first, 0);
   } else {
-    range.setEndBefore(anatomy.boundary);
+    range.setStart(editor, 0);
+  }
+  const last =
+    boundary === null ? sibling(editor.lastChild, 'previous') : sibling(boundary.previousSibling, 'previous');
+  if (last !== null && last.nodeType === Node.ELEMENT_NODE) {
+    range.setEnd(last, last.childNodes.length);
+  } else if (last !== null && last.nodeType === Node.TEXT_NODE) {
+    range.setEnd(last, last.textContent?.length ?? 0);
+  } else if (boundary === null) {
+    range.setEnd(editor, editor.childNodes.length);
+  } else {
+    range.setEndBefore(boundary);
+  }
+  if (range.collapsed && !range.toString()) {
+    // Boş gövde: bloklar arası konuma geri dönülür.
+    range.setStart(editor, 0);
   }
   return range;
 }
@@ -125,11 +163,27 @@ export function emptyInsertionRange(anatomy: ComposerAnatomy): Range {
 }
 
 /**
- * Editörün içerik ve yapı parmak izi. Gürültü niteliğindeki öznitelik
- * değişiklikleri sürümü artırmaz; metin veya yapı değişikliği artırır.
+ * Kullanıcının yazdığı bölgenin parmak izi: boşlukları sadeleştirilmiş metni ve
+ * tablo, resim gibi öğelerin sayısı. Yalnızca bunlar değişince sürüm artar.
+ * İmza ve önceki yazışma dahil edilmez; Outlook alıntıyı editörü açtıktan sonra
+ * doldurduğunda veya yazılan içeriği kendi yapısına göre yeniden düzenlediğinde
+ * (metin aynıyken) hazır sonuç ve seçim geçerli kalır. Yazma anında seçim metni,
+ * gövde ve korunan bölge ayrıca doğrulanır.
  */
 export function composerFingerprint(editor: HTMLElement, classify: AnatomyOptions['classify']): string {
-  const extraction = extractTextBlocks(editor, { classify });
-  const text = extraction.blocks.map((block) => `${block.kind}:${block.text}`).join('\u0001');
-  return `${editor.getElementsByTagName('*').length}\u0002${text}`;
+  const boundary = findBoundary(editor, classify);
+  const extraction = extractTextBlocks(editor, { classify, stopAt: boundary });
+  const text = extraction.blocks
+    .map((block) => `${block.kind}:${block.text.replace(/\s+/gu, ' ').trim()}`)
+    .join('\u0001');
+  return `${richElementsBefore(editor, boundary)}\u0002${text}`;
+}
+
+function richElementsBefore(editor: HTMLElement, boundary: Element | null): number {
+  const walker = editor.ownerDocument.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT);
+  let count = 0;
+  for (let node = walker.nextNode(); node !== null && node !== boundary; node = walker.nextNode()) {
+    if (RICH_CONTENT_TAGS.has((node as Element).tagName.toUpperCase())) count += 1;
+  }
+  return count;
 }

@@ -4,7 +4,7 @@
 // sentetik Outlook örnek sayfasında seç → Düzelt → örnek sonuç → taslağa uygula
 // akışı denenir. Bu test gerçek Outlook sayfasının doğrulandığı anlamına gelmez.
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -50,6 +50,8 @@ let server;
 let firefox;
 let bidi;
 const profile = mkdtempSync(join(tmpdir(), 'email-writer-firefox-'));
+// Arayüz dili varsayılan olarak tarayıcı dilini izler; duman testi Türkçe metinleri doğrular.
+writeFileSync(join(profile, 'user.js'), 'user_pref("intl.accept_languages", "tr-TR, tr");\n');
 
 try {
   if (!(await isServing())) {
@@ -118,7 +120,7 @@ try {
   // "Düzelt" işlemi doğrudan yapar; sonuç taslağın yanındaki kartta görünür.
   const cardQuery = `[...document.querySelectorAll('email-writer-launcher')].map((host) => host.shadowRoot?.querySelector('.ew-card')).find(Boolean)`;
   const preview = await waitFor(
-    () => evaluate(`${cardQuery}?.querySelector('.ew-card__result')?.value ?? ''`),
+    () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__source')?.value ?? ''`),
     'sonuç kartı',
   ).catch(() => '');
   record(
@@ -141,6 +143,53 @@ try {
     'Sonuç yalnızca seçili bölüme yazıldı; imza korundu',
     applied === 'Toplantı yarın olsun mu, Toplantıyı yarın yapabiliriz. hazır.' && signature,
     JSON.stringify(applied),
+  );
+
+  // Biçimli içerik: taslağın tamamı düzeltilir, sonuç "Tablo yap" ile tabloya çevrilip yazılır.
+  await bidi.send('browsingContext.navigate', { context, url: fixtureUrl, wait: 'complete' });
+  await waitFor(async () => {
+    const count = await evaluate(`document.querySelectorAll('email-writer-launcher').length`);
+    return count >= 2 ? count : 0;
+  }, 'başlatıcı düğmeler');
+  const clickIn = (selector, label) =>
+    evaluate(`(() => {
+      const roots = [...document.querySelectorAll('email-writer-launcher')].map((host) => host.shadowRoot).filter(Boolean);
+      const button = roots.flatMap((root) => [...root.querySelectorAll('${selector} button')])
+        .find((element) => element.textContent.trim() === ${JSON.stringify(label)});
+      button?.click();
+      return Boolean(button);
+    })()`);
+  await evaluate(`getSelection().removeAllRanges(), true`);
+  await clickIn('.ew-compose-bar', 'Düzelt');
+  await waitFor(
+    () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__source')?.value ?? ''`),
+    'düzeltme sonucu',
+  );
+  await clickIn('.ew-card', 'Tablo yap');
+  const previewTable = await waitFor(
+    () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__paper table td')?.textContent ?? ''`),
+    'tablo önizlemesi',
+  ).catch(() => '');
+  await clickIn('.ew-card', 'Taslağa uygula');
+  const written = await waitFor(
+    () => evaluate(`document.querySelector('[data-fixture="reply-editor"] table td')?.textContent ?? ''`),
+    'tablonun taslağa yazılması',
+  ).catch(() => '');
+  const signatureFirstLine = await evaluate(`document.querySelector('#Signature > div')?.textContent ?? ''`);
+  const outcome = await waitFor(
+    () =>
+      evaluate(
+        `[...(${cardQuery}?.querySelectorAll('[role=status], [role=alert]') ?? [])].map((node) => node.textContent.trim()).join(' / ')`,
+      ),
+    'yazma sonucu',
+  ).catch(() => '');
+  record(
+    'Biçimli sonuç tablo olarak önizlendi ve taslağa tablo olarak yazıldı; imza bozulmadı',
+    previewTable === 'Lisans' &&
+      written === 'Lisans' &&
+      signatureFirstLine === '--' &&
+      outcome.includes('yerleştirildi'),
+    JSON.stringify({ previewTable, written, signatureFirstLine, outcome }),
   );
 } catch (error) {
   record('Duman testi tamamlanamadı', false, error instanceof Error ? error.message : String(error));

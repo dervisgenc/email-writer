@@ -2,7 +2,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createClaudeCodeProvider, findClaudeBinary } from '@email-writer/ai-claude-code';
-import { AI_TASK_INSTRUCTIONS, type AiInput } from '@email-writer/contracts';
+import { buildTaskPrompt, type AiInput } from '@email-writer/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const input: AiInput = {
@@ -11,6 +11,9 @@ const input: AiInput = {
   instruction: '',
   tone: 'neutral',
   targetLanguage: null,
+  standingInstructions: '',
+  format: 'rich',
+  refinement: null,
   messages: [],
 };
 
@@ -54,7 +57,7 @@ describe('Claude Code provider', () => {
       env: { ...process.env, FAKE_MODE: mode, FAKE_RECORD: record },
       findBinary: findBinary ?? (async () => binary),
     });
-  const generate = (mode: string, model = 'haiku', signal = new AbortController().signal) =>
+  const generate = (mode: string, model = 'sonnet', signal = new AbortController().signal) =>
     provider(mode).generate(input, model, signal);
 
   beforeEach(async () => {
@@ -77,7 +80,7 @@ describe('Claude Code provider', () => {
       entries: string[];
       input: string;
     };
-    expect(seen.args.slice(0, 5)).toEqual(['-p', '--output-format', 'json', '--model', 'haiku']);
+    expect(seen.args.slice(0, 5)).toEqual(['-p', '--output-format', 'json', '--model', 'sonnet']);
     expect(seen.args).toEqual(
       expect.arrayContaining([
         '--restricted',
@@ -87,9 +90,9 @@ describe('Claude Code provider', () => {
       ]),
     );
     expect(seen.args[seen.args.indexOf('--tools') + 1]).toBe('');
-    expect(seen.args[seen.args.indexOf('--system-prompt') + 1]).toBe(AI_TASK_INSTRUCTIONS);
+    expect(seen.args[seen.args.indexOf('--system-prompt') + 1]).toBe(buildTaskPrompt(input).system);
     expect(seen.args.join(' ')).not.toContain(input.source);
-    expect(JSON.parse(seen.input)).toEqual(input);
+    expect(seen.input).toBe(buildTaskPrompt(input).user);
     // An empty private working directory that is removed afterwards.
     expect(seen.entries).toEqual([]);
     await expect(stat(seen.cwd)).rejects.toThrow();
@@ -110,13 +113,13 @@ describe('Claude Code provider', () => {
       error: { code: 'AI_MODEL_UNAVAILABLE' },
     });
     expect(
-      await provider('success', async () => null).generate(input, 'haiku', new AbortController().signal),
+      await provider('success', async () => null).generate(input, 'sonnet', new AbortController().signal),
     ).toMatchObject({
       ok: false,
       error: { code: 'AI_CLAUDE_NOT_INSTALLED' },
     });
     const vanished = provider('success', async () => join(directory, 'missing'));
-    expect(await vanished.generate(input, 'haiku', new AbortController().signal)).toMatchObject({
+    expect(await vanished.generate(input, 'sonnet', new AbortController().signal)).toMatchObject({
       ok: false,
       error: { code: 'AI_CLAUDE_NOT_INSTALLED' },
     });
@@ -127,7 +130,7 @@ describe('Claude Code provider', () => {
     const started = Date.now();
     setTimeout(() => abort.abort(), 200);
 
-    expect(await generate('hang', 'haiku', abort.signal)).toMatchObject({
+    expect(await generate('hang', 'sonnet', abort.signal)).toMatchObject({
       ok: false,
       error: { code: 'READ_CANCELLED' },
     });

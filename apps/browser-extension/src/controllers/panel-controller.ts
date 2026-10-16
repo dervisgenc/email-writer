@@ -2,7 +2,7 @@ import {
   isInstructionOperation,
   isSameThread,
   type ComposerRef,
-  type LanguageCode,
+  type TargetLanguage,
   type MailConnector,
   type MailEvent,
   type Operation,
@@ -27,7 +27,8 @@ export type OpenRequest =
 /** Yazma alanındaki araç çubuğundan doğrudan başlatılan işlem. */
 export type QuickAction =
   | { readonly operation: 'revise' }
-  | { readonly operation: 'translate'; readonly language: LanguageCode | null }
+  /** Dil yoksa kart dili sorar; seçim ve taslak önce yakalanır. */
+  | { readonly operation: 'translate'; readonly language: TargetLanguage | null }
   | { readonly operation: 'reply' }
   | { readonly operation: 'compose' };
 
@@ -217,8 +218,11 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
         return;
       }
       await readThreadIfNeeded();
-      // Yanıt ve yeni e-posta için kart talimat bekler; diğer işlemler hemen hazırlanır.
-      if (!isInstructionOperation(action.operation)) {
+      // Yanıt ve yeni e-posta için kart talimat, dili seçilmemiş çeviri için dil bekler.
+      const awaitsInput =
+        isInstructionOperation(action.operation) ||
+        (action.operation === 'translate' && action.language === null);
+      if (!awaitsInput) {
         await actions.prepare();
       }
     },

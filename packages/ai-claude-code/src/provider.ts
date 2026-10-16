@@ -3,8 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  AI_TASK_INSTRUCTIONS,
   appError,
+  buildTaskPrompt,
   err,
   ok,
   type AiInput,
@@ -17,10 +17,13 @@ import { z } from 'zod';
 
 import { findClaudeBinary } from './binary';
 
-/** Claude Code resolves these aliases to the latest model of each family. */
+/**
+ * Claude Code resolves these aliases to the latest model of each family. Haiku is not
+ * offered: in Turkish replies it repeatedly doubled letters ("bbana", "bbizim"; checked
+ * 16 October 2026), which would go straight into the user's email.
+ */
 export const CLAUDE_CODE_MODELS: readonly AiModel[] = [
   { id: 'sonnet', label: 'Claude Sonnet' },
-  { id: 'haiku', label: 'Claude Haiku' },
   { id: 'opus', label: 'Claude Opus' },
 ];
 export const DEFAULT_CLAUDE_CODE_MODEL = 'sonnet';
@@ -43,7 +46,7 @@ const STATUS_TIMEOUT_MS = 15_000;
  * MCP servers, skills or user/project settings (which may define hooks), and never
  * saves the conversation to its session transcripts. The prompt itself goes to stdin.
  */
-export function claudeCodeArgs(model: string): string[] {
+export function claudeCodeArgs(model: string, systemPrompt: string): string[] {
   return [
     '-p',
     '--output-format',
@@ -57,7 +60,7 @@ export function claudeCodeArgs(model: string): string[] {
     '--disable-slash-commands',
     '--no-session-persistence',
     '--system-prompt',
-    AI_TASK_INSTRUCTIONS,
+    systemPrompt,
   ];
 }
 
@@ -213,8 +216,14 @@ export function createClaudeCodeProvider(options: {
       if (!CLAUDE_CODE_MODELS.some((item) => item.id === model)) return err(appError('AI_MODEL_UNAVAILABLE'));
       const binary = await findBinary();
       if (binary === null) return err(appError('AI_CLAUDE_NOT_INSTALLED'));
+      const prompt = buildTaskPrompt(input);
       const outcome = await withWorkspace((cwd) =>
-        run(binary, claudeCodeArgs(model), { cwd, env: options.env, input: JSON.stringify(input), signal }),
+        run(binary, claudeCodeArgs(model, prompt.system), {
+          cwd,
+          env: options.env,
+          input: prompt.user,
+          signal,
+        }),
       );
       if (signal.aborted) return err(appError('READ_CANCELLED'));
       if (!outcome.started) return err(appError('AI_CLAUDE_NOT_INSTALLED'));

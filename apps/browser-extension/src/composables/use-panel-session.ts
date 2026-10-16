@@ -1,4 +1,12 @@
-import type { ComposerRef, LanguageCode, MailConnector, PageState, Tone } from '@email-writer/contracts';
+import {
+  REFINEMENT_INSTRUCTIONS,
+  type ComposerRef,
+  type MailConnector,
+  type PageState,
+  type RefinementKind,
+  type TargetLanguage,
+  type Tone,
+} from '@email-writer/contracts';
 import { ACTION_LIMITS, deriveCapabilities } from '@email-writer/core';
 import type { SourceReloadKind } from '@email-writer/ui';
 import { computed, onScopeDispose, shallowRef } from 'vue';
@@ -105,7 +113,7 @@ export function usePanelSession(deps: PanelSessionDependencies) {
       store.dispatch({ type: 'form-changed', changes: { instruction: text } }),
     reloadSource,
     cancelReload: () => patchUi({ pendingReplace: null }),
-    languageChange: (targetLanguage: LanguageCode) =>
+    languageChange: (targetLanguage: TargetLanguage) =>
       store.dispatch({ type: 'form-changed', changes: { targetLanguage } }),
     toneChange: (tone: Tone) => store.dispatch({ type: 'form-changed', changes: { tone } }),
     useConversationChange: panel.setUseConversation,
@@ -117,6 +125,17 @@ export function usePanelSession(deps: PanelSessionDependencies) {
     refreshContext: () => void actions.readThread(),
     prepare: () => void actions.prepare(),
     /** Karttaki yanıt talimatını kaydeder ve yanıtı hazırlar. */
+    /** Karttaki dil satırı: dili kaydeder ve çeviriyi hazırlar. */
+    translateTo: (targetLanguage: TargetLanguage) => {
+      store.dispatch({ type: 'form-changed', changes: { operation: 'translate', targetLanguage } });
+      void actions.prepare();
+    },
+    /** Hazır sonucu hazır bir yönde değiştirir (ör. tablo yap, kısalt). */
+    refine: (kind: RefinementKind) => void actions.prepare({ refinement: REFINEMENT_INSTRUCTIONS[kind] }),
+    /** Hazır sonucu kullanıcının yazdığı yönde değiştirir. */
+    refineCustom: (instruction: string) => {
+      if (instruction.trim() !== '') void actions.prepare({ refinement: instruction });
+    },
     submitInstruction: (text: string) => {
       store.dispatch({ type: 'form-changed', changes: { instruction: text } });
       void actions.prepare();

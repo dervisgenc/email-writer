@@ -2,6 +2,7 @@ import './schema-runtime';
 
 export * from './actions';
 export * from './ai';
+export * from './ai-prompt';
 export * from './context';
 export * from './errors';
 export * from './languages';

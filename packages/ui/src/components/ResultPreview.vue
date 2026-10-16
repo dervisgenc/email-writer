@@ -3,9 +3,9 @@ import type { ErrorCode } from '@email-writer/contracts';
 import { useId } from 'vue';
 
 import { useUiText } from '../i18n';
-import { inputValue } from '../input-value';
 import type { PreviewView } from '../view-model';
 import AppIcon from './AppIcon.vue';
+import RichPreview from './RichPreview.vue';
 
 defineProps<{
   preview: PreviewView;
@@ -43,16 +43,15 @@ const errorId = useId();
     </div>
     <p v-if="preview.stale" class="ew-alert ew-alert--warning">{{ text.preview.stale }}</p>
     <p v-else-if="preview.unchanged" class="ew-muted">{{ text.preview.unchanged }}</p>
-    <textarea
+    <RichPreview
       :id="fieldId"
-      class="ew-textarea ew-preview__text"
-      dir="auto"
-      rows="8"
-      :value="preview.text"
+      size="panel"
+      :text="preview.text"
+      :label="text.preview.title"
       :disabled="disabled"
-      :aria-invalid="error !== null"
-      :aria-describedby="error !== null ? errorId : undefined"
-      @input="emit('preview-change', inputValue($event))"
+      :invalid="error !== null"
+      :described-by="error !== null ? errorId : undefined"
+      @change="emit('preview-change', $event)"
     />
     <p v-if="error !== null" :id="errorId" class="ew-field-error">{{ text.errors[error] }}</p>
   </section>

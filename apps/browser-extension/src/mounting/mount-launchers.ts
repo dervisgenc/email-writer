@@ -1,6 +1,6 @@
-import type { LanguageCode } from '@email-writer/contracts';
+import type { TargetLanguage } from '@email-writer/contracts';
 import type { QuickActionRequest, UiText } from '@email-writer/ui';
-import { createApp, type Ref } from 'vue';
+import { createApp, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { createShadowRootUi, type ContentScriptContext, type ShadowRootContentScriptUi } from '#imports';
 
 import { OWN_UI_ATTRIBUTE, type LauncherAnchor } from '../bootstrap/mail-provider';
@@ -26,7 +26,8 @@ export interface LauncherOptions extends LauncherCallbacks {
   readonly appearance: Readonly<Ref<Appearance>>;
   readonly session: PanelSessionDependencies;
   readonly surface: Readonly<Ref<PanelSurface>>;
-  readonly defaultLanguage: Readonly<Ref<LanguageCode>>;
+  readonly defaultLanguage: Readonly<Ref<TargetLanguage>>;
+  readonly favoriteLanguages: Readonly<Ref<readonly TargetLanguage[]>>;
 }
 
 export interface LauncherMounter {
@@ -36,16 +37,57 @@ export interface LauncherMounter {
 }
 
 interface MountedLauncher {
-  readonly anchor: LauncherAnchor;
+  /** Aynı bölge yeni kimlikle bildirilince (ör. taslak yanıta bağlandı) güncellenir. */
+  anchor: LauncherAnchor;
+  readonly target: ShallowRef<LauncherTarget>;
   ui: ShadowRootContentScriptUi<unknown> | null;
   removed: boolean;
+  /** Boyutu izlenen elemanlar: bölgenin kendisi ve onu kırpan en yakın üst elemanlar. */
+  observed: readonly Element[];
+  /**
+   * Kullanıcı düğmeye basılı tutuyor. Bu sırada konum değişmez: Outlook odak
+   * kaybında taslağı yeniden çizip bölgeyi büyütebilir; düğme imlecin altından
+   * kayarsa bırakınca tıklama gerçekleşmez.
+   */
+  pressed: boolean;
+}
+
+/** Kırpan üst elemanlardan izlenenlerin sayısı; uzaktakiler pencere boyutuyla değişir. */
+const OBSERVED_CLIP_ANCESTORS = 3;
+
+/**
+ * Bölgeyi kırpan en yakın üst elemanlar. Outlook yanıt editörünü bu kapsayıcılar
+ * yerleşmeden açabilir; editörün boyutu değişmese de kapsayıcı büyüyünce düğme
+ * yeniden konumlanmalıdır.
+ */
+function clippingAncestors(element: HTMLElement): HTMLElement[] {
+  const result: HTMLElement[] = [];
+  for (
+    let parent = element.parentElement;
+    parent !== null && parent !== document.body && result.length < OBSERVED_CLIP_ANCESTORS;
+    parent = parent.parentElement
+  ) {
+    const style = getComputedStyle(parent);
+    if (style.overflowX !== 'visible' || style.overflowY !== 'visible') {
+      result.push(parent);
+    }
+  }
+  return result;
 }
 
 /** Düğme ile bölgenin kenarı arasındaki boşluk (px). */
 const OFFSET = 8;
-/** Bölgenin bu kadarı görünmüyorsa düğme gizlenir (araç çubuğu yüksekliği + pay). */
-const MIN_VISIBLE = 44;
-const Z_INDEX = '2147483000';
+/** Bölgenin bu kadarı görünmüyorsa düğme gizlenir. Tek satırlık taslak da görünür sayılır. */
+const MIN_VISIBLE_WIDTH = 44;
+const MIN_VISIBLE_HEIGHT = 12;
+/** Araç çubuğunun yüksekliği ve pay: bölge bundan kısaysa düğme bölgenin dışına konur. */
+const TOOLBAR_ROOM = 48;
+/**
+ * Sayfa içeriğinin üstünde, Outlook'un açılır katmanlarının (iletişim kutuları, menüler,
+ * ipuçları: 1000000) altında. Kart açıkken Outlook'un onay penceresi (ör. "Discard
+ * message") kartın altında kalırsa kullanıcı onu onaylayamaz.
+ */
+const Z_INDEX = '999990';
 
 interface VisibleRect {
   readonly top: number;
@@ -81,7 +123,9 @@ function visibleRect(element: HTMLElement): VisibleRect | null {
   left = Math.max(left, 0);
   bottom = Math.min(bottom, window.innerHeight);
   right = Math.min(right, window.innerWidth);
-  return bottom - top >= MIN_VISIBLE && right - left >= MIN_VISIBLE ? { top, right, bottom, left } : null;
+  return bottom - top >= MIN_VISIBLE_HEIGHT && right - left >= MIN_VISIBLE_WIDTH
+    ? { top, right, bottom, left }
+    : null;
 }
 
 /**
@@ -91,7 +135,7 @@ function visibleRect(element: HTMLElement): VisibleRect | null {
  */
 function position(entry: MountedLauncher): void {
   const host = entry.ui?.uiContainer;
-  if (host === undefined) {
+  if (host === undefined || entry.pressed) {
     return;
   }
   const visible = entry.anchor.element.isConnected ? visibleRect(entry.anchor.element) : null;
@@ -100,12 +144,37 @@ function position(entry: MountedLauncher): void {
     return;
   }
   const isTop = entry.anchor.placement === 'top-end';
-  const top = isTop ? visible.top + OFFSET : visible.bottom - OFFSET;
+  // Kısa bölgede (ör. tek satırlık yanıt) araç çubuğu metnin üstüne binmesin diye
+  // bölgenin hemen altına, altta yer yoksa hemen üstüne konur.
+  const roomInside = visible.bottom - visible.top >= TOOLBAR_ROOM;
+  const roomBelow = window.innerHeight - visible.bottom >= TOOLBAR_ROOM;
+  let top: number;
+  let transform: string;
+  if (isTop) {
+    top = visible.top + OFFSET;
+    transform = 'translateX(-100%)';
+  } else if (roomInside) {
+    top = visible.bottom - OFFSET;
+    transform = 'translate(-100%, -100%)';
+  } else if (roomBelow) {
+    top = visible.bottom + OFFSET / 2;
+    transform = 'translateX(-100%)';
+  } else {
+    top = visible.top - OFFSET / 2;
+    transform = 'translate(-100%, -100%)';
+  }
   host.style.top = `${top}px`;
-  host.style.left = `${visible.right - OFFSET}px`;
-  host.style.transform = isTop ? 'translateX(-100%)' : 'translate(-100%, -100%)';
+  // Sağ kenara yaslanır; dar bölmede (veya uzun etiketli dillerde) ekranın soluna taşmaz.
+  host.style.left = `${Math.max(visible.right - OFFSET, host.offsetWidth + OFFSET)}px`;
+  host.style.transform = transform;
   // Sonuç kartı araç çubuğunun üstünde açılır; ekranın üstünden taşmasın diye yüksekliği sınırlanır.
   host.style.setProperty('--ew-space-above', `${Math.max(160, top - 2 * OFFSET - 40)}px`);
+}
+
+function sameTarget(a: LauncherTarget, b: LauncherTarget): boolean {
+  return a.kind === 'thread'
+    ? b.kind === 'thread'
+    : b.kind === 'composer' && a.composerKey === b.composerKey && a.isReply === b.isReply;
 }
 
 function targetOf(anchor: LauncherAnchor): LauncherTarget {
@@ -140,22 +209,58 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
     }
   };
   const resizeObserver = new ResizeObserver(scheduleReposition);
+  // Birden çok düğme aynı üst elemanı izleyebilir; izleme son kullanan kalkınca bırakılır.
+  const observers = new Map<Element, number>();
+  const observe = (element: Element) => {
+    const count = observers.get(element) ?? 0;
+    if (count === 0) resizeObserver.observe(element);
+    observers.set(element, count + 1);
+  };
+  const unobserve = (element: Element) => {
+    const count = observers.get(element) ?? 0;
+    if (count <= 1) {
+      observers.delete(element);
+      resizeObserver.unobserve(element);
+    } else {
+      observers.set(element, count - 1);
+    }
+  };
   ctx.addEventListener(window, 'scroll', scheduleReposition, { capture: true, passive: true });
   ctx.addEventListener(window, 'resize', scheduleReposition, { passive: true });
+  // Bırakınca bekleyen konum uygulanır; çizim karesinde, yani tıklama işlendikten sonra.
+  const release = () => {
+    let wasPressed = false;
+    for (const entry of mounted.values()) {
+      wasPressed ||= entry.pressed;
+      entry.pressed = false;
+    }
+    if (wasPressed) scheduleReposition();
+  };
+  ctx.addEventListener(window, 'pointerup', release, { capture: true, passive: true });
+  ctx.addEventListener(window, 'pointercancel', release, { capture: true, passive: true });
+  // Düğme pencere dışında bırakılırsa bırakma olayı gelmeyebilir.
+  ctx.addEventListener(window, 'blur', release);
   ctx.onInvalidated(() => resizeObserver.disconnect());
 
   const remove = (key: string) => {
     const entry = mounted.get(key);
     if (entry !== undefined) {
       entry.removed = true;
-      resizeObserver.unobserve(entry.anchor.element);
+      entry.observed.forEach(unobserve);
       entry.ui?.remove();
       mounted.delete(key);
     }
   };
 
   const mount = (anchor: LauncherAnchor) => {
-    const entry: MountedLauncher = { anchor, ui: null, removed: false };
+    const entry: MountedLauncher = {
+      anchor,
+      target: shallowRef(targetOf(anchor)),
+      ui: null,
+      removed: false,
+      observed: [],
+      pressed: false,
+    };
     mounted.set(anchor.key, entry);
     let shadowRoot: ShadowRoot | null = null;
     // Panel kapanınca odak, onu açan düğmeye döner.
@@ -177,16 +282,24 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
           display: 'none',
           width: 'max-content',
         });
+        container.addEventListener(
+          'pointerdown',
+          () => {
+            entry.pressed = true;
+          },
+          { passive: true },
+        );
         const app = createApp(LauncherHost, {
           text: options.text,
           appearance: options.appearance,
-          target: targetOf(anchor),
+          target: entry.target,
           session: options.session,
           surface: options.surface,
           defaultLanguage: options.defaultLanguage,
-          onOpenThread: () => options.onOpenThread(anchor, opener()),
-          onQuickAction: (request: QuickActionRequest) => options.onQuickAction(anchor, request),
-          onOpenPanel: () => options.onOpenPanel(anchor, opener()),
+          favoriteLanguages: options.favoriteLanguages,
+          onOpenThread: () => options.onOpenThread(entry.anchor, opener()),
+          onQuickAction: (request: QuickActionRequest) => options.onQuickAction(entry.anchor, request),
+          onOpenPanel: () => options.onOpenPanel(entry.anchor, opener()),
         });
         app.mount(container);
         return app;
@@ -201,7 +314,8 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
       }
       entry.ui = ui;
       ui.mount();
-      resizeObserver.observe(anchor.element);
+      entry.observed = [anchor.element, ...clippingAncestors(anchor.element)];
+      entry.observed.forEach(observe);
       position(entry);
     });
   };
@@ -220,10 +334,15 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
         }
       }
       for (const anchor of anchors) {
-        // Aynı konuma ikinci kez düğme eklenmez.
-        if (!mounted.has(anchor.key)) {
+        const entry = mounted.get(anchor.key);
+        if (entry === undefined) {
           mount(anchor);
+          continue;
         }
+        // Aynı konuma ikinci kez düğme eklenmez; yeni kimlik ve etiket yerinde uygulanır.
+        entry.anchor = anchor;
+        const target = targetOf(anchor);
+        if (!sameTarget(entry.target.value, target)) entry.target.value = target;
       }
       scheduleReposition();
     },

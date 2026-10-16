@@ -4,7 +4,7 @@ import {
   type AppError,
   type ApplyTarget,
   type ContextSnapshot,
-  type LanguageCode,
+  type TargetLanguage,
   type Operation,
   type SourceOrigin,
   type Tone,
@@ -17,7 +17,7 @@ export interface ActionDraft {
   readonly operation: Operation;
   readonly source: { readonly origin: SourceOrigin; readonly text: string };
   readonly instruction: string;
-  readonly targetLanguage: LanguageCode | null;
+  readonly targetLanguage: TargetLanguage | null;
   readonly tone: Tone;
   readonly context: ContextSnapshot | null;
   readonly target: ApplyTarget | null;
@@ -77,11 +77,8 @@ export function validateAction(draft: ActionDraft): AppError[] {
       }
       break;
     case 'compose':
-      // Yeni e-posta: talimat ve dil gerekir, konuşma bağlamı gerekmez.
+      // Yeni e-posta: talimat gerekir; dil talimattan anlaşılır, konuşma bağlamı gerekmez.
       validateInstruction(draft, errors);
-      if (draft.targetLanguage === null) {
-        errors.push(appError('LANGUAGE_REQUIRED', { field: 'targetLanguage' }));
-      }
       break;
     case 'reply':
       validateInstruction(draft, errors);
@@ -93,9 +90,7 @@ export function validateAction(draft: ActionDraft): AppError[] {
           }),
         );
       }
-      if (draft.targetLanguage === null) {
-        errors.push(appError('LANGUAGE_REQUIRED', { field: 'targetLanguage' }));
-      }
+      // Yanıt, yanıtlanan mesajın dilinde yazılır; talimat başka bir dil isteyebilir.
       if (
         draft.context === null ||
         draft.context.activeMessageKey === null ||

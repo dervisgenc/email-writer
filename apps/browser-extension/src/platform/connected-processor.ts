@@ -1,8 +1,22 @@
-import { appError, err, ok, toAiInput, type TextProcessor } from '@email-writer/contracts';
+import {
+  appError,
+  err,
+  ok,
+  toAiInput,
+  type AiPreferences,
+  type TextProcessor,
+} from '@email-writer/contracts';
 
 import { createRequest, sendRequest } from './runtime-messaging';
 
-export function createConnectedProcessor(transport: (message: unknown) => Promise<unknown>): TextProcessor {
+/**
+ * Üretimi arka plandaki yerel bağlantıya gönderir. Kalıcı talimat her üretimde
+ * ayardan okunur; ayarlar sayfasında yapılan değişiklik açık sekmede de geçerlidir.
+ */
+export function createConnectedProcessor(
+  transport: (message: unknown) => Promise<unknown>,
+  readPreferences: () => Promise<AiPreferences>,
+): TextProcessor {
   return {
     kind: 'connected',
     async process(action, signal) {
@@ -17,9 +31,10 @@ export function createConnectedProcessor(transport: (message: unknown) => Promis
       };
       const timer = setInterval(cancel, 50);
       try {
+        const input = toAiInput(action, await readPreferences());
         const result = await sendRequest(
           transport,
-          createRequest('AI_GENERATE', { generationId, input: toAiInput(action) }, crypto.randomUUID()),
+          createRequest('AI_GENERATE', { generationId, input }, crypto.randomUUID()),
         );
         if (signal.aborted) return err(appError('READ_CANCELLED'));
         return result.ok

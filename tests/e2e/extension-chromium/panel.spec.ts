@@ -10,7 +10,8 @@ test('arka plan service worker olarak çalışır ve ayarlar ekranı açılır',
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
   await expect(page.getByRole('heading', { name: 'Email Writer ayarları' })).toBeVisible();
-  await expect(page.getByLabel('Varsayılan hedef dil')).toHaveValue('en');
+  // Varsayılan çeviri dili adıyla gösterilir; kayıtta kod (`en`) tutulur.
+  await expect(page.getByLabel('Varsayılan çeviri dili')).toHaveValue('İngilizce');
 });
 
 test('başlatıcılar yalnızca tanınan bölgelere bir kez eklenir; sayfa kendiliğinden değişmez', async ({
@@ -151,4 +152,57 @@ test('"Yanıt yaz" kartı: yanıtlanan mesaj belirsizse panelde seçtirir, talim
   await panel.getByRole('radio', { name: 'Bu mesaja yanıt ver' }).last().check();
   await panel.locator('.ew-prepare').getByRole('button', { name: 'Yanıt hazırla' }).click();
   await expect(panel.getByLabel('Sonuç', { exact: true })).toHaveValue(/Mesajınız için teşekkürler/);
+});
+
+test('"Tablo yap" sonucu biçimli gösterir ve taslağa gerçek tablo olarak yazar; imza ve alıntı korunur, geri alınabilir', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto(FIXTURE_URL);
+  const editor = page.locator('[data-fixture="reply-editor"]');
+  // Seçim yok: taslağın kullanıcının yazdığı bölümü bütünüyle işlenir.
+  await page.evaluate(() => document.getSelection()?.removeAllRanges());
+  await page.getByRole('toolbar', { name: 'Email Writer' }).getByRole('button', { name: 'Düzelt' }).click();
+
+  const card = page.getByRole('dialog', { name: 'Düzeltme önerisi' });
+  await expect(card.getByLabel('Sonuç', { exact: true })).toHaveValue('Toplantıyı yarın yapabiliriz.');
+  await card.getByRole('button', { name: 'Tablo yap' }).click();
+
+  // Biçimli sonuç e-postada görüneceği gibi önizlenir.
+  const paper = card.getByRole('document', { name: 'Sonuç' });
+  await expect(paper.locator('table td').first()).toHaveText('Lisans');
+  await expect(paper.locator('table th').nth(1)).toHaveText('Tutar');
+
+  await card.getByRole('button', { name: 'Taslağa uygula' }).click();
+  await expect(card.getByRole('status')).toContainText('Metin taslağa yerleştirildi');
+  await expect(editor.locator('table td').first()).toHaveText('Lisans');
+  await expect(editor.locator('table td').nth(1)).toHaveText('40.000 TL');
+  // Son satır ("Saygılarımla") imzanın ilk satırıyla birleşmez.
+  await expect(page.locator('#Signature > div').first()).toHaveText('--');
+  await expect(page.locator('#Signature')).toContainText('Deneme Kullanıcı');
+  await expect(page.locator('#divRplyFwdMsg')).toContainText('Ayşe Kaya');
+
+  await card.getByRole('button', { name: 'Son uygulamayı geri al' }).click();
+  await expect(editor.locator('table')).toHaveCount(0);
+  await expect(editor).toContainText('toplantı odası hazır');
+  await expect(page.locator('#Signature')).toContainText('Deneme Kullanıcı');
+});
+
+test('çok satırlı düz metin taslağın tamamına yazılırken son satır imzaya karışmaz', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto(FIXTURE_URL);
+  const editor = page.locator('[data-fixture="reply-editor"]');
+  await page.evaluate(() => document.getSelection()?.removeAllRanges());
+  await page.getByRole('toolbar', { name: 'Email Writer' }).getByRole('button', { name: 'Düzelt' }).click();
+
+  const card = page.getByRole('dialog', { name: 'Düzeltme önerisi' });
+  const result = card.getByLabel('Sonuç', { exact: true });
+  await expect(result).toHaveValue('Toplantıyı yarın yapabiliriz.');
+  await result.fill('Birinci satır.\n\nİkinci paragraf.\nSaygılarımla');
+  await card.getByRole('button', { name: 'Taslağa uygula' }).click();
+
+  await expect(card.getByRole('status')).toContainText('Metin taslağa yerleştirildi');
+  await expect(editor).toContainText('Saygılarımla');
+  await expect(page.locator('#Signature > div').first()).toHaveText('--');
+  await expect(editor.getByText('Saygılarımla--')).toHaveCount(0);
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { LanguageCode, Operation, Tone } from '@email-writer/contracts';
-import { LANGUAGE_CODES, TONES } from '@email-writer/contracts';
+import type { Operation, RefinementKind, TargetLanguage, Tone } from '@email-writer/contracts';
+import { TONES } from '@email-writer/contracts';
 import { computed, onMounted, useId, useTemplateRef } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -9,6 +9,8 @@ import type { PanelView, SourceReloadKind } from '../view-model';
 import AppIcon from './AppIcon.vue';
 import ApplyControls from './ApplyControls.vue';
 import ContextInspector from './ContextInspector.vue';
+import RefineBar from './RefineBar.vue';
+import LanguagePicker from './LanguagePicker.vue';
 import OperationSelector from './OperationSelector.vue';
 import ResultPreview from './ResultPreview.vue';
 import SourceEditor from './SourceEditor.vue';
@@ -26,7 +28,7 @@ const emit = defineEmits<{
   'instruction-change': [text: string];
   'reload-source': [kind: SourceReloadKind, confirmReplace: boolean];
   'cancel-reload': [];
-  'language-change': [language: LanguageCode];
+  'language-change': [language: TargetLanguage];
   'tone-change': [tone: Tone];
   'use-conversation-change': [enabled: boolean];
   'context-selection-change': [messageKey: string, included: boolean];
@@ -36,6 +38,8 @@ const emit = defineEmits<{
   'refresh-context': [];
   prepare: [];
   'preview-change': [text: string];
+  refine: [kind: RefinementKind];
+  'refine-custom': [instruction: string];
   apply: [];
   copy: [];
   undo: [];
@@ -71,14 +75,6 @@ const targetLabel = computed(() => {
   }
   return target.kind === 'received-message' ? labels.receivedMessage : labels.none;
 });
-
-function onLanguageChange(event: Event): void {
-  const value = inputValue(event);
-  const language = LANGUAGE_CODES.find((code) => code === value);
-  if (language !== undefined) {
-    emit('language-change', language);
-  }
-}
 
 function onToneChange(event: Event): void {
   const value = inputValue(event);
@@ -150,18 +146,13 @@ function onToneChange(event: Event): void {
       <div v-if="hasOptions" class="ew-options">
         <div v-if="view.options.showTargetLanguage" class="ew-options__field">
           <label class="ew-label" :for="languageId">{{ text.options.targetLanguage }}</label>
-          <select
+          <LanguagePicker
             :id="languageId"
-            class="ew-select"
-            :value="view.options.targetLanguage"
+            :model-value="view.options.targetLanguage"
             :disabled="isBusy"
-            :aria-invalid="view.fieldErrors.targetLanguage !== undefined"
-            @change="onLanguageChange"
-          >
-            <option v-for="code in LANGUAGE_CODES" :key="code" :value="code">
-              {{ text.options.languages[code] }}
-            </option>
-          </select>
+            :invalid="view.fieldErrors.targetLanguage !== undefined"
+            @update:model-value="emit('language-change', $event)"
+          />
         </div>
         <div v-if="view.options.showTone" class="ew-options__field">
           <label class="ew-label" :for="toneId">{{ text.options.tone }}</label>
@@ -206,6 +197,13 @@ function onToneChange(event: Event): void {
         :can-regenerate="canPrepare"
         @preview-change="emit('preview-change', $event)"
         @regenerate="emit('prepare')"
+      />
+      <RefineBar
+        v-if="view.preview !== null && (view.refine.available || isBusy)"
+        :rich="view.refine.rich"
+        :disabled="!view.refine.available"
+        @refine="emit('refine', $event)"
+        @refine-custom="emit('refine-custom', $event)"
       />
     </div>
 

@@ -1,10 +1,12 @@
 import { aiEn } from './ai-en';
 import type { ExtensionText } from './extension-text';
+import { countWith } from './plural';
 
-const count = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
+const count = countWith('en');
 
 export const en: ExtensionText = {
   ui: {
+    locale: 'en',
     ai: aiEn,
     panelTitle: 'Writing assistant',
     close: 'Close',
@@ -39,6 +41,9 @@ export const en: ExtensionText = {
       contextReading: 'Reading context…',
       openPanel: 'Open in panel',
       translatedTo: (language) => `${language}`,
+      translateLanguage: 'Target language',
+      translate: 'Translate',
+      translateAgain: 'Translate to this',
     },
     operations: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply', compose: 'Write' },
     prepareButton: { revise: 'Revise', translate: 'Translate', reply: 'Draft reply', compose: 'Write text' },
@@ -79,8 +84,10 @@ export const en: ExtensionText = {
       targetLanguage: 'Target language',
       tone: 'Tone',
       tones: { neutral: 'Neutral', formal: 'Formal', friendly: 'Friendly' },
-      languages: { tr: 'Turkish', en: 'English', de: 'German', fr: 'French', es: 'Spanish' },
       useConversation: 'Also use the conversation',
+      languagePlaceholder: 'Choose or type a language',
+      otherLanguage: 'Another language…',
+      manageLanguages: 'Edit languages',
     },
     context: {
       title: 'Context',
@@ -143,6 +150,22 @@ export const en: ExtensionText = {
       sampleShort: 'Sample',
       stale: 'The source changed. This preview can be copied but not applied to the draft.',
       unchanged: 'No changes in the text.',
+      editSource: 'Edit source',
+      showFormatted: 'Show formatted',
+    },
+    refine: {
+      title: 'Change the result',
+      kinds: {
+        table: 'Make a table',
+        list: 'Bullet points',
+        chart: 'Add a chart',
+        shorter: 'Shorten',
+        formal: 'More formal',
+        friendly: 'Friendlier',
+      },
+      customLabel: 'Change to make in the result',
+      customPlaceholder: 'Ask for another change, e.g. remove the last paragraph',
+      customSubmit: 'Apply the change',
     },
     apply: {
       scopeLabel: 'Part that will change',
@@ -235,6 +258,8 @@ export const en: ExtensionText = {
         'Claude Code was not found. Install Claude Code and run pnpm ai:install again.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code is not signed in. Run claude in a terminal and sign in with /login.',
+      AI_VERSION_MISMATCH:
+        'The extension and the local helper app are different versions. Run the install command from AI settings again.',
       CONTENT_SCRIPT_UNREACHABLE:
         'The extension cannot reach this tab. Check site access or reload the page.',
       MESSAGE_REJECTED: 'An invalid extension message was rejected.',
@@ -263,8 +288,33 @@ export const en: ExtensionText = {
     preferencesTitle: 'Writing preferences',
     preferencesDescription: 'Language, tone and appearance used for new work.',
     uiLanguage: 'Interface language',
-    uiLanguages: { tr: 'Türkçe', en: 'English' },
-    targetLanguage: 'Default target language',
+    uiLanguageAuto: 'Automatic (browser language)',
+    targetLanguage: 'Default translation language',
+    targetLanguageHint:
+      'The “Translate” button translates into this language. Choose from the list or type a language name.',
+    favoriteLanguages: 'Languages in the translate menu',
+    favoriteLanguagesHint:
+      'Languages you can pick quickly from the Translate menu. Type a name to add a language that is not listed.',
+    addLanguage: 'Add',
+    removeLanguage: (language) => `Remove ${language}`,
+    favoritesFull: 'You can add up to 10 languages.',
+    languagesTitle: 'Languages',
+    languagesDescription: 'Interface language, translation language and the languages in the Translate menu.',
+    instructionsTitle: 'Standing instructions',
+    instructionsDescription:
+      'Added to every write, reply, revise and translate request. If your instruction for a request conflicts with it, that instruction wins.',
+    instructionsLabel: 'Your writing preferences',
+    instructionsPlaceholder:
+      'For example: Use a formal, corporate tone. Keep paragraphs short. Start with “Dear” and end with “Kind regards”.',
+    instructionsExamplesLabel: 'Quick add',
+    instructionsExamples: [
+      'Use a formal, corporate tone.',
+      'Be brief and direct; skip filler openings.',
+      'Use a friendly but professional tone.',
+      'End the email with “Kind regards”.',
+      'Avoid jargon unless it is explained.',
+    ],
+    instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Default tone',
     theme: 'Theme',
     themes: { system: 'Automatic (same as Outlook)', light: 'Light', dark: 'Dark' },

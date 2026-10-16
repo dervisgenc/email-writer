@@ -7,7 +7,7 @@ import { PROTOCOL_VERSION, runtimeRequestSchema } from '@email-writer/contracts'
 
 import { createAiService } from './ai-service';
 import { createCredentialStore } from './credential-store';
-import { encodeNativeMessage, NativeMessageDecoder } from './native-protocol';
+import { encodeNativeMessage, NativeMessageDecoder, rejectionFor } from './native-protocol';
 
 // Native hosts write ONLY framed protocol messages to stdout, never logs or email content.
 const service = createAiService({
@@ -28,7 +28,11 @@ const service = createAiService({
 let inFlight = 0;
 async function handle(raw: unknown): Promise<void> {
   const parsed = runtimeRequestSchema.safeParse(raw);
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    const rejection = rejectionFor(raw, PROTOCOL_VERSION);
+    if (rejection !== null) process.stdout.write(encodeNativeMessage(rejection));
+    return;
+  }
   const request = parsed.data;
   const base = { protocolVersion: PROTOCOL_VERSION, requestId: request.requestId };
   if (inFlight >= 32) {

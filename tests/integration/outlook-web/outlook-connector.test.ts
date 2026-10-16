@@ -256,6 +256,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
         range.insertNode(document.createTextNode('[yarım]'));
         return true;
       },
+      insertHtml: () => false,
     };
     connection.connector.dispose();
     connection = createConnection(faulty);
@@ -272,7 +273,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
 
   it('editör değişikliği kabul etmezse güvenle reddeder', async () => {
     connection.connector.dispose();
-    connection = createConnection({ id: 'refusing', replaceRange: () => false });
+    connection = createConnection({ id: 'refusing', replaceRange: () => false, insertHtml: () => false });
     composer = connection.connector.getPageState().composers[0]!;
     const selection = await captureSelection('toplantı odası');
 
@@ -296,6 +297,136 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(after.ok && after.value.editableText).toBe('Tamamen yeni gövde.');
     expect(document.getElementById('Signature')?.textContent).toContain('Deneme Kullanıcı');
     expect(document.getElementById('divRplyFwdMsg')).not.toBeNull();
+  });
+
+  it('biçimli içeriği (tablo ve liste) gövdeye yazar, görünen metinle doğrular ve geri alınabilir bırakır', async () => {
+    const snapshot = await connection.connector.readComposer(composer);
+    if (!snapshot.ok) throw new Error(snapshot.error.code);
+    const outcome = await connection.connector.applyText({
+      applyOperationId: 'rich-1',
+      target: { mode: 'replace-body', composerRef: composer, expectedRevision: snapshot.value.revision },
+      text: 'Fiyatlar:\n\nÜrün | Fiyat\nA | 10\n\n- Teslim yarın',
+      rich: {
+        html:
+          '<div>Fiyatlar:</div><div><br></div><table><thead><tr><th>Ürün</th><th>Fiyat</th></tr></thead>' +
+          '<tbody><tr><td>A</td><td>10</td></tr></tbody></table><div><br></div><ul><li>Teslim yarın</li></ul>',
+        visibleText: 'Fiyatlar:\nÜrün | Fiyat\nA | 10\n- Teslim yarın',
+      },
+    });
+
+    expect(outcome).toMatchObject({ status: 'applied', undoId: expect.any(String) });
+    expect(editor().querySelector('table td')?.textContent).toBe('A');
+    expect(editor().querySelector('ul li')?.textContent).toBe('Teslim yarın');
+    expect(document.getElementById('Signature')?.textContent).toContain('Deneme Kullanıcı');
+    expect(document.getElementById('divRplyFwdMsg')).not.toBeNull();
+  });
+
+  it('Outlook odak geçince alıntıyı doldurursa yazma bundan sonra yapılır ve doğrulanır', async () => {
+    const snapshot = await connection.connector.readComposer(composer);
+    if (!snapshot.ok) throw new Error(snapshot.error.code);
+    const quote = document.getElementById('divRplyFwdMsg')!;
+    editor().addEventListener(
+      'focus',
+      () => quote.append(document.createTextNode(' (Outlook odakta doldurdu)')),
+      { once: true },
+    );
+
+    const outcome = await connection.connector.applyText({
+      applyOperationId: 'focus-1',
+      target: { mode: 'replace-body', composerRef: composer, expectedRevision: snapshot.value.revision },
+      text: 'Odak sonrası gövde.',
+    });
+
+    expect(outcome).toMatchObject({ status: 'applied', undoId: expect.any(String) });
+    expect(quote.textContent).toContain('(Outlook odakta doldurdu)');
+    const after = await connection.connector.readComposer(composer);
+    expect(after.ok && after.value.editableText).toBe('Odak sonrası gövde.');
+  });
+
+  it('Outlook yazmadan hemen sonra alıntının sonuna içerik eklerse yazma doğrulanır; imzanın başı değişirse doğrulanmaz', async () => {
+    const write = async (id: string, react: () => void) => {
+      connection.connector.dispose();
+      loadFixture('conversation-inline-reply.html');
+      const base = createDomWriter();
+      connection = createConnection({
+        id: 'reacting',
+        insertHtml: (target, range, html) => base.insertHtml(target, range, html),
+        replaceRange(target, range, text) {
+          const accepted = base.replaceRange(target, range, text);
+          react();
+          return accepted;
+        },
+      });
+      const ref = connection.connector.getPageState().composers[0]!;
+      const snapshot = await connection.connector.readComposer(ref);
+      if (!snapshot.ok) throw new Error(snapshot.error.code);
+      return connection.connector.applyText({
+        applyOperationId: id,
+        target: { mode: 'replace-body', composerRef: ref, expectedRevision: snapshot.value.revision },
+        text: 'Yeni gövde.',
+      });
+    };
+
+    const appended = await write('react-1', () => {
+      const quote = document.createElement('div');
+      quote.textContent = 'Outlook alıntıyı sona ekledi';
+      editor().append(quote);
+    });
+    expect(appended.status).toBe('applied');
+
+    const merged = await write('react-2', () =>
+      document.getElementById('Signature')?.prepend(document.createTextNode('Yeni gövde.')),
+    );
+    expect(merged).toMatchObject({ status: 'uncertain' });
+  });
+
+  it('cümle içindeki bir seçime biçimli içerik yazmaz', async () => {
+    const selection = await captureSelection('toplantı odası');
+    const outcome = await connection.connector.applyText({
+      ...selectionRequest(selection, 'salon'),
+      rich: { html: '<table><tr><td>x</td></tr></table>', visibleText: 'x' },
+    });
+
+    expect(outcome).toEqual({
+      status: 'rejected',
+      error: expect.objectContaining({ code: 'WRITE_UNSUPPORTED' }),
+    });
+    expect(writer.calls).toBe(0);
+  });
+
+  it('imza veya önceki yazışma değişince sürüm artmaz; kullanıcının metni değişince artar', async () => {
+    const before = await connection.connector.readComposer(composer);
+    if (!before.ok) throw new Error(before.error.code);
+    document.getElementById('divRplyFwdMsg')?.append(document.createTextNode(' (Outlook ekledi)'));
+    document.getElementById('Signature')?.append(document.createElement('div'));
+    // Outlook alıntıyı eklerken sondaki boş satırı da kaldırabilir.
+    const blank = document.createElement('div');
+    blank.append(document.createElement('br'));
+    document.getElementById('Signature')?.before(blank);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const quoted = await connection.connector.readComposer(composer);
+    expect(quoted.ok && quoted.value.revision).toBe(before.value.revision);
+
+    // Outlook yazılan içeriği kendi yapısına göre yeniden düzenleyebilir (metin aynı).
+    const first = editor().querySelector('div')!;
+    const wrapper = document.createElement('div');
+    first.replaceWith(wrapper);
+    wrapper.append(first);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const restructured = await connection.connector.readComposer(composer);
+    expect(restructured.ok && restructured.value.revision).toBe(before.value.revision);
+
+    typeInto(editor(), ' ek');
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const typed = await connection.connector.readComposer(composer);
+    expect(typed.ok && typed.value.revision).toBe(before.value.revision + 1);
+
+    // Metin değişmese de resim veya tablo eklenmesi taslağı değiştirir.
+    first.append(document.createElement('img'));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const withImage = await connection.connector.readComposer(composer);
+    expect(withImage.ok && withImage.value.revision).toBe(before.value.revision + 2);
   });
 
   it('DOM editörü yeniden oluşturursa eski seçim ve hedef kullanılamaz', async () => {

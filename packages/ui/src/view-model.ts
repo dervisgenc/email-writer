@@ -3,7 +3,7 @@ import type {
   ContextNotice,
   ErrorCode,
   ErrorField,
-  LanguageCode,
+  TargetLanguage,
   Operation,
   SourceOrigin,
   Tone,
@@ -17,7 +17,8 @@ import type {
 /** Yazma alanındaki araç çubuğundan doğrudan istenen işlem. */
 export type QuickActionRequest =
   | { readonly operation: 'revise' }
-  | { readonly operation: 'translate'; readonly language: LanguageCode }
+  /** Dil yoksa kart dili sorar; seçim önce yakalanır. */
+  | { readonly operation: 'translate'; readonly language: TargetLanguage | null }
   | { readonly operation: 'reply' }
   | { readonly operation: 'compose' };
 
@@ -42,7 +43,7 @@ export interface SourceView {
 }
 
 export interface OptionsView {
-  readonly targetLanguage: LanguageCode;
+  readonly targetLanguage: TargetLanguage;
   readonly tone: Tone;
   readonly showTargetLanguage: boolean;
   readonly showTone: boolean;
@@ -132,6 +133,11 @@ export interface PanelView {
     readonly isPreparing: boolean;
   };
   readonly preview: PreviewView | null;
+  /** Hazır sonucu değiştirme (tablo, liste, grafik, kısaltma, ton). */
+  readonly refine: {
+    readonly available: boolean;
+    readonly rich: boolean;
+  };
   readonly apply: ApplyView;
   readonly status: StatusView;
   readonly staleNotice: ErrorCode | null;

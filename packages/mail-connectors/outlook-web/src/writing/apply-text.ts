@@ -16,7 +16,7 @@ import {
 import { editableRegionRange, emptyInsertionRange, type ComposerAnatomy } from '../reading/composer-anatomy';
 import type { SelectionRegistry } from '../selection/selection-registry';
 import { rangeForOffsets } from '../selection/text-range-map';
-import { comparableText, isEditorWritable, type ComposerHandle } from './composer-handle';
+import { comparableText, isEditorWritable, isProtectedIntact, type ComposerHandle } from './composer-handle';
 import type { EditorWriter } from './editor-writer';
 import type { UndoStore } from './undo-store';
 
@@ -99,8 +99,44 @@ function planWrite(
  * olarak yerleştirir ve editörü yeniden okuyarak sonucu kontrol eder. Son
  * kontrol ile yazma arasında bekleme veya ağ işlemi yoktur.
  */
+/**
+ * Biçimli içerikte tablo hücreleri " | " ile okunur, liste imleri ve grafik
+ * çubukları metin değildir. Karşılaştırma boşluk ve hücre ayırıcısı yok sayılarak yapılır.
+ */
+function richComparable(text: string): string {
+  return text.normalize('NFC').replace(/[\s|]+/gu, '');
+}
+
 export async function applyText(request: ApplyRequest, deps: WriteDependencies): Promise<ApplyOutcome> {
-  const { target, text, applyOperationId } = request;
+  if (request.text.trim().length > 0) {
+    await focusEditor(request.target.composerRef, deps);
+  }
+  return applyFocused(request, deps);
+}
+
+/**
+ * Outlook taslağa odak geçince alıntıyı doldurabilir veya içeriği yeniden
+ * düzenleyebilir. Editör yazmadan önce odaklanır ve bu tepki beklenir; bütün
+ * denetimler ondan sonra, yazmayla aralarında bekleme olmadan yapılır.
+ */
+export async function focusEditor(ref: ComposerRef, deps: WriteDependencies): Promise<void> {
+  if (!isSameScope(ref.scope, deps.scope())) {
+    return;
+  }
+  const handle = deps.findComposer(ref);
+  if (handle === null || !isEditorWritable(handle.editor)) {
+    return;
+  }
+  const active = deps.document.activeElement;
+  if (active !== null && handle.editor.contains(active)) {
+    return;
+  }
+  handle.editor.focus({ preventScroll: true });
+  await deps.settle();
+}
+
+async function applyFocused(request: ApplyRequest, deps: WriteDependencies): Promise<ApplyOutcome> {
+  const { target, text, rich, applyOperationId } = request;
 
   const previous = deps.attempts.get(applyOperationId);
   if (previous === 'applied' || previous === 'uncertain') {
@@ -114,6 +150,10 @@ export async function applyText(request: ApplyRequest, deps: WriteDependencies):
   }
   if (!isSameScope(target.composerRef.scope, deps.scope())) {
     return rejected('TARGET_MISSING');
+  }
+  // Cümle içindeki bir seçime biçimli içerik yazılmaz.
+  if (rich !== undefined && target.mode === 'replace-selection') {
+    return rejected('WRITE_UNSUPPORTED');
   }
   const handle = deps.findComposer(target.composerRef);
   if (handle === null || !isEditorWritable(handle.editor)) {
@@ -132,13 +172,17 @@ export async function applyText(request: ApplyRequest, deps: WriteDependencies):
   const { start, end } = plan.value;
   const prefix = before.editableText.slice(0, start);
   const suffix = before.editableText.slice(end);
-  const expected = comparableText(prefix + text + suffix);
+  const compare = rich === undefined ? comparableText : richComparable;
+  const expected = compare(prefix + (rich?.visibleText ?? text) + suffix);
 
   // Yazmadan önce işaretlenir: beklenmeyen bir hata olsa bile otomatik tekrar yapılmaz.
   deps.attempts.set(applyOperationId, 'uncertain');
   let accepted: boolean;
   try {
-    accepted = deps.writer.replaceRange(handle.editor, plan.value.range, text);
+    accepted =
+      rich === undefined
+        ? deps.writer.replaceRange(handle.editor, plan.value.range, text)
+        : deps.writer.insertHtml(handle.editor, plan.value.range, rich.html);
   } catch {
     accepted = false;
   }
@@ -146,8 +190,8 @@ export async function applyText(request: ApplyRequest, deps: WriteDependencies):
   const verify = (): ComposerAnatomy | null => {
     const current = handle.readAnatomy();
     const isExpected =
-      comparableText(current.editableText) === expected &&
-      comparableText(current.protectedText) === comparableText(before.protectedText);
+      compare(current.editableText) === expected &&
+      isProtectedIntact(before.protectedText, current.protectedText);
     return isExpected ? current : null;
   };
 

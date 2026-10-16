@@ -7,7 +7,7 @@ import {
   type ContextEdit,
   type ContextSelection,
   type ContextSnapshot,
-  type LanguageCode,
+  type TargetLanguage,
   type Operation,
   type PreparedAction,
   type ThreadRef,
@@ -45,7 +45,7 @@ export interface SessionForm {
   readonly sourceText: string;
   readonly instruction: string;
   /** Gizlenen tercih oturumda saklanır; düzeltmede işlem kaydına girmez. */
-  readonly targetLanguage: LanguageCode;
+  readonly targetLanguage: TargetLanguage;
   readonly tone: Tone;
   /** Düzeltme ve çeviride konuşmanın bağlama dahil edilmesi. */
   readonly useConversation: boolean;
@@ -138,7 +138,7 @@ export interface CreateSessionOptions {
   readonly sessionId: string;
   readonly thread: ThreadRef | null;
   readonly operation?: Operation;
-  readonly defaults: { readonly targetLanguage: LanguageCode; readonly tone: Tone };
+  readonly defaults: { readonly targetLanguage: TargetLanguage; readonly tone: Tone };
   readonly staleReason?: StaleReason | null;
 }
 
