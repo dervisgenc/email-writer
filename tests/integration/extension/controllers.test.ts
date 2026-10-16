@@ -241,6 +241,35 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().form.instruction).toBe('Ekibe toplantı öner');
   });
 
+  it('"Yanıt yaz" kartı kapatılıp aynı düğmeyle yeniden açılınca hazır yanıt eskimez ve taslağa uygulanır', async () => {
+    current = setup();
+    const { panel, store, connector, view, applier, actions } = current;
+    await panel.runQuickAction(connector.composer, { operation: 'reply' });
+    store.dispatch({ type: 'form-changed', changes: { instruction: 'Teşekkür et' } });
+    await actions.prepare();
+    panel.close();
+
+    await panel.runQuickAction(connector.composer, { operation: 'reply' });
+    expect(view().preview).toMatchObject({ stale: false });
+    await applier.apply();
+    expect(connector.applied).toHaveLength(1);
+  });
+
+  it('taslağa yazı eklendikten sonra kart yeniden açılırsa önizleme eskir; yeni metin üzerine uygulanmaz', async () => {
+    current = setup();
+    const { panel, store, connector, view, applier, actions } = current;
+    connector.selection = null;
+    await panel.runQuickAction(connector.composer, { operation: 'reply' });
+    store.dispatch({ type: 'form-changed', changes: { instruction: 'Teşekkür et' } });
+    await actions.prepare();
+
+    connector.userTypes(' ve yeni yazı');
+    await panel.runQuickAction(connector.composer, { operation: 'reply' });
+    expect(view().preview).toMatchObject({ stale: true });
+    await applier.apply();
+    expect(connector.applied).toHaveLength(0);
+  });
+
   it('kopyalama yalnızca önizleme metnini panoya verir', async () => {
     current = setup();
     const { panel, applier, connector, copied } = current;

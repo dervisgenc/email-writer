@@ -269,10 +269,14 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
         event.binding.kind === 'draft' || event.binding.kind === 'draft-selection'
           ? event.binding.composerRevision
           : null;
+      // Önizleme yalnızca kaynak metin gerçekten değiştiyse eskir. Aynı metin yeniden
+      // alınınca (ör. kart aynı düğmeyle yeniden açılınca) yalnızca taslağın güncel
+      // sürümü kaydedilir; hazır sonuç o sürüme uygulanabilir kalır.
+      const sourceChanged = event.text !== state.form.sourceText;
       return rest({
         ...state,
         form: { ...state.form, sourceText: event.text },
-        formRevision: state.formRevision + 1,
+        formRevision: sourceChanged ? state.formRevision + 1 : state.formRevision,
         binding: event.binding,
         explicitTarget: null,
         targetComposerRevision: revision,

@@ -43,6 +43,33 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(late.preview).toBeNull();
   });
 
+  it('kaynak aynı metinle yeniden alınınca önizleme eskimez ve taslağın yeni sürümüne uygulanır', () => {
+    const preview = sessionWithPreview();
+    const reloaded = reduceSession(preview, {
+      type: 'source-loaded',
+      operationId: null,
+      text: selectionBinding.loadedText,
+      binding: { ...selectionBinding, composerRevision: 6 },
+    });
+
+    expect(reloaded.phase.status).toBe('preview');
+    expect(capabilities(reloaded).previewIsStale).toBe(false);
+    const request = validateApply(reloaded);
+    expect(request.ok && request.value.target.expectedRevision).toBe(6);
+  });
+
+  it('kaynak metni değişince önizleme eskir ve taslağa uygulanamaz', () => {
+    const changed = reduceSession(sessionWithPreview(), {
+      type: 'source-loaded',
+      operationId: null,
+      text: 'başka metin',
+      binding: { ...selectionBinding, loadedText: 'başka metin', composerRevision: 7 },
+    });
+
+    expect(capabilities(changed).previewIsStale).toBe(true);
+    expect(validateApply(changed)).toMatchObject({ ok: false, error: { code: 'PREVIEW_STALE' } });
+  });
+
   it('iptal edilen işlemin sonucu sonradan gelse de etkinleşmez', () => {
     const loaded = reduceAll(newSession(), [{ type: 'form-changed', changes: { sourceText: 'metin' } }]);
     const action = prepareFrom(loaded);
