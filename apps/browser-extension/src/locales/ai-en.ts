@@ -89,7 +89,7 @@ export const aiEn: AiText = {
     helper: {
       title: 'What is the helper app?',
       summary: 'A small app on your computer that every method needs.',
-      requirements: ['macOS or Linux. Windows is not supported yet.', 'Node.js 22 or later.'],
+      requirements: ['macOS, Linux or Windows.', 'Node.js 22 or later.'],
       steps: [
         'Install the helper app and restart the browser.',
         'The “The local AI connection is unavailable” warning on this page goes away and the methods appear.',
@@ -163,7 +163,7 @@ export const aiEn: AiText = {
     'When you request generation, your text, instructions and selected context are sent to OpenAI. The extension does not save them to disk. It cannot access your ChatGPT conversation history.',
   setup: 'Set up the local connection',
   setupBody:
-    'The AI connection requires the Email Writer local app (macOS / Linux, Node.js 22+). Follow docs/AI_BAGLANTISI.md in the project. Account credentials are kept in a protected file on your device instead of browser storage. The Claude plan method also requires Claude Code to be installed and signed in.',
+    'The AI connection requires the Email Writer local app (macOS, Linux or Windows; Node.js 22+). Follow docs/AI_BAGLANTISI.md in the project. Account credentials are kept in a protected file on your device instead of browser storage. The Claude plan method also requires Claude Code to be installed and signed in.',
   extensionId: 'Extension ID for installation:',
   usePlan: 'Using ChatGPT plan',
   useApi: 'Using OpenAI API',

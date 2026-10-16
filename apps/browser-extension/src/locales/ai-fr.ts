@@ -90,10 +90,7 @@ export const aiFr: AiText = {
     helper: {
       title: 'Qu’est-ce que l’application d’assistance ?',
       summary: 'Une petite application sur votre ordinateur, nécessaire à toutes les méthodes.',
-      requirements: [
-        'macOS ou Linux. Windows n’est pas encore pris en charge.',
-        'Node.js 22 ou version ultérieure.',
-      ],
+      requirements: ['macOS, Linux ou Windows.', 'Node.js 22 ou version ultérieure.'],
       steps: [
         'Installez l’application d’assistance et redémarrez le navigateur.',
         'L’avertissement « La connexion IA locale est indisponible » disparaît de cette page et les méthodes s’affichent.',
@@ -167,7 +164,7 @@ export const aiFr: AiText = {
     'Lorsque vous demandez une génération, votre texte, vos consignes et le contexte sélectionné sont envoyés à OpenAI. L’extension ne les enregistre pas sur le disque. Elle n’a pas accès à l’historique de vos conversations ChatGPT.',
   setup: 'Configurer la connexion locale',
   setupBody:
-    'La connexion IA nécessite l’application locale Email Writer (macOS / Linux, Node.js 22+). Suivez docs/AI_BAGLANTISI.md dans le projet. Les identifiants des comptes sont conservés dans un fichier protégé sur votre appareil plutôt que dans le stockage du navigateur. La méthode Forfait Claude nécessite aussi que Claude Code soit installé et connecté.',
+    'La connexion IA nécessite l’application locale Email Writer (macOS, Linux ou Windows ; Node.js 22+). Suivez docs/AI_BAGLANTISI.md dans le projet. Les identifiants des comptes sont conservés dans un fichier protégé sur votre appareil plutôt que dans le stockage du navigateur. La méthode Forfait Claude nécessite aussi que Claude Code soit installé et connecté.',
   extensionId: 'ID de l’extension pour l’installation :',
   usePlan: 'Forfait ChatGPT utilisé',
   useApi: 'API OpenAI utilisée',

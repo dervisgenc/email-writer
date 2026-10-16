@@ -89,7 +89,7 @@ export const aiDe: AiText = {
     helper: {
       title: 'Was ist die Hilfs-App?',
       summary: 'Eine kleine App auf Ihrem Computer, die jede Methode benötigt.',
-      requirements: ['macOS oder Linux. Windows wird noch nicht unterstützt.', 'Node.js 22 oder neuer.'],
+      requirements: ['macOS, Linux oder Windows.', 'Node.js 22 oder neuer.'],
       steps: [
         'Installieren Sie die Hilfs-App und starten Sie den Browser neu.',
         'Der Hinweis „Die lokale KI-Verbindung ist nicht verfügbar“ auf dieser Seite verschwindet und die Methoden erscheinen.',
@@ -163,7 +163,7 @@ export const aiDe: AiText = {
     'Wenn Sie Text anfordern, werden Ihr Text, Ihre Anweisungen und der ausgewählte Kontext an OpenAI gesendet. Die Erweiterung speichert sie nicht auf der Festplatte. Sie hat keinen Zugriff auf Ihren ChatGPT-Chatverlauf.',
   setup: 'Lokale Verbindung einrichten',
   setupBody:
-    'Die KI-Verbindung benötigt die lokale Email Writer-App (macOS / Linux, Node.js 22+). Folgen Sie docs/AI_BAGLANTISI.md im Projekt. Kontoanmeldedaten liegen statt im Browserspeicher in einer geschützten Datei auf Ihrem Gerät. Für den Claude-Plan muss außerdem Claude Code installiert und angemeldet sein.',
+    'Die KI-Verbindung benötigt die lokale Email Writer-App (macOS, Linux oder Windows; Node.js 22+). Folgen Sie docs/AI_BAGLANTISI.md im Projekt. Kontoanmeldedaten liegen statt im Browserspeicher in einer geschützten Datei auf Ihrem Gerät. Für den Claude-Plan muss außerdem Claude Code installiert und angemeldet sein.',
   extensionId: 'Erweiterungs-ID für die Installation:',
   usePlan: 'ChatGPT-Plan wird verwendet',
   useApi: 'OpenAI-API wird verwendet',

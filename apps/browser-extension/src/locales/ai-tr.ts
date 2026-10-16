@@ -89,7 +89,7 @@ export const aiTr: AiText = {
     helper: {
       title: 'Yardımcı uygulama nedir?',
       summary: 'Bütün yöntemler için gereken, bilgisayarınızda çalışan küçük bir uygulama.',
-      requirements: ['macOS veya Linux. Windows desteği henüz yok.', 'Node.js 22 veya üstü.'],
+      requirements: ['macOS, Linux veya Windows.', 'Node.js 22 veya üstü.'],
       steps: [
         'Yardımcı uygulamayı kurun ve tarayıcıyı yeniden başlatın.',
         'Bu sayfada “Yerel AI bağlantısına ulaşılamadı” uyarısı kaybolur ve yöntemler görünür.',
@@ -163,7 +163,7 @@ export const aiTr: AiText = {
     'Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam OpenAI’a gönderilir. Eklenti bunları diske kaydetmez. ChatGPT sohbet geçmişinize erişilmez.',
   setup: 'Yerel bağlantı kurulumu',
   setupBody:
-    'AI bağlantısı için Email Writer yerel uygulaması gerekir (macOS / Linux, Node.js 22+). Projedeki docs/AI_BAGLANTISI.md rehberini izleyin. Hesap anahtarları tarayıcı yerine cihazınızdaki korumalı dosyada saklanır. Claude aboneliği için Claude Code kurulu ve oturum açık olmalıdır.',
+    'AI bağlantısı için Email Writer yerel uygulaması gerekir (macOS, Linux veya Windows; Node.js 22+). Projedeki docs/AI_BAGLANTISI.md rehberini izleyin. Hesap anahtarları tarayıcı yerine cihazınızdaki korumalı dosyada saklanır. Claude aboneliği için Claude Code kurulu ve oturum açık olmalıdır.',
   extensionId: 'Kurulum için eklenti kimliği:',
   usePlan: 'ChatGPT planı kullanılıyor',
   useApi: 'OpenAI API kullanılıyor',

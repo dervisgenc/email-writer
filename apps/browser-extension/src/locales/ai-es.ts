@@ -89,7 +89,7 @@ export const aiEs: AiText = {
     helper: {
       title: '¿Qué es la aplicación auxiliar?',
       summary: 'Una pequeña aplicación en tu equipo que necesitan todos los métodos.',
-      requirements: ['macOS o Linux. Windows aún no es compatible.', 'Node.js 22 o posterior.'],
+      requirements: ['macOS, Linux o Windows.', 'Node.js 22 o posterior.'],
       steps: [
         'Instala la aplicación auxiliar y reinicia el navegador.',
         'El aviso “La conexión de IA local no está disponible” desaparece de esta página y aparecen los métodos.',
@@ -163,7 +163,7 @@ export const aiEs: AiText = {
     'Cuando pides una generación, tu texto, tus indicaciones y el contexto seleccionado se envían a OpenAI. La extensión no los guarda en el disco. No tiene acceso a tu historial de conversaciones de ChatGPT.',
   setup: 'Configurar la conexión local',
   setupBody:
-    'La conexión de IA requiere la aplicación local de Email Writer (macOS / Linux, Node.js 22+). Sigue docs/AI_BAGLANTISI.md en el proyecto. Las credenciales de las cuentas se guardan en un archivo protegido de tu dispositivo en lugar del almacenamiento del navegador. El método Plan de Claude también requiere que Claude Code esté instalado y con la sesión iniciada.',
+    'La conexión de IA requiere la aplicación local de Email Writer (macOS, Linux o Windows; Node.js 22+). Sigue docs/AI_BAGLANTISI.md en el proyecto. Las credenciales de las cuentas se guardan en un archivo protegido de tu dispositivo en lugar del almacenamiento del navegador. El método Plan de Claude también requiere que Claude Code esté instalado y con la sesión iniciada.',
   extensionId: 'ID de la extensión para la instalación:',
   usePlan: 'Usando el plan de ChatGPT',
   useApi: 'Usando la API de OpenAI',
