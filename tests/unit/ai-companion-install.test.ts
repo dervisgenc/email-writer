@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { tmpdir, userInfo } from 'node:os';
 import { join } from 'node:path';
 import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -263,6 +263,7 @@ describe('Operating system integration', () => {
 const REPORTING_HOST = `process.stdout.write(JSON.stringify({
   claude: process.env.EMAIL_WRITER_CLAUDE_PATH ?? null,
   config: process.env.CLAUDE_CONFIG_DIR ?? null,
+  user: process.env.USER ?? null,
   args: process.argv.slice(2),
 }));
 `;
@@ -312,9 +313,11 @@ describe('Launcher on this computer', () => {
           encoding: 'utf8',
         }),
       );
+      // Browsers pass the full environment on Windows; the launcher leaves USER as it is.
+      const user = process.env.USER ?? null;
       expect(results.map((result) => JSON.parse(result.stdout))).toEqual([
-        { claude, config, args: [origin, '--parent-window=0'] },
-        { claude, config, args: [manifest, FIREFOX_EXTENSION_ID] },
+        { claude, config, user, args: [origin, '--parent-window=0'] },
+        { claude, config, user, args: [manifest, FIREFOX_EXTENSION_ID] },
       ]);
     },
   );
@@ -338,6 +341,8 @@ describe('Launcher on this computer', () => {
     expect(JSON.parse(result.stdout)).toEqual({
       claude: '/opt/claude',
       config: join(root, 'config $HOME'),
+      // Without USER in the environment the launcher looks the user name up with `id -un`.
+      user: userInfo().username,
       args: ['origin'],
     });
   });
