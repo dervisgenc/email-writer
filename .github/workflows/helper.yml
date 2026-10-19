@@ -1,0 +1,90 @@
+name: Helper app
+
+# Builds the single-file helper app on every supported system, installs it with the release's
+# install script from a local folder, checks that it answers the way a browser expects and
+# removes it again. ci.yml runs it for every change, release.yml for every tag; the archives
+# are kept as artifacts for the release.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: darwin-arm64, runner: macos-15 }
+          - { target: darwin-x64, runner: macos-15-intel }
+          - { target: linux-x64, runner: ubuntu-24.04 }
+          - { target: linux-arm64, runner: ubuntu-24.04-arm }
+          - { target: windows-x64, runner: windows-2025 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      # The program is a copy of this Node.js binary; releases use the current LTS.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the single-file program
+        run: pnpm ai:sea
+
+      - name: Prepare a release folder
+        shell: bash
+        run: |
+          mkdir release
+          cp apps/ai-companion/dist/release/* apps/ai-companion/install/install.sh apps/ai-companion/install/install.ps1 release/
+          ls release/writehand-${{ matrix.target }}.*
+          node scripts/sign-release.mjs release --unsigned
+
+      - name: Install, check and remove (macOS, Linux)
+        if: runner.os != 'Windows'
+        run: |
+          version=$(node -p "require('./package.json').version")
+          program="$HOME/.local/share/writehand/writehand"
+          # The same as `curl -fsSL …/install.sh | sh -s -- --extension-id=…`, from the local folder.
+          WRITEHAND_DOWNLOAD_BASE="file://$PWD/release" sh release/install.sh --extension-id=abcdefghijklmnopabcdefghijklmnop
+          "$program" status
+          # Starts the program like a browser, with a minimal environment, and asks HOST_INFO.
+          env -i PATH=/usr/bin:/bin HOME="$HOME" "$(command -v node)" scripts/smoke-helper.mjs "$program" --expect-version="$version"
+          sh release/install.sh uninstall
+          test ! -e "$HOME/.local/share/writehand"
+
+      - name: Install, check and remove (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $program = Join-Path $env:LOCALAPPDATA 'Programs\writehand\writehand.exe'
+          $key = 'HKCU\Software\Google\Chrome\NativeMessagingHosts\com.dervisgenc.writehand'
+          # The same as `irm …/install.ps1 | iex`, from the local folder.
+          $env:WRITEHAND_DOWNLOAD_BASE = (Resolve-Path release).Path
+          $env:WRITEHAND_EXTENSION_ID = 'abcdefghijklmnopabcdefghijklmnop'
+          Get-Content -Raw release/install.ps1 | Invoke-Expression
+          & $program status
+          if ($LASTEXITCODE) { throw 'status failed' }
+          reg query $key /ve
+          if ($LASTEXITCODE) { throw 'Chrome registration missing' }
+          node scripts/smoke-helper.mjs $program --expect-version=$version
+          if ($LASTEXITCODE) { throw 'HOST_INFO failed' }
+          & ([scriptblock]::Create((Get-Content -Raw release/install.ps1))) -Uninstall
+          # A running program cannot delete itself on Windows; its folder goes once it has exited.
+          for ($i = 0; $i -lt 30 -and (Test-Path (Split-Path $program)); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path (Split-Path $program)) { throw 'The install folder was not removed.' }
+          reg query $key 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'The registry key was not removed.' }
+          exit 0
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: helper-${{ matrix.target }}
+          path: apps/ai-companion/dist/release/*
+          if-no-files-found: error

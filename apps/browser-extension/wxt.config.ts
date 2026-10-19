@@ -1,4 +1,4 @@
-import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
+import { FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@email-writer/contracts';
 import { defineConfig } from 'wxt';
 
 import { version } from '../../package.json';
@@ -41,6 +41,12 @@ export default defineConfig({
         }
       : {}),
   }),
+  zip: {
+    // Mağaza paketleri: writehand-<sürüm>-chrome.zip (Chrome, Edge, Brave) ve -firefox.zip. AMO'nun
+    // istediği kaynak arşivi bütün monorepoyu kapsamalı; sürüm iş akışı onu `git archive` ile üretir.
+    artifactTemplate: `${HELPER_COMMAND}-{{version}}-{{browser}}.zip`,
+    zipSources: false,
+  },
   hooks: {
     'build:publicAssets': (_wxt, files) => {
       for (const [language, messages] of Object.entries(manifestMessages())) {

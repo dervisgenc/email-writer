@@ -1,0 +1,43 @@
+# Building Writehand from source
+
+This note is for add-on store reviewers (it is written in English for them) and anyone who wants to reproduce the release packages. The source archive attached to each release (`writehand-<version>-source.zip`) is `git archive` of the tagged commit.
+
+## Requirements
+
+- Node.js 24 LTS
+- pnpm 12.11.2 (`npm install -g pnpm@12.11.2`; the version is pinned in `package.json` → `packageManager`)
+- Linux, macOS or Windows; no other system tools are needed for the extension
+
+## Extension packages
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @email-writer/browser-extension zip:all
+```
+
+This writes, under `apps/browser-extension/.output/`:
+
+| File | Store | Unpacked build |
+| --- | --- | --- |
+| `writehand-<version>-firefox.zip` | Firefox Add-ons (AMO) | `firefox-mv3/` |
+| `writehand-<version>-chrome.zip` (attached to releases as `-chromium.zip`) | Chrome Web Store, Microsoft Edge Add-ons; Brave installs from the Chrome Web Store | `chrome-mv3/` |
+
+The build is WXT (Vite) with Vue 3; nothing is downloaded at run time and no code is minified away from its source beyond Vite's standard production build. `pnpm verify:packages` checks permissions, content script matches and that no development code is included.
+
+## Helper app
+
+The extension talks to a small helper app on the user's computer through native messaging (`com.dervisgenc.writehand`). Its source is in `apps/ai-companion`; release builds are single programs made with Node.js's single executable application support:
+
+```sh
+pnpm ai:sea   # run with Node.js 24 on each target system
+```
+
+The program and its third-party licenses are written to `apps/ai-companion/dist/release/`.
+
+## Where things are
+
+| Path | Contents |
+| --- | --- |
+| `apps/browser-extension` | Extension entry points, settings, welcome wizard, locales |
+| `packages/*` | Shared contracts, core logic, UI components, Outlook connector, email formatting, AI providers |
+| `apps/ai-companion` | Helper app (native messaging host, installer, updater) |
