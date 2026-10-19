@@ -23,7 +23,7 @@ A browser extension that helps you write better emails without leaving your mail
 
 Under active development and not yet published to browser stores. Reading, context, preview and controlled writing to the draft have been verified live in Outlook on the web (Firefox on macOS, with Claude Code), including rich tables, undo and re-apply. Generation has also been verified with a ChatGPT Plus account.
 
-The local helper app runs on **macOS, Linux and Windows** (Windows verified on Windows 11 with Chrome, Edge, Brave and Firefox) and currently needs Node.js 22 or later. Single-file helper builds and one-command installers are in progress. A license will be chosen before the first public release.
+The local helper app runs on **macOS, Linux and Windows** (Windows verified on Windows 11 with Chrome, Edge, Brave and Firefox) and currently needs Node.js 22 or later. Single-file helper builds and one-command installers are in progress.
 
 ## Getting started
 
@@ -76,3 +76,7 @@ The detailed documentation is currently written in Turkish.
 - [Outlook on the web page verification](./docs/outlook-web-dogrulama.md)
 - [Browser and account matrix](./tests/manual/browser-matrix.md)
 - [Work log](./YAPILAN_ISLER.md)
+
+## License
+
+Writehand is open source under the [MIT License](./LICENSE). To report a security issue privately, see the [security policy](./SECURITY.md).

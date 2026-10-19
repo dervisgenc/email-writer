@@ -2,6 +2,7 @@
   "name": "@email-writer/ui",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Vue panel, başlatıcı ve önizleme bileşenleri",
   "exports": {

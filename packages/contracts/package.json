@@ -2,6 +2,7 @@
   "name": "@email-writer/contracts",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Modüllerin paylaştığı veri ve işlem tanımları, sınır şemaları",
   "exports": {
