@@ -339,6 +339,11 @@ describe('Operating system integration', () => {
     expect(removal!.args.join(' ')).not.toContain('A & B');
     expect(removal!.env).toMatchObject({ LOCALAPPDATA: windowsEnv.LOCALAPPDATA });
     expect(Object.keys(removal!.env!).map((key) => key.toUpperCase())).not.toContain('PSMODULEPATH');
+    // The removal itself runs as a separate hidden process, from a script passed as data.
+    expect(removal!.args.join(' ')).toContain('Start-Process -WindowStyle Hidden');
+    const script = Buffer.from(removal!.env!.WRITEHAND_REMOVAL!, 'base64').toString('utf16le');
+    expect(script).toContain('Wait-Process -Id $env:WRITEHAND_PID');
+    expect(script).toContain('Remove-Item -LiteralPath $env:WRITEHAND_REMOVE -Recurse -Force');
     expect(hostPlatform('linux', {}, '/h').deferredRemoval('/h/x', 42)).toBe(null);
   });
 });

@@ -77,7 +77,10 @@ export interface HostPlatform {
    * program is moved aside and the copy is removed when the helper next starts.
    */
   readonly movesRunningProgramAside: boolean;
-  /** Removes the installation folder once this process has exited (Windows); null where it can be removed at once. */
+  /**
+   * Starts the removal of the installation folder once this process has exited (Windows); null
+   * where it can be removed at once. The command returns after starting it and is awaited.
+   */
   deferredRemoval(directory: string, pid: number): Command | null;
 }
 
@@ -289,21 +292,37 @@ function windowsPlatform(arch: string, env: Environment, home: string): HostPlat
       },
     },
     movesRunningProgramAside: true,
-    // The folder and pid travel in the environment, so no path is ever parsed as a command.
-    deferredRemoval: (directory, pid) => ({
-      file: system32('WindowsPowerShell\\v1.0\\powershell.exe'),
-      args: [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        // A program that has just exited, or a virus scanner checking it, can hold its file briefly.
-        'Wait-Process -Id $env:WRITEHAND_PID -ErrorAction SilentlyContinue; ' +
-          'for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $env:WRITEHAND_REMOVE); $i++) { ' +
+    deferredRemoval: (directory, pid) => {
+      const powershell = system32('WindowsPowerShell\\v1.0\\powershell.exe');
+      // Waits for this program to exit, then removes the folder. A program that has just exited,
+      // or a virus scanner checking it, can hold its file briefly.
+      const removal = [
+        'Wait-Process -Id $env:WRITEHAND_PID -ErrorAction SilentlyContinue',
+        'for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $env:WRITEHAND_REMOVE); $i++) { ' +
           'Remove-Item -LiteralPath $env:WRITEHAND_REMOVE -Recurse -Force -ErrorAction SilentlyContinue; ' +
           'Start-Sleep -Milliseconds 500 }',
-      ],
-      env: windowsPowerShellEnvironment(env, { WRITEHAND_PID: String(pid), WRITEHAND_REMOVE: directory }),
-    }),
+      ].join('; ');
+      return {
+        file: powershell,
+        // Node ends the processes it starts when it exits (a kill-on-close job object), but not
+        // their children; its detached processes get no console, which PowerShell needs. So this
+        // short-lived process starts the removal as its own hidden process and returns.
+        args: [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          'Start-Process -WindowStyle Hidden -FilePath $env:WRITEHAND_POWERSHELL ' +
+            "-ArgumentList '-NoProfile','-NonInteractive','-EncodedCommand',$env:WRITEHAND_REMOVAL",
+        ],
+        // Paths, the pid and the script travel in the environment, never parsed as a command line.
+        env: windowsPowerShellEnvironment(env, {
+          WRITEHAND_PID: String(pid),
+          WRITEHAND_REMOVE: directory,
+          WRITEHAND_POWERSHELL: powershell,
+          WRITEHAND_REMOVAL: Buffer.from(removal, 'utf16le').toString('base64'),
+        }),
+      };
+    },
   };
 }
 
