@@ -35,6 +35,7 @@ export interface Registry {
 export interface Command {
   readonly file: string;
   readonly args: readonly string[];
+  /** The program's whole environment, when it must differ from this process's. */
   readonly env?: Readonly<Record<string, string>>;
 }
 
@@ -164,6 +165,21 @@ function batchValue(value: string): string {
 
 const run = promisify(execFile);
 
+/**
+ * The environment for Windows PowerShell 5.1. Started from PowerShell 7, it would inherit a
+ * PSModulePath that lists PowerShell 7's modules first and then fail to load its own (Get-Acl,
+ * Remove-Item); without the variable it uses its default module path.
+ */
+export function windowsPowerShellEnvironment(
+  env: Environment,
+  additions: Readonly<Record<string, string>> = {},
+): Record<string, string> {
+  const inherited = Object.entries(env).filter(
+    (entry): entry is [string, string] => entry[1] !== undefined && entry[0].toUpperCase() !== 'PSMODULEPATH',
+  );
+  return { ...Object.fromEntries(inherited), ...additions };
+}
+
 /** The default value in `reg query <key> /ve` output: "    (Default)    REG_SZ    <value>". */
 export function registryDefaultValue(output: string): string | null {
   // The "(Default)" label is localized; the type name is not.
@@ -283,7 +299,7 @@ function windowsPlatform(arch: string, env: Environment, home: string): HostPlat
         'Wait-Process -Id $env:WRITEHAND_PID -ErrorAction SilentlyContinue; ' +
           'Remove-Item -LiteralPath $env:WRITEHAND_REMOVE -Recurse -Force -ErrorAction SilentlyContinue',
       ],
-      env: { WRITEHAND_PID: String(pid), WRITEHAND_REMOVE: directory },
+      env: windowsPowerShellEnvironment(env, { WRITEHAND_PID: String(pid), WRITEHAND_REMOVE: directory }),
     }),
   };
 }

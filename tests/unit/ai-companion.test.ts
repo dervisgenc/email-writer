@@ -24,7 +24,7 @@ import {
   NativeMessageDecoder,
   rejectionFor,
 } from '../../apps/ai-companion/src/native-protocol';
-import { hostPlatform } from '../../apps/ai-companion/src/platform';
+import { hostPlatform, windowsPowerShellEnvironment } from '../../apps/ai-companion/src/platform';
 import { createSignIn } from '../../apps/ai-companion/src/sign-in';
 
 const input: AiInput = {
@@ -347,7 +347,7 @@ describe('AI service and protected storage', () => {
         const sddl = execFileSync(
           join(system32, 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
           ['-NoProfile', '-NonInteractive', '-Command', '(Get-Acl -LiteralPath $env:EW_TARGET).Sddl'],
-          { encoding: 'utf8', env: { ...process.env, EW_TARGET: path } },
+          { encoding: 'utf8', env: windowsPowerShellEnvironment(process.env, { EW_TARGET: path }) },
         ).trim();
         const dacl = sddl.slice(sddl.indexOf('D:'));
         return {

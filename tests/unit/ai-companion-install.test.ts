@@ -325,12 +325,20 @@ describe('Operating system integration', () => {
   });
 
   it('Windows removes a running program after it exits; the folder is passed as data, not as a command', () => {
-    const removal = windows().deferredRemoval('C:\\Users\\A & B\\writehand', 42);
+    // Started from PowerShell 7, Windows PowerShell must not inherit its module path.
+    const fromPwsh = hostPlatform(
+      'win32',
+      { ...windowsEnv, PSModulePath: 'C:\\pwsh\\Modules' },
+      WINDOWS_HOME,
+    );
+    const removal = fromPwsh.deferredRemoval('C:\\Users\\A & B\\writehand', 42);
     expect(removal).toMatchObject({
       file: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
       env: { WRITEHAND_PID: '42', WRITEHAND_REMOVE: 'C:\\Users\\A & B\\writehand' },
     });
     expect(removal!.args.join(' ')).not.toContain('A & B');
+    expect(removal!.env).toMatchObject({ LOCALAPPDATA: windowsEnv.LOCALAPPDATA });
+    expect(Object.keys(removal!.env!).map((key) => key.toUpperCase())).not.toContain('PSMODULEPATH');
     expect(hostPlatform('linux', {}, '/h').deferredRemoval('/h/x', 42)).toBe(null);
   });
 });

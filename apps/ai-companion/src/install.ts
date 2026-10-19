@@ -184,7 +184,7 @@ export async function uninstall(
   if (removal === null) await rm(plan.directory, { recursive: true, force: true });
   else
     spawn(removal.file, [...removal.args], {
-      env: { ...process.env, ...removal.env },
+      env: removal.env ?? process.env,
       detached: true,
       stdio: 'ignore',
       windowsHide: true,
