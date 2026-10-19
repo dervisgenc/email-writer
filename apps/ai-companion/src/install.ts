@@ -183,9 +183,11 @@ export async function uninstall(
   const removal = running ? platform.deferredRemoval(plan.directory, process.pid) : null;
   if (removal === null) await rm(plan.directory, { recursive: true, force: true });
   else
+    // Not `detached`: on Windows that starts the process without a console, and Windows
+    // PowerShell then does not run. With hidden, unshared stdio it gets its own hidden console;
+    // Windows does not end child processes when their parent exits.
     spawn(removal.file, [...removal.args], {
       env: removal.env ?? process.env,
-      detached: true,
       stdio: 'ignore',
       windowsHide: true,
     }).unref();
