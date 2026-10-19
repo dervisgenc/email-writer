@@ -296,8 +296,11 @@ function windowsPlatform(arch: string, env: Environment, home: string): HostPlat
         '-NoProfile',
         '-NonInteractive',
         '-Command',
+        // A program that has just exited, or a virus scanner checking it, can hold its file briefly.
         'Wait-Process -Id $env:WRITEHAND_PID -ErrorAction SilentlyContinue; ' +
-          'Remove-Item -LiteralPath $env:WRITEHAND_REMOVE -Recurse -Force -ErrorAction SilentlyContinue',
+          'for ($i = 0; $i -lt 20 -and (Test-Path -LiteralPath $env:WRITEHAND_REMOVE); $i++) { ' +
+          'Remove-Item -LiteralPath $env:WRITEHAND_REMOVE -Recurse -Force -ErrorAction SilentlyContinue; ' +
+          'Start-Sleep -Milliseconds 500 }',
       ],
       env: windowsPowerShellEnvironment(env, { WRITEHAND_PID: String(pid), WRITEHAND_REMOVE: directory }),
     }),
