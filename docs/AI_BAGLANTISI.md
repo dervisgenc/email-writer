@@ -12,59 +12,67 @@ OpenAI bu akışı açık kaynak ve yerelde çalışan uygulamalar için belgeli
 
 ## Neden yerel uygulama gerekiyor?
 
-Belgelenen OSS OAuth dönüşü `http://127.0.0.1:<port>/auth/callback` adresidir. Access/refresh/ID token'ları tarayıcı depolamasında tutulmamalıdır. Bu nedenle Node.js tabanlı küçük bir native messaging uygulaması kullanılır. Tarayıcı bu süreci ihtiyaç duyulduğunda başlatır; sürekli açık bir HTTP üretim servisi bulunmaz. Yalnızca giriş sırasında, rastgele bir loopback portunda beş dakika süreli OAuth dinleyicisi açılır. [Giriş protokolü](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [oturum güvenliği](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions).
+Belgelenen OSS OAuth dönüşü `http://127.0.0.1:<port>/auth/callback` adresidir. Access/refresh/ID token'ları tarayıcı depolamasında tutulmamalıdır. Bir tarayıcı eklentisi port dinleyemez ve program çalıştıramaz; bu yüzden küçük bir native messaging uygulaması (Writehand yardımcı uygulaması) kullanılır. Tarayıcı bu süreci ihtiyaç duyulduğunda başlatır; sürekli açık bir HTTP üretim servisi bulunmaz. Yalnızca giriş sırasında, rastgele bir loopback portunda beş dakika süreli OAuth dinleyicisi açılır. İleride eklenecek API sağlayıcılarının anahtarları da yardımcı uygulamada kalır, tarayıcıya taşınmaz. [Giriş protokolü](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [oturum güvenliği](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions).
 
-Kurulum betiği **macOS, Linux ve Windows** içindir ve Node.js 22+ gerektirir. Windows desteği 16 Ekim 2026'da Windows 11'de Chrome, Edge, Brave ve Firefox ile doğrulandı (aşağıda "Windows'ta kurulum"). Mağaza yayını öncesinde son kullanıcıya uygun, Node.js gerektirmeyen paketlenmiş bir kurucu hazırlanmalıdır.
+Yardımcı uygulama, Node.js gerektirmeyen **tek bir programdır** (Node.js tek dosyalık uygulama, SEA). macOS (Apple Silicon ve Intel), Linux (x64, arm64) ve Windows (x64; Arm'lı Windows'ta öykünmeyle) için her sürümde derlenir. Windows desteği 16 Ekim 2026'da Windows 11'de Chrome, Edge, Brave ve Firefox ile doğrulandı (aşağıda "Windows'ta kurulum").
 
-## Geliştirici kurulumu
+## Yardımcı uygulamanın kurulumu
 
-Repo kökünde:
-
-```sh
-pnpm install
-pnpm build
-```
-
-Firefox için:
+Kullanıcı, eklentinin karşılama sihirbazında (ilk kurulumda açılır; **Ayarlar → Yardımcı uygulama → Kurulum sihirbazını aç**) gösterilen tek satırlık komutu çalıştırır:
 
 ```sh
-pnpm ai:install firefox
+curl -fsSL https://github.com/dervisgenc/email-writer/releases/latest/download/install.sh | sh
 ```
 
-Firefox geliştirme kimliği `email-writer@example.invalid` olarak kayıtlıdır. Kimlik değişirse `--extension-id=YENI_KIMLIK` ile tekrar kurun. Paket `apps/browser-extension/.output/firefox-mv3/manifest.json` üzerinden `about:debugging` sayfasında geçici eklenti olarak yüklenebilir. Outlook geliştirme oturumu için mevcut `pnpm outlook:dev` komutu kullanılabilir.
-
-Chrome/Edge/Brave için önce `apps/browser-extension/.output/chrome-mv3` klasörünü paketlenmemiş eklenti olarak yükleyin. Eklenti kimliğini tarayıcının eklenti yönetim sayfasından veya Email Writer ayarlarındaki **Yerel bağlantı kurulumu** bölümünden alın. Aşağıdaki `EKLENTI_KIMLIGI` yer tutucusunu bu kimlikle değiştirin:
-
-```sh
-pnpm ai:install chrome --extension-id=EKLENTI_KIMLIGI
-# Diğer tarayıcılar:
-pnpm ai:install edge --extension-id=EKLENTI_KIMLIGI
-pnpm ai:install brave --extension-id=EKLENTI_KIMLIGI
+```powershell
+irm https://github.com/dervisgenc/email-writer/releases/latest/download/install.ps1 | iex
 ```
 
-Kurucu derlenmiş uygulamayı kullanıcı dizinine kopyalar ve yalnızca verilen eklenti kimliğine izin veren tarayıcı manifestini yazar. Eklentiye veya mağazaya anahtar gömülmez. Node.js kurulumu/konumu, eklenti kimliği veya companion kodu değişince `pnpm ai:build` ve ilgili `pnpm ai:install ...` komutunu yeniden çalıştırın. Sonra eklentiyi yeniden yükleyin. Kurucu bir yönetici izni istemez; yalnızca kendi dosyalarına ve (Windows'ta) kendi HKCU anahtarlarına dokunur.
+Betik sistemi ve işlemciyi algılar, son sürümden uygun arşivi ve `SHA256SUMS`'ı indirir, SHA-256'yı karşılaştırır (tutmazsa hiçbir şey kurmadan durur), programı geçici klasörde açar ve `writehand install` ile kendini kurmasını sağlar. Yönetici izni istenmez. `curl` ve `Invoke-WebRequest` ile indirilen dosyalara karantina (macOS) veya Mark-of-the-Web (Windows) işareti konmadığından program uyarısız başlar; macOS programı ücretsiz ad-hoc imzalıdır (Apple Silicon imzasız program çalıştırmaz).
+
+Mağaza kimliği yardımcı uygulamaya henüz yazılmamış bir Chromium eklentisinde (ör. paketlenmemiş geliştirme derlemesi) sihirbaz kimliği komuta kendisi ekler: `… | sh -s -- --extension-id=KIMLIK`, PowerShell'de `$env:WRITEHAND_EXTENSION_ID='KIMLIK'; irm … | iex`.
+
+**Program komutları** (kurulu program: macOS/Linux `~/.local/share/writehand/writehand`, Windows `%LOCALAPPDATA%\Programs\writehand\writehand.exe`):
+
+| Komut | Ne yapar |
+| --- | --- |
+| *(komutsuz veya tarayıcının argümanlarıyla)* | Native messaging host olarak çalışır. Terminalde komutsuz çalıştırılırsa yardım gösterir. |
+| `install [--extension-id=ID]... [--dev]` | Çalışan programı kurulum klasörüne kopyalar; Firefox, Chrome, Edge ve Brave'i tek seferde kaydeder; `config.json`'u yazar. Firefox yerleşik kimliği kullanır; Chromium tarayıcıları bir kimlik bilindiğinde (mağaza kimlikleri veya `--extension-id`) kaydedilir. Önceki kayıtlardaki kimlikler korunur. |
+| `uninstall [--delete-data]` | Bütün tarayıcı kayıtlarını ve programı siler. `--delete-data` ChatGPT oturumlarını iptal etmeyi dener ve kimlik bilgilerini siler. |
+| `status` | Sürüm, sistem, kayıtlı tarayıcılar ve Claude Code'un hazır olup olmadığı. Hesap veya token bilgisi yazdırılmaz. |
+| `update [--check]` | Daha yeni sürüm varsa imzasını ve sağlamasını doğrulayıp kurar; `--check` yalnızca denetler. |
+| `version` | Sürümü yazar. |
+
+Kaldırma için betikler de kullanılabilir: `curl -fsSL …/install.sh | sh -s -- uninstall` veya `& ([scriptblock]::Create((irm …/install.ps1))) -Uninstall` (sonuna `--delete-data` / `-DeleteData`).
 
 | | macOS / Linux | Windows |
 | --- | --- | --- |
-| Program (`host.mjs` ve başlatıcı) | `~/.local/share/email-writer/` (`email-writer-ai`, sh betiği) | `%LOCALAPPDATA%\Programs\email-writer\` (`email-writer-ai.cmd`) |
-| Tarayıcı manifesti | Tarayıcının `NativeMessagingHosts` klasöründe `com.email_writer.ai.json` | Program klasöründe `com.email_writer.ai.<tarayıcı>.json` |
-| Tarayıcının manifesti bulması | Klasörün kendisi | `HKCU\Software\<konum>\NativeMessagingHosts\com.email_writer.ai` anahtarının varsayılan değeri (manifest yolu) |
-| Kimlik bilgileri | `~/.config/email-writer/` (dizin `0700`, dosya `0600`) | `%LOCALAPPDATA%\email-writer\` (yalnızca kullanıcı ve SYSTEM erişebilir) |
+| Program | `~/.local/share/writehand/writehand` | `%LOCALAPPDATA%\Programs\writehand\writehand.exe` |
+| Kurulumda kaydedilen ayarlar | Programın yanında `config.json` | Programın yanında `config.json` |
+| Tarayıcı manifesti | Tarayıcının `NativeMessagingHosts` klasöründe `com.dervisgenc.writehand.json` | Program klasöründe `com.dervisgenc.writehand.<tarayıcı>.json` |
+| Tarayıcının manifesti bulması | Klasörün kendisi | `HKCU\Software\<konum>\NativeMessagingHosts\com.dervisgenc.writehand` anahtarının varsayılan değeri |
+| Kimlik bilgileri | `~/.config/writehand/` (dizin `0700`, dosya `0600`) | `%LOCALAPPDATA%\writehand\` (yalnızca kullanıcı ve SYSTEM erişebilir) |
 
-İşletim sistemi farklarının tamamı `apps/ai-companion/src/platform.ts` içindedir. Kurucu, saf bir plan (`install-plan.ts`: hangi dosya ve kayıt girdisi, hangi içerikle) ve bu planı uygulayan ince bir komuttan (`install.ts`) oluşur; her sistemin planı her makinede birim testle sınanır.
+**Başlatıcı yoktur:** manifest doğrudan programı gösterir. Tarayıcı programı kısıtlı bir ortamla başlattığı için kurulum, terminalde bulunanları `config.json`'a yazar: Claude Code'un yolu, `CLAUDE_CONFIG_DIR` ve npm ile kurulmuş Claude Code için `node` klasörü. Host başlarken bunları kendi ortamına ekler; `USER` yoksa `os.userInfo()` kullanılır (macOS'ta Claude Code anahtar zinciri girişini kullanıcı adıyla bulur). Bozuk veya daha yeni bir sürümün yazdığı `config.json` varsayılanlara döner; host her durumda başlar.
 
-### Windows'ta kurulum
+İşletim sistemi farklarının tamamı `apps/ai-companion/src/platform.ts` içindedir (ESLint başka yerde `process.platform`'u reddeder). Kurulum saf bir plandan (`install-plan.ts`, `host-config.ts`) ve bunu uygulayan ince katmandan (`install.ts`) oluşur; her sistemin planı her makinede birim testle sınanır.
 
-Komutlar PowerShell'de ve Git Bash'te aynıdır:
+**İzin:** Eklentide `nativeMessaging` isteğe bağlı izindir; kurulumda "yerel uygulamalarla iletişim" uyarısı çıkmaz. Karşılama sihirbazının 2. adımı izni bir düğmeyle ister. İzin yokken tarayıcı `connectNative`'i sunmaz ve arka plan yardımcı uygulamayı "bağlı değil" bildirir.
 
-```powershell
+### Geliştirici kurulumu
+
+Kaynak koddan geliştirirken aynı kurulum kodu Node.js ile çalışır:
+
+```sh
 pnpm install
-pnpm build
-pnpm ai:install firefox
-pnpm ai:install chrome --extension-id=EKLENTI_KIMLIGI   # ayrıca edge, brave
+pnpm ai:build                                  # apps/ai-companion/dist/cli.mjs
+pnpm ai:install                                # = node dist/cli.mjs install --dev
+pnpm ai:install --extension-id=EKLENTI_KIMLIGI # paketlenmemiş Chromium derlemesi için
 ```
 
-Paketlenmemiş eklentinin kimliği klasör yolundan türetilir; Windows'taki kimlik macOS'takinden farklıdır ve `.output/chrome-mv3`, `-dev`, `-test` klasörleri farklı kimlik alır. Chrome 137 ve sonrası `--load-extension` komut satırı bayrağını yok sayar (Chrome 155'te doğrulandı): paketlenmemiş eklentiyi `chrome://extensions` → Geliştirici modu → Paketlenmemiş öğe yükle ile yükleyin.
+Geliştirme kurulumu betiği (`cli.mjs`) kopyalar ve onu Node.js ile çalıştıran küçük bir başlatıcı yazar (macOS/Linux `writehand` sh betiği, Windows `writehand.cmd`); `config.json`'da `development: true` olarak işaretlenir ve kendini **güncellemez**. Kaldırmak için kurulu programın `uninstall` komutu kullanılır. Firefox geliştirme ve mağaza kimliği aynıdır (`writehand@dervisgenc.com`). Paketlenmemiş Chromium eklentisinin kimliği klasör yolundan türetilir; `.output/chrome-mv3`, `-dev`, `-test` klasörleri farklı kimlik alır. Chrome 137 ve sonrası `--load-extension` komut satırı bayrağını yok sayar: paketlenmemiş eklentiyi `chrome://extensions` → Geliştirici modu → Paketlenmemiş öğe yükle ile yükleyin.
+
+### Windows'ta kurulum
 
 | Tarayıcı | Kayıt anahtarı (`HKCU\Software\…\NativeMessagingHosts`) | Not |
 | --- | --- | --- |
@@ -72,17 +80,28 @@ Paketlenmemiş eklentinin kimliği klasör yolundan türetilir; Windows'taki kim
 | Edge | `Microsoft\Edge` | Kendi anahtarı yoksa Chromium, sonra Chrome anahtarına bakar ([Microsoft](https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/native-messaging)). |
 | Brave | `Chromium` | Resmî belge yok. Gerçek denemede (Brave 1.97) Brave önce `Chromium`, sonra `Google\Chrome` anahtarını okudu ve ilk bulduğu manifestte durdu; `BraveSoftware\Brave-Browser` anahtarını okumadı. `Chromium` anahtarı Chrome kaydıyla çakışmaz. |
 | Firefox | `Mozilla` | |
-| Opera | Kurucuda yok | Opera 137 de önce `Chromium`, sonra `Google\Chrome` anahtarını okur (gerçek deneme), kendi anahtarını okumaz. Bu anahtarı Brave ile paylaşmak zorunda olduğu için ayrı geliştirme kimlikleriyle ikisi birlikte kaydedilemez. Brave kullanmayan bir geliştirici Opera'yı `pnpm ai:install brave --extension-id=OPERA_KIMLIGI` ile bağlayabilir. Mağaza kimlikleri sabitlendiğinde tek manifest Chrome, Brave ve Opera'yı birlikte karşılayabilir. |
+| Opera | Kurucuda yok | Opera 137 de önce `Chromium`, sonra `Google\Chrome` anahtarını okur (gerçek deneme), kendi anahtarını okumaz. Mağaza kimlikleri sabitlendiğinde aynı manifest Chrome, Brave ve Opera'yı birlikte karşılar. |
 
 Kararlar ve gerekçeleri:
 
 - **Konumlar:** Program `%LOCALAPPDATA%\Programs\` altındadır; bu, Windows'un kullanıcıya özel program klasörüdür (yönetici izni gerekmez). Kimlik bilgileri `%APPDATA%` (Roaming) yerine `%LOCALAPPDATA%` altındadır: dolaşan profillerde token'lar sunucuya ve başka bilgisayarlara kopyalanmaz, iki bilgisayar aynı refresh token'ı döndürmeye çalışmaz.
-- **İzinler:** Windows'ta `chmod` etkisizdir. Profil klasörünün varsayılan izni (`icacls`) kullanıcı, SYSTEM ve Administrators'tır; bu tek başına diğer kullanıcılara kapalıdır. Yine de kimlik klasörü ilk oluşturulduğunda `icacls` ile devralma kaldırılır ve yalnızca kullanıcı ile SYSTEM tam yetkili kalır; dosyalar bu izni devralır. Kısıtlama yapılamazsa klasör silinir ve sır yazılmaz. Kontrol: `icacls "%LOCALAPPDATA%\email-writer"`.
+- **İzinler:** Windows'ta `chmod` etkisizdir. Profil klasörünün varsayılan izni (`icacls`) kullanıcı, SYSTEM ve Administrators'tır; bu tek başına diğer kullanıcılara kapalıdır. Yine de kimlik klasörü ilk oluşturulduğunda `icacls` ile devralma kaldırılır ve yalnızca kullanıcı ile SYSTEM tam yetkili kalır; dosyalar bu izni devralır. Kısıtlama yapılamazsa klasör silinir ve sır yazılmaz. Kontrol: `icacls "%LOCALAPPDATA%\writehand"`.
 - **Kilit ve atomik yazım:** Aynı `proper-lockfile` kilidi ve geçici dosya + yeniden adlandırma kullanılır. Windows'ta virüs tarayıcısı veya arama dizini yeni yazılan dosyayı kısa süre tutabildiği için değiştirme birkaç kez (toplam ~1,5 sn) yeniden denenir.
-- **Başlatıcı:** `.cmd`. Chrome ve Edge onu `cmd.exe /d /s /c` ile, Firefox `cmd.exe /s/c` ile başlatır. `cmd.exe` toplu iş dosyalarını konsol kod sayfasıyla (ör. 437) okuduğu için dosya UTF-8 yazılır ve `chcp 65001` ile başlar; kullanıcı klasöründe `ş`, `ü` gibi harfler olsa da yollar bozulmaz. Tarayıcılar Windows'ta kullanıcının tam ortamını aktardığından yalnızca `EMAIL_WRITER_CLAUDE_PATH` ve varsa `CLAUDE_CONFIG_DIR` kaydedilir; değerlerdeki `%` kaçışlanır.
-- **Tarayıcı açma:** `rundll32.exe url.dll,FileProtocolHandler <URL>`, kabuk olmadan; URL tek argümandır ve `&` korunur. Yalnızca `https://` adresleri açılır (bu yöntem yerel dosyaları da başlatabilir). Windows araçları (`reg`, `icacls`, `whoami`, `rundll32`) PATH'ten değil `%SystemRoot%\System32` altındaki tam yollarıyla çağrılır.
+- **Çalışan programın değiştirilmesi:** Windows çalışan bir `.exe`'yi silemez ama yeniden adlandırabilir. Kurulum ve güncelleme çalışan programı önce `writehand.exe.<rastgele>.old` adıyla kenara alır, yenisini yerine koyar; kenara alınan kopya yardımcı uygulama bir sonraki başladığında silinir. `uninstall` kendi klasörünü, program kapandıktan sonra çalışan gizli bir PowerShell komutuyla siler; klasör yolu ve süreç kimliği komuta metin olarak değil, ortam değişkeniyle verilir.
+- **Geliştirme başlatıcısı (`.cmd`):** Yalnızca `--dev` kurulumunda vardır. `cmd.exe` toplu iş dosyalarını konsol kod sayfasıyla (ör. 437) okuduğu için dosya UTF-8 yazılır ve `chcp 65001` ile başlar; yollardaki `%` kaçışlanır.
+- **Tarayıcı açma:** `rundll32.exe url.dll,FileProtocolHandler <URL>`, kabuk olmadan; URL tek argümandır ve `&` korunur. Yalnızca `https://` adresleri açılır (bu yöntem yerel dosyaları da başlatabilir). Windows araçları (`reg`, `icacls`, `whoami`, `rundll32`, `tar`, `powershell`) PATH'ten değil `%SystemRoot%\System32` altındaki tam yollarıyla çağrılır.
 
-Bilinen sınırlar: Firefox `.cmd` yolunu yalnızca boşluk içeriyorsa tırnaklar; kullanıcı klasörü boşluksuz ve `&` veya `^` içeriyorsa Firefox başlatıcıyı başlatamaz. Chrome/Edge yolu tırnaklar, ancak `cmd.exe` yoldaki `%AD%` biçimindeki parçaları ortam değişkeni olarak açar. Grup ilkesi (`NativeMessagingUserLevelHosts`) kullanıcı düzeyindeki hostları kapatabilir; bu durumda yönetici kurulumu gerekir ve şu an desteklenmez.
+Bilinen sınırlar: Chrome ve Edge, `.exe` olsa bile hostu `cmd.exe /d /s /c` ile başlatır; `cmd.exe` yoldaki `%AD%` biçimindeki parçaları ortam değişkeni olarak açar. Geliştirme başlatıcısında Firefox `.cmd` yolunu yalnızca boşluk içeriyorsa tırnaklar; kullanıcı klasörü boşluksuz ve `&` veya `^` içeriyorsa Firefox başlatıcıyı başlatamaz. Grup ilkesi (`NativeMessagingUserLevelHosts`) kullanıcı düzeyindeki hostları kapatabilir; bu durumda yönetici kurulumu gerekir ve desteklenmez.
+
+### Güncellemeler
+
+Yardımcı uygulama en son yayımlanmış sürümü GitHub API'sinden (`releases/latest`) günde en fazla bir kez öğrenir ve cevabı programın yanında (`update-check.json`) saklar. İstek yalnızca sürüm numarasını alır; e-posta veya hesap bilgisi taşımaz. Ayarlardaki **Güncellemeleri denetle** anahtarı (varsayılan açık) kapalıysa eklenti bu denetimi hiç istemez.
+
+**Güncelle** düğmesi (`HOST_UPDATE`, yalnızca eklentinin kendi sayfalarından kabul edilir) şunları yapar: o sürümün `SHA256SUMS`, `SHA256SUMS.sig` ve sisteme uygun arşivini **yalnızca bu deponun** sürüm adresinden indirir; imzayı programın içindeki Ed25519 açık anahtarla (`apps/ai-companion/release-key.json`, `node:crypto`) ve arşivin SHA-256'sını doğrular; açılan programın bildirdiği sürümün sürüm adıyla aynı olduğunu denetler; yeni programın `install` komutunu çalıştırır. Yeni program aynı ortamı devraldığı için Claude Code ayarlarını yeniden kaydeder ve tarayıcı kayıtlarını mevcut eklenti kimlikleriyle yeniler. Yanıttan sonra eski host kapanır; tarayıcının sonraki isteği yeni programı başlatır. Doğrulanamayan sürüm kurulmaz (`HOST_UPDATE_UNVERIFIED`).
+
+Eklentinin kendi güncellemeleri mağazalardan gelir. Sürüm uyumu kuralı: [Geliştirici rehberi → Sürümleme ve yayın](./GELISTIRICI_REHBERI.md#sürümleme-ve-yayın).
+
+## ChatGPT ile bağlanma
 
 1. Eklentinin **Ayarlar → AI bağlantısı** bölümünü açın.
 2. **Continue with ChatGPT** düğmesine basın. Sistem tarayıcısında hesabınızı/çalışma alanınızı seçin ve plan kullanımına izin verin.
@@ -112,7 +131,7 @@ API ücretlendirmesi ChatGPT aboneliğinden ayrıdır. Limit/erişim hatası bir
 
 ## Claude aboneliği (bilgisayardaki Claude Code)
 
-Bu yöntem, kullanıcının bilgisayarında kurulu ve **değiştirilmemiş** Claude Code'u yazdırma modunda (`claude -p`) çalıştırır. Claude girişi yalnızca Claude Code'un kendi akışıyla yapılır (terminalde `claude` → `/login`). Email Writer Claude hesap bilgilerini veya oturum token'larını okumaz, saklamaz ve aracılık etmez; giriş durumunu yalnızca `claude auth status --json` çıktısından öğrenir. Kullanım, Claude planının (Claude Code ile ortak) limitlerinden düşer.
+Bu yöntem, kullanıcının bilgisayarında kurulu ve **değiştirilmemiş** Claude Code'u yazdırma modunda (`claude -p`) çalıştırır. Claude girişi yalnızca Claude Code'un kendi akışıyla yapılır (terminalde `claude` → `/login`). Writehand Claude hesap bilgilerini veya oturum token'larını okumaz, saklamaz ve aracılık etmez; giriş durumunu yalnızca `claude auth status --json` çıktısından öğrenir. Kullanım, Claude planının (Claude Code ile ortak) limitlerinden düşer.
 
 **Kural dayanağı (16 Ekim 2026'da okundu):**
 
@@ -138,35 +157,35 @@ stderr okunmaz; sonuç yalnızca `subtype: success` ve `stop_reason` `max_tokens
 **Kurulum:**
 
 1. Claude Code'u kurun ve terminalde `claude` → `/login` ile giriş yapın.
-2. `pnpm ai:install firefox` (veya ilgili tarayıcı) komutunu Claude Code'u kullandığınız terminalde çalıştırın. Kurucu `claude` yolunu ve varsa `CLAUDE_CONFIG_DIR` değerini başlatıcıya yazar. Tarayıcı yerel uygulamayı kısıtlı bir ortamla başlattığı için bu gereklidir.
+2. Yardımcı uygulamanın kurulum komutunu Claude Code'u kullandığınız terminalde çalıştırın (Claude Code sonradan kurulduysa komutu yeniden çalıştırın). Kurucu `claude` yolunu, varsa `CLAUDE_CONFIG_DIR` değerini ve `node` klasörünü `config.json`'a yazar. Tarayıcı yardımcı uygulamayı kısıtlı bir ortamla başlattığı için bu gereklidir.
 3. **Ayarlar → AI bağlantısı → Claude aboneliği**. Ekranda Claude Code hesabı, kuruluş ve plan görünür.
 4. Model: **Claude Sonnet** (varsayılan) veya **Claude Opus**.
 
-**Claude Code'un bulunması:** Sıra: kurucunun kaydettiği yol, `PATH`, olağan kurulum yerleri. macOS/Linux'ta `~/.local/bin/claude`, `~/.claude/local/claude`, `/opt/homebrew/bin/claude`, `/usr/local/bin/claude`. Windows'ta `PATH` içinde yalnızca `claude.exe` ve `claude.cmd` aranır, ardından `%USERPROFILE%\.local\bin\claude.exe` (Anthropic'in yerel kurucusu), `%LOCALAPPDATA%\Microsoft\WinGet\Links\claude.exe` (WinGet) ve `%APPDATA%\npm\claude.cmd` (npm) denenir. Komut betikleri (`.cmd`, `.bat`) hiçbir zaman kabuk üzerinden çalıştırılmaz (`shell: true` yok): `cmd.exe` sistem talimatı argümanını yeniden yorumlardı. npm'in `claude.cmd`'si, yanındaki `node_modules\@anthropic-ai\claude-code\package.json` okunarak paketin `bin\claude.exe` programına çevrilir ve program doğrudan başlatılır. Çözülemeyen bir betik (ör. pnpm veya Yarn ile genel kurulum, kurulum betiği çalışmamış npm paketi) `AI_CLAUDE_UNSUPPORTED_INSTALL` olarak bildirilir; daha sonraki bir konumda gerçek program varsa o kullanılır.
+**Claude Code'un bulunması:** Sıra: kurulumda kaydedilen yol (`config.json` → `WRITEHAND_CLAUDE_PATH`), `PATH`, olağan kurulum yerleri. macOS/Linux'ta `~/.local/bin/claude`, `~/.claude/local/claude`, `/opt/homebrew/bin/claude`, `/usr/local/bin/claude`. Windows'ta `PATH` içinde yalnızca `claude.exe` ve `claude.cmd` aranır, ardından `%USERPROFILE%\.local\bin\claude.exe` (Anthropic'in yerel kurucusu), `%LOCALAPPDATA%\Microsoft\WinGet\Links\claude.exe` (WinGet) ve `%APPDATA%\npm\claude.cmd` (npm) denenir. Komut betikleri (`.cmd`, `.bat`) hiçbir zaman kabuk üzerinden çalıştırılmaz (`shell: true` yok): `cmd.exe` sistem talimatı argümanını yeniden yorumlardı. npm'in `claude.cmd`'si, yanındaki `node_modules\@anthropic-ai\claude-code\package.json` okunarak paketin `bin\claude.exe` programına çevrilir ve program doğrudan başlatılır. Çözülemeyen bir betik (ör. pnpm veya Yarn ile genel kurulum, kurulum betiği çalışmamış npm paketi) `AI_CLAUDE_UNSUPPORTED_INSTALL` olarak bildirilir; daha sonraki bir konumda gerçek program varsa o kullanılır.
 
 **Komut satırı uzunluğu:** E-posta metni ve bağlam stdin'den gider. Argüman olarak yalnızca sabit sistem talimatı verilir; en uzun hali yaklaşık 3.500 karakterdir, Windows'un `CreateProcess` sınırı 32.767'dir (birim testi 16.000'in altında kaldığını denetler). Kabuk kullanılmadığı için `cmd.exe`'nin 8.191 sınırı geçerli değildir. Claude Code bu adları güncel modele çözer. Claude Haiku sunulmaz: 16 Ekim 2026 denemelerinde Türkçe yanıtlarda harf tekrarı ("bbana", "bbizim") üretti; önceden Haiku seçilmişse Sonnet kullanılır.
 
 | Sorun | Yapılacak işlem |
 | --- | --- |
-| `AI_CLAUDE_NOT_INSTALLED` | Claude Code bulunamadı. Kurulumdan sonra `pnpm ai:install ...` komutunu yeniden çalıştırın; ardından ayarlarda Yenile. |
-| `AI_CLAUDE_UNSUPPORTED_INSTALL` | Claude Code yalnızca kabuksuz başlatılamayan bir komut betiği (`claude.cmd`) olarak bulundu. Claude Code'u Anthropic'in yerel kurucusuyla (`irm https://claude.ai/install.ps1 \| iex`), WinGet ile veya npm ile kurun; ardından `pnpm ai:install ...` komutunu yeniden çalıştırın ve ayarlarda Yenile'ye basın. |
-| `AI_CLAUDE_NOT_LOGGED_IN` | Terminalde `claude` → `/login`. Birden fazla Claude yapılandırması kullanıyorsanız (`CLAUDE_CONFIG_DIR`), kurucuyu doğru yapılandırmanın açık olduğu terminalde çalıştırın. |
+| `AI_CLAUDE_NOT_INSTALLED` | Claude Code bulunamadı. Claude Code'u kurduktan sonra yardımcı uygulamanın kurulum komutunu yeniden çalıştırın; ardından ayarlarda Yenile. |
+| `AI_CLAUDE_UNSUPPORTED_INSTALL` | Claude Code yalnızca kabuksuz başlatılamayan bir komut betiği (`claude.cmd`) olarak bulundu. Claude Code'u Anthropic'in yerel kurucusuyla (`irm https://claude.ai/install.ps1 \| iex`), WinGet ile veya npm ile kurun; ardından yardımcı uygulamanın kurulum komutunu yeniden çalıştırın ve ayarlarda Yenile'ye basın. |
+| `AI_CLAUDE_NOT_LOGGED_IN` | Terminalde `claude` → `/login`. Birden fazla Claude yapılandırması kullanıyorsanız (`CLAUDE_CONFIG_DIR`), kurulum komutunu doğru yapılandırmanın açık olduğu terminalde yeniden çalıştırın. |
 | "API anahtarı gibi başka bir yöntemle oturum açmış" uyarısı | Claude Code aboneliğiniz yerine API anahtarıyla çalışıyor; kullanım o hesaptan ücretlendirilir. |
 | `AI_LIMIT_REACHED` | Claude planının limiti doldu; limit Claude Code kullanımınızla ortaktır. Limit yenilenince tekrar deneyin. |
 
 ## Ayarlardaki bağlantı rehberi
 
-Son kullanıcı için gerekenler ve adımlar eklentinin **Ayarlar → Bağlantı rehberi** kartında, her yöntem için ayrı bölümde yer alır: Gerekenler, Adımlar ve Bilmeniz gerekenler (ChatGPT üyeliği, OpenAI API anahtarı, Claude aboneliği, yardımcı uygulama). Seçili yöntemin bölümü açık gelir. Metinler `apps/browser-extension/src/locales/ai-tr.ts` ve `ai-en.ts` içindeki `guide` alanındadır; resmî bağlantılar `contracts` sabitlerinden gelir.
+Son kullanıcı için gerekenler ve adımlar eklentinin **Ayarlar → Bağlantı rehberi** kartında, her yöntem için ayrı bölümde yer alır: Gerekenler, Adımlar ve Bilmeniz gerekenler (ChatGPT üyeliği, OpenAI API anahtarı, Claude aboneliği, yardımcı uygulama). Seçili yöntemin bölümü açık gelir. Metinler `apps/browser-extension/src/locales/ai-<dil>.ts` içindeki `guide` alanındadır; resmî bağlantılar `contracts` sabitlerinden gelir. Yardımcı uygulama kartının ve karşılama sihirbazının metinleri `helper-<dil>.ts` ve `welcome-<dil>.ts` dosyalarındadır. Kullanıcı metinlerinde geliştirici talimatı (`pnpm`, `docs/`, eklenti kimliği) bulunmaz; bir test bunu denetler.
 
 ## Dağıtım öncesi yapılacaklar
 
 Eklenti mağazalarda dağıtılmadan önce:
 
-1. **Yardımcı uygulama kurucusu:** Son kullanıcı `pnpm` kullanmaz. Node.js gerektirmeyen tek dosyalık yardımcı uygulama ve tek komutluk kurucular (`curl … | sh`, `irm … | iex`) gerekir. Kurucu mağaza eklenti kimliklerini kullanmalı ve Claude Code'un yolunu bulmalıdır. Windows'ta bugün yalnızca Node.js ile çalışan geliştirici kurucusu vardır.
-2. **Eklenti kimlikleri ve izin:** Chrome Web Store ve Firefox AMO kimlikleri sabitlenmeli; `nativeMessaging` izni mağaza incelemesinde gerekçelendirilmelidir.
-3. **ChatGPT:** OpenAI plan kullanımını açık kaynak ortaklara ve seçili özel istemcilere açıyor. Depo açık kaynak yapılmayacaksa OpenAI'ın [ilgi formu](https://openai.com/form/sign-in-with-chatgpt-interest/) ile erişim istenmelidir.
-4. **Claude:** Kullanıcının kendi Claude Code'unu çalıştırma yöntemi için Anthropic'ten yazılı teyit alınmalı; ürün adında "Claude Code" kullanılmamalıdır.
-5. **Gizlilik politikası:** Mağazalar ister. Veri akışı, sağlayıcılar (OpenAI, Anthropic) ve yerel saklama bu belgedeki bilgilerle yazılabilir.
+1. **Yardımcı uygulama kurucusu:** ✅ Tek dosyalık program ve tek komutluk kurucular (`curl … | sh`, `irm … | iex`) hazır; sürümler `release.yml` ile imzalı taslak olarak üretilir (bkz. geliştirici rehberi).
+2. **Eklenti kimlikleri ve izin:** Firefox kimliği `writehand@dervisgenc.com` olarak sabitlendi. Chrome Web Store ve Edge Add-ons kimlikleri alınınca `packages/contracts/src/brand.ts` → `CHROMIUM_EXTENSION_IDS`'e eklenip yeni sürüm yayımlanmalı. İsteğe bağlı `nativeMessaging` izni mağaza incelemesinde gerekçelendirilmelidir (yardımcı uygulama; karşılama sihirbazı kullanıcıdan ister).
+3. **ChatGPT:** Depo MIT lisanslı açık kaynak olarak yayımlanıyor; OpenAI'ın açık kaynak/yerel uygulama koşulları yayından önce yeniden okunmalı. Gerekirse [ilgi formu](https://openai.com/form/sign-in-with-chatgpt-interest/) ile erişim istenir.
+4. **Claude:** Kullanıcının kendi Claude Code'unu çalıştırma yöntemi için Anthropic'ten yazılı teyit alınmalı; yöntem "deneysel" olarak kalır ve ürün adında "Claude Code" kullanılmaz.
+5. **Gizlilik politikası:** Mağazalar ister. Veri akışı, sağlayıcılar (OpenAI, Anthropic), günlük GitHub sürüm denetimi ve yerel saklama bu belgedeki bilgilerle yazılabilir.
 
 ## Modül sınırları ve veri akışı
 
@@ -192,7 +211,7 @@ Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikin
 
 - E-posta açmak veya bağlantı göstergesini okumak üretim isteği göndermez. Kullanıcı üretim istediğinde yalnızca seçili kaynak, talimat, ton, (çeviride) hedef dil, ayarlardaki kalıcı talimat, çıktı biçimi ve hazırlanmış bağlam gönderilir; "Sonucu değiştir"de önceki sonuç ve değişiklik isteği de eklenir. Mailbox kimlikleri, DOM hedefleri ve bağlama seçilmemiş mesajlar bu isteğe eklenmez.
 - E-posta metni yalnızca işlem süresince content script, background ve companion belleğinden geçer. Uygulama bunları diske veya loglara yazmaz. OpenAI'a giden her üretimde `store: false`, `stream: true` kullanılır; bu, sağlayıcının bütün veri işleme/saklama politikalarının kapalı olduğu iddiası değildir.
-- Kimlik bilgileri `~/.config/email-writer/credentials.json` içinde tutulur. Dizin `0700`, atomik değiştirilen dosya `0600` iznine sahiptir. Windows'ta dosya `%LOCALAPPDATA%\email-writer\credentials.json` içindedir; klasörün ACL'i devralmasızdır ve yalnızca kullanıcıya ve SYSTEM'e açıktır. Bu dosya uygulama düzeyinde şifreli değildir; işletim sistemi kullanıcı erişimiyle korunur. macOS anahtarlığı, Windows DPAPI/Kimlik Bilgisi Yöneticisi veya Linux Secret Service entegrasyonu ayrı bir geliştirme olabilir.
+- Kimlik bilgileri `~/.config/writehand/credentials.json` içinde tutulur. Dizin `0700`, atomik değiştirilen dosya `0600` iznine sahiptir. Windows'ta dosya `%LOCALAPPDATA%\writehand\credentials.json` içindedir; klasörün ACL'i devralmasızdır ve yalnızca kullanıcıya ve SYSTEM'e açıktır. Bu dosya uygulama düzeyinde şifreli değildir; işletim sistemi kullanıcı erişimiyle korunur. macOS anahtarlığı, Windows DPAPI/Kimlik Bilgisi Yöneticisi veya Linux Secret Service entegrasyonu ayrı bir geliştirme olabilir.
 - Eşzamanlı Chrome/Firefox süreçleri aynı dosyada işlem yapabilir: dosya kilidi refresh token döndürme ve kaydı sıralar. Hesap/model seçimi bu cihazdaki süreçler arasında ortaktır. Başka bir tarayıcıdan değişiklik yapıldıysa ayarlarda **Yenile** kullanın; devam eden başka süreçteki istek, başladığı hesabın isteği olarak tamamlanabilir.
 - OAuth access/refresh/ID token'ları eklentiye geri gönderilmez. Ayarlar hesabın kimliğini görebilir; Outlook content script'i yalnızca kullanım yöntemi/model/hazır bilgisini alır. Mevcut hesaba yeniden girişte ID token hint'i yalnızca OpenAI yetkilendirme URL'sinde kullanılır.
 - Kimlik JWT imzası, issuer/audience/expiry/nonce ile doğrulanır. Yeni hesap ancak doğrulama sonrası etkinleştirilir. Kayıtlı hesap/çalışma alanları, e-posta aynı olsa bile `client_id` ile ayrı tutulur.
@@ -216,8 +235,8 @@ Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikin
 
 | Sorun | Yapılacak işlem |
 | --- | --- |
-| Yerel bağlantıya ulaşılamıyor | `pnpm ai:build` ve doğru tarayıcı/eklenti kimliğiyle `pnpm ai:install ...`; ardından eklentiyi yeniden yükleyin. Node yolunun hâlâ mevcut olduğunu kontrol edin. |
-| Yerel bağlantıya ulaşılamıyor (Windows) | `reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.email_writer.ai"` (Edge: `Microsoft\Edge`, Brave: `Chromium`, Firefox: `Mozilla`) manifest yolunu göstermelidir; manifestteki `allowed_origins` kullandığınız eklentinin kimliğini içermelidir. Brave, `Chromium` anahtarında başka bir kimliğe izin veren manifest bulursa Chrome anahtarına geçmez. Kurumsal grup ilkesi kullanıcı düzeyindeki hostları kapatmış olabilir. Ayrıca yukarıdaki "Bilinen sınırlar"a bakın. |
+| Yardımcı uygulama bağlı değil | Ayarlar → Yardımcı uygulama kartı durumu söyler: **İzin gerekli** ise İzin ver'e basın; **Kurulu değil** ise sihirbazdaki komutu çalıştırın. Terminalde `writehand status` kayıtlı tarayıcıları gösterir. Paketlenmemiş Chromium eklentisi için komutun `--extension-id` içerdiğini kontrol edin. |
+| Yardımcı uygulama bağlı değil (Windows) | `reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.dervisgenc.writehand"` (Edge: `Microsoft\Edge`, Brave: `Chromium`, Firefox: `Mozilla`) manifest yolunu göstermelidir; manifestteki `allowed_origins` kullandığınız eklentinin kimliğini içermelidir. Brave, `Chromium` anahtarında başka bir kimliğe izin veren manifest bulursa Chrome anahtarına geçmez. Kurumsal grup ilkesi kullanıcı düzeyindeki hostları kapatmış olabilir. Ayrıca yukarıdaki "Bilinen sınırlar"a bakın. |
 | İzin e-postası geldi, ancak bağlantı tamamlanmadı | OpenAI tarafında uygulama izni ile yerelde doğrulanmış oturum farklı adımlardır. Ayarlar, yarım kalmış kaydı açıkça gösterir; Continue with ChatGPT aynı uygulama kaydını kullanarak yeni giriş başlatır. Eski callback sekmesini yenilemeyin. |
 | `AI_AUTH_EXCHANGE_FAILED` | Giriş kodu token endpoint tarafından kabul edilmedi. Kayıtlı client ID korunur; yeni bir OAuth denemesi gerekir. |
 | `AI_AUTH_TOKEN_INVALID` / `AI_AUTH_IDENTITY_FAILED` | Sırasıyla token yanıt biçimi veya imzalı kimlik doğrulaması başarısız oldu. Hesap etkinleştirilmez. Bu yerel hata kodları gizli bilgi içermez; ham token/yanıt veya callback URL'si paylaşılmamalıdır. |
@@ -231,11 +250,14 @@ Core/Outlook seçicileri sağlayıcı ayrıntılarını bilmez. Claude Code ikin
 | Uygunluk/politika hatası | Hesap, çalışma alanı ve uygulamanın OpenAI erişimini doğrulayın. Tekrar tekrar girişe zorlanmaz. |
 | Kullanım limiti | ChatGPT için Kullanımı yönet; API için API kullanım limitlerini kontrol edin. Ücretli yola otomatik geçilmez. |
 | Yanıt yarım kaldı | Kaynak metin korunur; isterseniz yeniden üretin. Kısmi yanıt uygulanmaz. |
-| `AI_VERSION_MISMATCH` | Eklenti ile yerel yardımcı uygulama farklı sürümlerden; yardımcı uygulama isteği tanımadı. `pnpm ai:build` ve `pnpm ai:install <tarayıcı>` ile yeniden kurun, eklentiyi yeniden yükleyin. (Bu kodu döndürmeyen eski bir yardımcı uygulamada eklenti 130 sn sonra "kullanılamıyor" der.) |
+| `AI_VERSION_MISMATCH` / **Güncelleme gerekli** | Yardımcı uygulama eklentiden eski; yeni isteği tanımadı. Ayarlar → Yardımcı uygulama → Güncelle (sürümünü bildiren yardımcı uygulamalar) veya sihirbazdaki kurulum komutunu yeniden çalıştırın. |
+| `HOST_UPDATE_CHECK_FAILED` | GitHub'a ulaşılamadı; ağ bağlantısını kontrol edip daha sonra yeniden deneyin. Kurulu sürüm çalışmaya devam eder. |
+| `HOST_UPDATE_UNVERIFIED` | İndirilen sürümün imzası veya sağlaması tutmadı; hiçbir şey kurulmadı. Sorun sürerse güvenlik bildirimi yapın (`SECURITY.md`). |
+| `HOST_UPDATE_FAILED` | İndirme veya kurulum tamamlanamadı; kurulu sürüm değişmedi. Kurulum komutunu yeniden çalıştırmak da günceller. |
 
-Kurulumu kaldırmak için önce hesaplardan çıkış yapın, ardından `pnpm ai:install firefox --uninstall` (veya ilgili tarayıcı) çalıştırın. Bu komut yalnızca o tarayıcının kaydını (Windows'ta HKCU anahtarı ve manifest dosyası) kaldırır; başka tarayıcıların bağlantısını ve yerel credential dosyasını silmez. Tam kaldırmada `~/.local/share/email-writer` ve `~/.config/email-writer` (Windows: `%LOCALAPPDATA%\Programs\email-writer` ve `%LOCALAPPDATA%\email-writer`) dizinlerini kullanıcı silebilir.
+Kaldırmak için sihirbazdaki veya yardımcı uygulama kartındaki kaldırma komutunu çalıştırın (ya da `writehand uninstall`). Komut bütün tarayıcı kayıtlarını (Windows'ta HKCU anahtarları dahil) ve programı siler. `--delete-data` (PowerShell betiğinde `-DeleteData`) ek olarak ChatGPT oturumlarını iptal etmeyi dener ve `~/.config/writehand` (Windows: `%LOCALAPPDATA%\writehand`) klasörünü siler; bu seçenek olmadan kimlik bilgileri yerinde kalır.
 
-Email Writer, ChatGPT içine kurulan bir plugin değildir; ChatGPT hesabıyla yetkilendirilen dış uygulamadır. Bağlantıyı **Settings → Security and login → Sign in with ChatGPT**, kullanım izinlerini/limitlerini **Settings → Usage** bölümünden yönetin. Plugins listesinde bir Email Writer girdisi beklenmez.
+Writehand, ChatGPT içine kurulan bir plugin değildir; ChatGPT hesabıyla yetkilendirilen dış uygulamadır. Bağlantıyı **Settings → Security and login → Sign in with ChatGPT**, kullanım izinlerini/limitlerini **Settings → Usage** bölümünden yönetin. Plugins listesinde bir Writehand girdisi beklenmez.
 
 ## Doğrulama sınırı ve canlı deneme
 
@@ -248,6 +270,8 @@ Otomatik testler sahte sağlayıcı yanıtları ve yerel OAuth callback'leri kul
 **16 Ekim 2026 gerçek Outlook (Firefox, Claude Code):** Geçici yanıt taslağında uydurma metinle Düzelt → Tablo yap → Taslağa uygula → Geri al → yeniden uygula zinciri çalıştı; tablo Türkçe başlıklarla yazıldı, alıntı ve imza korundu, hiçbir şey gönderilmedi. Ayrıntı ve bulunan hatalar: `YAPILAN_ISLER.md` §23. Aynı gün Claude Haiku'nun Türkçe yanıtlarda harf tekrarı ürettiği görüldü; Haiku seçenekten kaldırıldı.
 
 **16 Ekim 2026 Windows 11 canlı kontrolü** (yalnızca sentetik metin; Outlook'a girilmedi): Kurucuyla Chrome 155, Edge 155, Brave 1.97 ve Firefox 157 kaydedildi; ayrı test profillerinde ayarlar sayfasındaki "Yerel AI bağlantısına ulaşılamadı" uyarısı kalktı. Kurulu başlatıcı Chrome'un `cmd.exe /d /s /c` biçimiyle başlatılıp native messaging çerçeveleriyle `AI_STATUS`, `AI_COMMAND` ve `AI_GENERATE` gönderildi. Claude Code (yerel kurucu, Team planı) ile Düzelt, Çevir, Yanıt ve 120 satırlık bir girdi ~3–17 sn'de doğru sonuç verdi; kabuk karakterleri (`%PATH% & "…" ^`) değişmeden kaldı, oturum kaydı ve geçici klasör kalmadı. `--tools ""` dahil argümanların doğru ayrıştırıldığı Claude Code'un başlangıç olayından doğrulandı (araç, MCP sunucusu, slash komutu ve skill listeleri boş; sistem talimatı tırnak ve ters bölülerle birebir ulaştı). Chrome ve Firefox'ta geliştirme derlemesiyle sentetik Outlook sayfasında Düzelt, yerel uygulama üzerinden gerçek Claude sonucuyla tamamlandı. ChatGPT girişi varsayılan tarayıcıda `rundll32` ile açıldı, kullanıcı girişi tamamladı, loopback dönüşü alındı; hesap doğrulandı, plan izni ve 7 model geldi, sentetik Düzelt ve Çevir başarılı oldu. Kimlik klasörünün ve dosyasının yalnızca kullanıcıya ve SYSTEM'e açık olduğu `icacls` ile görüldü. Ayrıntı: `YAPILAN_ISLER.md` §25.
+
+**19 Ekim 2026 Linux canlı kontrolü (tek dosyalık yardımcı uygulama; yalnızca uydurma metin, Outlook'a girilmedi):** Node.js 24.22 ile derlenen program yerel bir klasörden, gerçek anahtarla imzalanmış sürüm dosyalarıyla `install.sh` üzerinden kullanıcı klasörüne kuruldu; Claude Code yolu ve `CLAUDE_CONFIG_DIR` `config.json`'a yazıldı. Başsız Firefox 157'de üretim paketi yüklenince karşılama sihirbazı kendiliğinden açıldı; izin verilmeden `HOST_INFO` `AI_HOST_UNAVAILABLE` döndü, izin verilince sihirbaz "bağlandı (sürüm 0.1.0)" gösterdi. Aynı kurulum üzerinden Claude Code ile uydurma, işaretli (`WHTEST-LIVE`) bir metin Firefox'ta ~3,5 sn, Chromium'da ~2,6 sn'de düzeltildi; Chromium'da ayarlardaki kart "Bağlı · Sürüm 0.1.0 · Linux (x64)" gösterdi. `HOST_UPDATE_CHECK` ve `writehand update --check` GitHub'a sordu: henüz yayımlanmış sürüm yok. `install.sh uninstall --delete-data` programı, bütün kayıtları ve veri klasörünü sildi. Chromium'da isteğe bağlı izin penceresi başsız tarayıcıda onaylanamadığı için bu denemede izin manifestte önceden verilmiş bir kopya kullanıldı; Chromium'da izin penceresi ve izin sonrası bağlantı elle doğrulanmalıdır.
 
 ChatGPT ile gerçek taslağa uygulama ve Business hesabıyla bağlantı bekliyor. [OpenAI hata ve iyileşme rehberi](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
 
