@@ -13,6 +13,7 @@
     "dev:firefox": "pnpm --filter @email-writer/browser-extension dev:firefox",
     "build": "pnpm --filter @email-writer/ai-companion build && pnpm --filter @email-writer/browser-extension build:all",
     "ai:build": "pnpm --filter @email-writer/ai-companion build",
+    "ai:sea": "pnpm --filter @email-writer/ai-companion build:sea",
     "ai:install": "pnpm --filter @email-writer/ai-companion install-host",
     "build:test": "pnpm --filter @email-writer/browser-extension build:test",
     "typecheck": "pnpm -r --parallel typecheck && vue-tsc -p tests/tsconfig.json",
