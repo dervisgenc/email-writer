@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
 import type { AiText } from '@email-writer/ui';
 
 export const aiDe: AiText = {
@@ -30,7 +31,7 @@ export const aiDe: AiText = {
         summary: 'Erstellt Text mit der Nutzung, die in Ihrem ChatGPT-Plus- oder -Pro-Plan enthalten ist.',
         requirements: [
           'Ein ChatGPT-Plus- oder -Pro-Abo. Kostenlose Konten unterstützen keine Plannutzung.',
-          'Die Email Writer-Hilfs-App auf diesem Computer.',
+          `Die ${PRODUCT_NAME}-Hilfs-App auf diesem Computer.`,
         ],
         steps: [
           'Wählen Sie „ChatGPT-Plan“ als Methode.',
@@ -49,7 +50,7 @@ export const aiDe: AiText = {
         summary: 'Erstellt Text mit Ihrem eigenen OpenAI-Platform-Konto; Sie zahlen, was Sie nutzen.',
         requirements: [
           'Ein OpenAI-Platform-Konto und ein API-Schlüssel.',
-          'Die Email Writer-Hilfs-App auf diesem Computer.',
+          `Die ${PRODUCT_NAME}-Hilfs-App auf diesem Computer.`,
         ],
         steps: [
           'Erstellen Sie auf OpenAI Platform einen API-Schlüssel.',
@@ -68,7 +69,7 @@ export const aiDe: AiText = {
         requirements: [
           'Ein Claude-Pro-, -Max-, -Team- oder -Enterprise-Abo.',
           'Claude Code auf diesem Computer installiert und mit Ihrem Claude-Konto angemeldet.',
-          'Die Email Writer-Hilfs-App. Nach Claude Code installiert, findet sie Claude Code automatisch.',
+          `Die ${PRODUCT_NAME}-Hilfs-App. Nach Claude Code installiert, findet sie Claude Code automatisch.`,
         ],
         steps: [
           'Installieren Sie Claude Code nach der offiziellen Anleitung von Anthropic.',
@@ -77,7 +78,7 @@ export const aiDe: AiText = {
           'Wählen Sie „Claude-Plan“ als Methode. Ihr Konto und Ihr Plan erscheinen hier.',
         ],
         notes: [
-          'Email Writer sieht und speichert weder Ihr Claude-Passwort noch Ihre Sitzung; Sie melden sich über Claude Code an und ab.',
+          `${PRODUCT_NAME} sieht und speichert weder Ihr Claude-Passwort noch Ihre Sitzung; Sie melden sich über Claude Code an und ab.`,
           'Die Nutzung wird auf das Limit Ihres Plans angerechnet, das Sie mit Claude Code teilen.',
           'Bei Pro- und Max-Plänen können Inhalte zum Training von Modellen verwendet werden, sofern Sie dies nicht in Ihren Claude-Datenschutzeinstellungen ausgeschaltet haben. Team- und Enterprise-Pläne unterliegen den geschäftlichen Bedingungen.',
           'Ist Claude Code mit einem API-Schlüssel angemeldet, wird die Nutzung diesem API-Konto berechnet.',
@@ -137,8 +138,7 @@ export const aiDe: AiText = {
     'Berechtigte Plus- und Pro-Konten können ihr Plankontingent nutzen. Die Verfügbarkeit hängt von Ihrem Konto, Ihrem Arbeitsbereich und Ihrem OpenAI-Zugang ab.',
   apiNote:
     'Die API-Nutzung wird von OpenAI separat abgerechnet. Sie ist unabhängig von Ihrem ChatGPT-Abo; diese Methode wird nie automatisch gewählt.',
-  claudeNote:
-    'Das auf diesem Computer installierte Claude Code läuft mit Ihrem eigenen Claude-Konto; die Nutzung wird auf die Limits Ihres Claude-Plans angerechnet. Email Writer greift nicht auf Ihre Claude-Anmeldedaten zu und speichert sie nicht. Sie melden sich über Claude Code an und ab.',
+  claudeNote: `Das auf diesem Computer installierte Claude Code läuft mit Ihrem eigenen Claude-Konto; die Nutzung wird auf die Limits Ihres Claude-Plans angerechnet. ${PRODUCT_NAME} greift nicht auf Ihre Claude-Anmeldedaten zu und speichert sie nicht. Sie melden sich über Claude Code an und ab.`,
   claudeAccount: 'Claude Code-Konto',
   claudeNotInstalled:
     'Claude Code wurde auf diesem Computer nicht gefunden. Installieren Sie Claude Code, führen Sie pnpm ai:install erneut aus und wählen Sie dann „Aktualisieren“.',
@@ -156,14 +156,12 @@ export const aiDe: AiText = {
   connectionHelp:
     'Verwalten Sie diese Verbindung in den ChatGPT-Einstellungen unter Security and login → Sign in with ChatGPT. Sie erscheint nicht unter Plugins. Für Arbeitskonten gelten zusätzlich Organisationsrichtlinie und Planberechtigung.',
   welcome: 'Sie verwenden Ihren ChatGPT-Plan',
-  welcomeBody:
-    'Die berechtigte Texterstellung in Email Writer nutzt das Kontingent Ihres ChatGPT-Plans oder verfügbare Guthaben. Die Nutzung dieser App verwalten Sie in den ChatGPT-Einstellungen.',
+  welcomeBody: `Die berechtigte Texterstellung in ${PRODUCT_NAME} nutzt das Kontingent Ihres ChatGPT-Plans oder verfügbare Guthaben. Die Nutzung dieser App verwalten Sie in den ChatGPT-Einstellungen.`,
   gotIt: 'Verstanden',
   privacy:
     'Wenn Sie Text anfordern, werden Ihr Text, Ihre Anweisungen und der ausgewählte Kontext an OpenAI gesendet. Die Erweiterung speichert sie nicht auf der Festplatte. Sie hat keinen Zugriff auf Ihren ChatGPT-Chatverlauf.',
   setup: 'Lokale Verbindung einrichten',
-  setupBody:
-    'Die KI-Verbindung benötigt die lokale Email Writer-App (macOS, Linux oder Windows; Node.js 22+). Folgen Sie docs/AI_BAGLANTISI.md im Projekt. Kontoanmeldedaten liegen statt im Browserspeicher in einer geschützten Datei auf Ihrem Gerät. Für den Claude-Plan muss außerdem Claude Code installiert und angemeldet sein.',
+  setupBody: `Die KI-Verbindung benötigt die lokale ${PRODUCT_NAME}-App (macOS, Linux oder Windows; Node.js 22+). Folgen Sie docs/AI_BAGLANTISI.md im Projekt. Kontoanmeldedaten liegen statt im Browserspeicher in einer geschützten Datei auf Ihrem Gerät. Für den Claude-Plan muss außerdem Claude Code installiert und angemeldet sein.`,
   extensionId: 'Erweiterungs-ID für die Installation:',
   usePlan: 'ChatGPT-Plan wird verwendet',
   useApi: 'OpenAI-API wird verwendet',

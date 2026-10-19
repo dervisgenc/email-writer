@@ -145,9 +145,9 @@ test('simüle yerel bağlantıyla ChatGPT hesabı, ilk kullanım bildirimi ve mo
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByText('Koyu', { exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Email Writer ayarları', exact: true })).toHaveCount(1);
-  await page.getByRole('heading', { name: 'Email Writer ayarları', exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('heading', { name: 'Email Writer ayarları', exact: true })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: 'Writehand ayarları', exact: true })).toHaveCount(1);
+  await page.getByRole('heading', { name: 'Writehand ayarları', exact: true }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole('heading', { name: 'Writehand ayarları', exact: true })).toBeInViewport();
   await page.screenshot({
     path: 'test-results/ai-connected-narrow-dark.png',
     fullPage: true,

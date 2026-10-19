@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
 import type { AiText } from '@email-writer/ui';
 
 export const aiFr: AiText = {
@@ -30,7 +31,7 @@ export const aiFr: AiText = {
         summary: 'Génère du texte avec l’utilisation incluse dans votre forfait ChatGPT Plus ou Pro.',
         requirements: [
           'Un abonnement ChatGPT Plus ou Pro. Les comptes gratuits ne permettent pas l’utilisation du forfait.',
-          'L’application d’assistance Email Writer sur cet ordinateur.',
+          `L’application d’assistance ${PRODUCT_NAME} sur cet ordinateur.`,
         ],
         steps: [
           'Choisissez « Forfait ChatGPT » comme méthode.',
@@ -50,7 +51,7 @@ export const aiFr: AiText = {
           'Génère du texte avec votre propre compte OpenAI Platform ; vous payez ce que vous utilisez.',
         requirements: [
           'Un compte OpenAI Platform et une clé API.',
-          'L’application d’assistance Email Writer sur cet ordinateur.',
+          `L’application d’assistance ${PRODUCT_NAME} sur cet ordinateur.`,
         ],
         steps: [
           'Créez une clé API sur OpenAI Platform.',
@@ -69,7 +70,7 @@ export const aiFr: AiText = {
         requirements: [
           'Un abonnement Claude Pro, Max, Team ou Enterprise.',
           'Claude Code installé sur cet ordinateur et connecté à votre compte Claude.',
-          'L’application d’assistance Email Writer. Installée après Claude Code, elle le trouve automatiquement.',
+          `L’application d’assistance ${PRODUCT_NAME}. Installée après Claude Code, elle le trouve automatiquement.`,
         ],
         steps: [
           'Installez Claude Code en suivant les instructions officielles d’Anthropic.',
@@ -78,7 +79,7 @@ export const aiFr: AiText = {
           'Choisissez « Forfait Claude » comme méthode. Votre compte et votre forfait s’affichent ici.',
         ],
         notes: [
-          'Email Writer ne voit ni n’enregistre votre mot de passe ou votre session Claude ; vous vous connectez et vous déconnectez via Claude Code.',
+          `${PRODUCT_NAME} ne voit ni n’enregistre votre mot de passe ou votre session Claude ; vous vous connectez et vous déconnectez via Claude Code.`,
           'L’utilisation est décomptée de la limite de votre forfait, partagée avec Claude Code.',
           'Avec les forfaits Pro et Max, le contenu peut servir à entraîner des modèles, sauf si vous l’avez désactivé dans vos paramètres de confidentialité Claude. Les forfaits Team et Enterprise relèvent des conditions commerciales.',
           'Si Claude Code est connecté avec une clé API, l’utilisation est facturée à ce compte API.',
@@ -138,8 +139,7 @@ export const aiFr: AiText = {
     'Les comptes Plus et Pro éligibles peuvent utiliser l’allocation de leur forfait. La disponibilité dépend de votre compte, de votre espace de travail et de votre accès OpenAI.',
   apiNote:
     'L’utilisation de l’API est facturée séparément par OpenAI. Elle est indépendante de votre abonnement ChatGPT ; cette méthode n’est jamais choisie automatiquement.',
-  claudeNote:
-    'Claude Code, installé sur cet ordinateur, s’exécute avec votre propre compte Claude ; l’utilisation est décomptée des limites de votre forfait Claude. Email Writer n’accède pas à vos identifiants Claude et ne les enregistre pas. Vous vous connectez et vous déconnectez via Claude Code.',
+  claudeNote: `Claude Code, installé sur cet ordinateur, s’exécute avec votre propre compte Claude ; l’utilisation est décomptée des limites de votre forfait Claude. ${PRODUCT_NAME} n’accède pas à vos identifiants Claude et ne les enregistre pas. Vous vous connectez et vous déconnectez via Claude Code.`,
   claudeAccount: 'Compte Claude Code',
   claudeNotInstalled:
     'Claude Code est introuvable sur cet ordinateur. Installez Claude Code, exécutez à nouveau pnpm ai:install, puis choisissez « Actualiser ».',
@@ -157,14 +157,12 @@ export const aiFr: AiText = {
   connectionHelp:
     'Gérez cette connexion dans les paramètres ChatGPT, sous Security and login → Sign in with ChatGPT. Elle n’apparaît pas dans Plugins. Les comptes professionnels sont aussi soumis à la stratégie de l’organisation et à l’éligibilité du forfait.',
   welcome: 'Vous utilisez votre forfait ChatGPT',
-  welcomeBody:
-    'La génération éligible dans Email Writer utilise l’allocation de votre forfait ChatGPT ou les crédits disponibles. Gérez l’utilisation de cette application dans les paramètres ChatGPT.',
+  welcomeBody: `La génération éligible dans ${PRODUCT_NAME} utilise l’allocation de votre forfait ChatGPT ou les crédits disponibles. Gérez l’utilisation de cette application dans les paramètres ChatGPT.`,
   gotIt: 'Compris',
   privacy:
     'Lorsque vous demandez une génération, votre texte, vos consignes et le contexte sélectionné sont envoyés à OpenAI. L’extension ne les enregistre pas sur le disque. Elle n’a pas accès à l’historique de vos conversations ChatGPT.',
   setup: 'Configurer la connexion locale',
-  setupBody:
-    'La connexion IA nécessite l’application locale Email Writer (macOS, Linux ou Windows ; Node.js 22+). Suivez docs/AI_BAGLANTISI.md dans le projet. Les identifiants des comptes sont conservés dans un fichier protégé sur votre appareil plutôt que dans le stockage du navigateur. La méthode Forfait Claude nécessite aussi que Claude Code soit installé et connecté.',
+  setupBody: `La connexion IA nécessite l’application locale ${PRODUCT_NAME} (macOS, Linux ou Windows ; Node.js 22+). Suivez docs/AI_BAGLANTISI.md dans le projet. Les identifiants des comptes sont conservés dans un fichier protégé sur votre appareil plutôt que dans le stockage du navigateur. La méthode Forfait Claude nécessite aussi que Claude Code soit installé et connecté.`,
   extensionId: 'ID de l’extension pour l’installation :',
   usePlan: 'Forfait ChatGPT utilisé',
   useApi: 'API OpenAI utilisée',

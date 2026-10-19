@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiDe } from './ai-de';
 import type { ExtensionText } from './extension-text';
 import { countWith } from './plural';
@@ -5,6 +7,8 @@ import { countWith } from './plural';
 const count = countWith('de');
 
 export const de: ExtensionText = {
+  description:
+    'E-Mails in Outlook im Web mit ChatGPT oder Claude überarbeiten, übersetzen und schreiben. Erst Vorschau; nichts wird gesendet.',
   ui: {
     locale: 'de',
     ai: aiDe,
@@ -15,7 +19,7 @@ export const de: ExtensionText = {
       tooltip: 'Eine Antwort auf diese Unterhaltung entwerfen und den Kontext prüfen',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Antwort schreiben',
       replyTooltip: 'Aus Ihrer Anweisung einen Antwortentwurf für diese Unterhaltung schreiben',
       write: 'Schreiben',
@@ -289,8 +293,7 @@ export const de: ExtensionText = {
         'Claude Code wurde nicht gefunden. Installieren Sie Claude Code und führen Sie pnpm ai:install erneut aus.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code ist nicht angemeldet. Führen Sie claude in einem Terminal aus und melden Sie sich mit /login an.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code wurde nur als Befehlsskript (claude.cmd) gefunden, das Email Writer nicht sicher starten kann. Installieren Sie Claude Code mit dem offiziellen nativen Installationsprogramm und führen Sie pnpm ai:install erneut aus.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code wurde nur als Befehlsskript (claude.cmd) gefunden, das ${PRODUCT_NAME} nicht sicher starten kann. Installieren Sie Claude Code mit dem offiziellen nativen Installationsprogramm und führen Sie pnpm ai:install erneut aus.`,
       AI_VERSION_MISMATCH:
         'Erweiterung und lokale Hilfs-App haben unterschiedliche Versionen. Führen Sie den Installationsbefehl aus den KI-Einstellungen erneut aus.',
       CONTENT_SCRIPT_UNREACHABLE:
@@ -300,7 +303,7 @@ export const de: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'Der Schreibassistent ist auf dieser Seite verfügbar.',
       waiting: 'Der E-Mail-Bereich wird geladen…',
@@ -318,7 +321,7 @@ export const de: ExtensionText = {
     developmentBuild: 'Entwicklungsversion',
   },
   options: {
-    title: 'Email Writer – Einstellungen',
+    title: `${PRODUCT_NAME} – Einstellungen`,
     subtitle: 'Schreibassistent für Outlook im Web',
     preferencesTitle: 'Schreibeinstellungen',
     preferencesDescription: 'Sprache, Ton und Darstellung für neue Arbeiten.',
@@ -365,13 +368,13 @@ export const de: ExtensionText = {
     defaultsNote:
       'Standardsprache und -ton ändern laufende Arbeiten nicht; sie gelten für die nächste Arbeit.',
     privacyTitle: 'Datenschutz und Daten',
-    privacyDescription: 'Was Email Writer mit Ihren E-Mails tut und was nicht.',
+    privacyDescription: `Was ${PRODUCT_NAME} mit Ihren E-Mails tut und was nicht.`,
     privacyPoints: [
       'Ihre Einstellungen werden nur auf diesem Gerät gespeichert.',
       'Geöffnete E-Mails bleiben nur, solange die Seite offen ist, im Arbeitsspeicher, um Kontext vorzuschlagen; sie werden nie auf die Festplatte geschrieben.',
       'Text wird nur dann an den gewählten KI-Anbieter (OpenAI oder Anthropic) gesendet, wenn Sie „Überarbeiten“, „Übersetzen“ oder „Antwort schreiben“ wählen.',
       'Ergebnisse erscheinen zuerst als Vorschau und werden nie ohne Ihre Zustimmung in Ihren Entwurf geschrieben.',
-      'Email Writer sendet nie E-Mails; das Senden bleibt immer Ihnen überlassen.',
+      `${PRODUCT_NAME} sendet nie E-Mails; das Senden bleibt immer Ihnen überlassen.`,
     ],
   },
 };

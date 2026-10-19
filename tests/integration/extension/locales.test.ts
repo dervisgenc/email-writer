@@ -1,7 +1,7 @@
-import { UI_LANGUAGES } from '@email-writer/contracts';
+import { PRODUCT_NAME, UI_LANGUAGES } from '@email-writer/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { textFor, uiLanguageFor } from '../../../apps/browser-extension/src/locales';
+import { manifestMessages, textFor, uiLanguageFor } from '../../../apps/browser-extension/src/locales';
 import { countWith } from '../../../apps/browser-extension/src/locales/plural';
 
 /** Metin ağacındaki düz metinler, yollarıyla (işlev olan metinler hariç). */
@@ -40,6 +40,23 @@ describe('Arayüz dilleri', () => {
       expect(untranslated).toEqual([]);
     },
   );
+
+  it('manifest adı her dilde ürün adı; açıklama mağaza sınırı içinde', () => {
+    const messages = manifestMessages();
+    expect(Object.keys(messages).sort()).toEqual([...UI_LANGUAGES].sort());
+    for (const language of UI_LANGUAGES) {
+      expect(messages[language].extName.message).toBe(PRODUCT_NAME);
+      // Chrome Web Store ve Chromium manifest açıklaması en fazla 132 karakter kabul eder.
+      expect(messages[language].extDescription.message.length, language).toBeLessThanOrEqual(132);
+    }
+  });
+
+  it('ürün adı metinlere sabit yazılmaz', () => {
+    for (const language of UI_LANGUAGES) {
+      const hardCoded = strings(textFor(language)).filter(([, value]) => value.includes('Email Writer'));
+      expect(hardCoded, language).toEqual([]);
+    }
+  });
 
   it('sayıyı dilin çoğul kuralıyla yazar', () => {
     expect(countWith('en')(0, 'message', 'messages')).toBe('0 messages');

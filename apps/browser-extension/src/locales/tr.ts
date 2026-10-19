@@ -1,9 +1,13 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiTr } from './ai-tr';
 import type { ExtensionText } from './extension-text';
 
 const plural = (count: number, word: string) => `${count} ${word}`;
 
 export const tr: ExtensionText = {
+  description:
+    'Outlook Web’de e-postalarınızı ChatGPT veya Claude ile düzeltin, çevirin ve yazın. Sonuç önce önizlenir; hiçbir şey gönderilmez.',
   ui: {
     locale: 'tr',
     ai: aiTr,
@@ -14,7 +18,7 @@ export const tr: ExtensionText = {
       tooltip: 'Bu konuşma için yanıt hazırla ve bağlamı incele',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Yanıt yaz',
       replyTooltip: 'Talimatınızla, konuşmaya uygun bir yanıt taslağı yaz',
       write: 'Yaz',
@@ -249,8 +253,7 @@ export const tr: ExtensionText = {
         'Claude Code bulunamadı. Claude Code’u kurup pnpm ai:install komutunu yeniden çalıştırın.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code’da oturum açık değil. Terminalde claude çalıştırıp /login ile giriş yapın.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; Email Writer bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurup pnpm ai:install komutunu yeniden çalıştırın.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; ${PRODUCT_NAME} bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurup pnpm ai:install komutunu yeniden çalıştırın.`,
       AI_VERSION_MISMATCH:
         'Eklenti ile yerel yardımcı uygulamanın sürümleri uyuşmuyor. AI ayarlarındaki kurulum komutunu yeniden çalıştırın.',
       CONTENT_SCRIPT_UNREACHABLE:
@@ -260,7 +263,7 @@ export const tr: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'Bu sayfada yazma yardımcısı kullanılabilir.',
       waiting: 'E-posta alanı yükleniyor…',
@@ -276,7 +279,7 @@ export const tr: ExtensionText = {
     developmentBuild: 'Geliştirme derlemesi',
   },
   options: {
-    title: 'Email Writer ayarları',
+    title: `${PRODUCT_NAME} ayarları`,
     subtitle: 'Outlook Web için yazma yardımcısı',
     preferencesTitle: 'Yazma tercihleri',
     preferencesDescription: 'Yeni çalışmalarda kullanılacak dil, ton ve görünüm.',
@@ -321,13 +324,13 @@ export const tr: ExtensionText = {
     saving: 'Kaydediliyor…',
     defaultsNote: 'Varsayılan dil ve ton, açık bir çalışmayı değiştirmez; sonraki çalışmalarda kullanılır.',
     privacyTitle: 'Gizlilik ve veriler',
-    privacyDescription: 'Email Writer e-postalarınızla ne yapar, ne yapmaz.',
+    privacyDescription: `${PRODUCT_NAME} e-postalarınızla ne yapar, ne yapmaz.`,
     privacyPoints: [
       'Tercihleriniz yalnızca bu cihazda saklanır.',
       'Açtığınız e-postalar, bağlam önerebilmek için yalnızca sayfa açıkken bellekte tutulur; diske yazılmaz.',
       'Metin yalnızca siz Düzelt, Çevir veya Yanıt yaz’a bastığınızda seçtiğiniz AI sağlayıcısına (OpenAI veya Anthropic) gönderilir.',
       'Sonuç önce önizlemede görünür; siz onaylamadan taslağınıza yazılmaz.',
-      'Email Writer e-posta göndermez; göndermek her zaman sizin elinizdedir.',
+      `${PRODUCT_NAME} e-posta göndermez; göndermek her zaman sizin elinizdedir.`,
     ],
   },
 };

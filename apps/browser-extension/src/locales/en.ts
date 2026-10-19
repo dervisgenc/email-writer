@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiEn } from './ai-en';
 import type { ExtensionText } from './extension-text';
 import { countWith } from './plural';
@@ -5,6 +7,8 @@ import { countWith } from './plural';
 const count = countWith('en');
 
 export const en: ExtensionText = {
+  description:
+    'Revise, translate and write emails in Outlook on the web with ChatGPT or Claude. Results are previewed first; nothing is sent.',
   ui: {
     locale: 'en',
     ai: aiEn,
@@ -15,7 +19,7 @@ export const en: ExtensionText = {
       tooltip: 'Draft a reply to this conversation and review the context',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Write reply',
       replyTooltip: 'Write a reply draft for this conversation from your instruction',
       write: 'Write',
@@ -258,8 +262,7 @@ export const en: ExtensionText = {
         'Claude Code was not found. Install Claude Code and run pnpm ai:install again.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code is not signed in. Run claude in a terminal and sign in with /login.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code was found only as a command script (claude.cmd), which Email Writer cannot start safely. Install Claude Code with the official native installer and run pnpm ai:install again.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code was found only as a command script (claude.cmd), which ${PRODUCT_NAME} cannot start safely. Install Claude Code with the official native installer and run pnpm ai:install again.`,
       AI_VERSION_MISMATCH:
         'The extension and the local helper app are different versions. Run the install command from AI settings again.',
       CONTENT_SCRIPT_UNREACHABLE:
@@ -269,7 +272,7 @@ export const en: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'The writing assistant is available on this page.',
       waiting: 'The mail area is loading…',
@@ -285,7 +288,7 @@ export const en: ExtensionText = {
     developmentBuild: 'Development build',
   },
   options: {
-    title: 'Email Writer settings',
+    title: `${PRODUCT_NAME} settings`,
     subtitle: 'Writing assistant for Outlook on the web',
     preferencesTitle: 'Writing preferences',
     preferencesDescription: 'Language, tone and appearance used for new work.',
@@ -331,13 +334,13 @@ export const en: ExtensionText = {
     saving: 'Saving…',
     defaultsNote: 'Default language and tone do not change open work; they apply to the next work.',
     privacyTitle: 'Privacy and data',
-    privacyDescription: 'What Email Writer does and does not do with your email.',
+    privacyDescription: `What ${PRODUCT_NAME} does and does not do with your email.`,
     privacyPoints: [
       'Your preferences are stored only on this device.',
       'Emails you open are kept in memory only while the page is open, to suggest context; they are never written to disk.',
       'Text is sent to the AI provider you chose (OpenAI or Anthropic) only when you select Revise, Translate or Write reply.',
       'Results appear as a preview first and are never written to your draft without your approval.',
-      'Email Writer never sends email; sending is always up to you.',
+      `${PRODUCT_NAME} never sends email; sending is always up to you.`,
     ],
   },
 };

@@ -34,7 +34,7 @@ describe('OpenAI authorization', () => {
     const second = createAuthorization('urn:uuid:host', first.attempt.redirectUri);
     const params = new URL(first.url).searchParams;
     expect(params.get('client_id')).toBe('dynamic_agent_client');
-    expect(params.get('agent_name_hint')).toBe('Email Writer');
+    expect(params.get('agent_name_hint')).toBe('Writehand');
     expect(params.get('ext_agent_host_id')).toBe('urn:uuid:host');
     expect(params.get('scope')).toContain(PLAN_SCOPE);
     expect(params.get('code_challenge')).toBe(

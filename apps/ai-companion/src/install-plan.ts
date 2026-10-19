@@ -1,4 +1,4 @@
-import { FIREFOX_EXTENSION_ID, NATIVE_HOST_NAME } from '@email-writer/contracts';
+import { FIREFOX_EXTENSION_ID, NATIVE_HOST_NAME, PRODUCT_NAME } from '@email-writer/contracts';
 
 import { BROWSERS, type Browser, type HostPlatform } from './platform';
 
@@ -58,7 +58,7 @@ export function planInstall(
   const { manifest, registryKey } = platform.registration(options.browser);
   const content = {
     name: NATIVE_HOST_NAME,
-    description: 'Email Writer local AI connection',
+    description: `${PRODUCT_NAME} helper app`,
     path: platform.launcherPath,
     type: 'stdio',
     ...(firefox

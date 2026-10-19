@@ -6,6 +6,8 @@ export type PopupStatusKey =
 
 /** Eklentinin bütün kullanıcı metinleri: panel, araç çubuğu penceresi ve ayarlar. */
 export interface ExtensionText {
+  /** Tarayıcının eklenti listesinde ve mağazada görünen açıklama (en fazla 132 karakter). */
+  readonly description: string;
   readonly ui: UiText;
   readonly popup: {
     readonly title: string;

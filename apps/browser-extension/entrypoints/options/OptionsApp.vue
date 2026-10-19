@@ -51,6 +51,7 @@ const addPicker = ref<InstanceType<typeof LanguagePicker> | null>(null);
 // Ekran okuyucular ve doğru büyük harf dönüşümü için sayfanın dili arayüz diliyle aynı tutulur.
 watchEffect(() => {
   document.documentElement.lang = uiLanguageFor(current.value.uiLanguage);
+  document.title = text.value.options.title;
 });
 
 let stopWatching: (() => void) | null = null;

@@ -43,31 +43,31 @@ describe('Native host installation plan', () => {
     });
     expect(plan).toEqual({
       directories: [
-        { path: '/Users/ada/.local/share/email-writer', mode: 0o700 },
+        { path: '/Users/ada/.local/share/writehand', mode: 0o700 },
         { path: '/Users/ada/Library/Application Support/Google/Chrome/NativeMessagingHosts' },
       ],
       files: [
-        { path: '/Users/ada/.local/share/email-writer/host.mjs', content: 'HOST PROGRAM', mode: 0o600 },
+        { path: '/Users/ada/.local/share/writehand/host.mjs', content: 'HOST PROGRAM', mode: 0o600 },
         {
-          path: '/Users/ada/.local/share/email-writer/email-writer-ai',
+          path: '/Users/ada/.local/share/writehand/writehand',
           content: [
             '#!/bin/sh',
             `PATH='/opt/node/bin':"$PATH"; export PATH`,
             'USER="${USER:-$(id -un)}"; export USER',
             `EMAIL_WRITER_CLAUDE_PATH='/Users/ada/it'\\''s/claude'; export EMAIL_WRITER_CLAUDE_PATH`,
             `CLAUDE_CONFIG_DIR='/Users/ada/.claude-work'; export CLAUDE_CONFIG_DIR`,
-            `exec '/opt/node/bin/node' '/Users/ada/.local/share/email-writer/host.mjs' "$@"`,
+            `exec '/opt/node/bin/node' '/Users/ada/.local/share/writehand/host.mjs' "$@"`,
             '',
           ].join('\n'),
           mode: 0o700,
         },
         {
-          path: '/Users/ada/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.email_writer.ai.json',
+          path: '/Users/ada/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.dervisgenc.writehand.json',
           content: `${JSON.stringify(
             {
-              name: 'com.email_writer.ai',
-              description: 'Email Writer local AI connection',
-              path: '/Users/ada/.local/share/email-writer/email-writer-ai',
+              name: 'com.dervisgenc.writehand',
+              description: 'Writehand helper app',
+              path: '/Users/ada/.local/share/writehand/writehand',
               type: 'stdio',
               allowed_origins: [`chrome-extension://${CHROMIUM_ID}/`],
             },
@@ -92,22 +92,20 @@ describe('Native host installation plan', () => {
   ] as const)('%s: %s reads its manifest from %s', (os, browser, directory) => {
     const platform = hostPlatform(os, {}, '/h');
     expect(platform.registration(browser)).toEqual({
-      manifest: `${directory}/com.email_writer.ai.json`,
+      manifest: `${directory}/com.dervisgenc.writehand.json`,
       registryKey: null,
     });
-    expect(platform.credentialsDirectory).toBe('/h/.config/email-writer');
+    expect(platform.credentialsDirectory).toBe('/h/.config/writehand');
   });
 
   it('Windows keeps program and credentials in the local (non-roaming) profile', () => {
     const platform = windows();
-    expect(platform.installDirectory).toBe('C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer');
-    expect(platform.launcherPath).toBe(
-      'C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer\\email-writer-ai.cmd',
-    );
-    expect(platform.credentialsDirectory).toBe('C:\\Users\\Ada\\AppData\\Local\\email-writer');
+    expect(platform.installDirectory).toBe('C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand');
+    expect(platform.launcherPath).toBe('C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand\\writehand.cmd');
+    expect(platform.credentialsDirectory).toBe('C:\\Users\\Ada\\AppData\\Local\\writehand');
     // Without the variable, the profile's default location is used.
     expect(hostPlatform('win32', {}, WINDOWS_HOME).credentialsDirectory).toBe(
-      'C:\\Users\\Ada\\AppData\\Local\\email-writer',
+      'C:\\Users\\Ada\\AppData\\Local\\writehand',
     );
   });
 
@@ -119,8 +117,8 @@ describe('Native host installation plan', () => {
     ['firefox', 'Mozilla'],
   ] as const)('Windows: %s finds the host through HKCU\\Software\\%s', (browser, location) => {
     expect(windows().registration(browser)).toEqual({
-      manifest: `C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer\\com.email_writer.ai.${browser}.json`,
-      registryKey: `HKCU\\Software\\${location}\\NativeMessagingHosts\\com.email_writer.ai`,
+      manifest: `C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand\\com.dervisgenc.writehand.${browser}.json`,
+      registryKey: `HKCU\\Software\\${location}\\NativeMessagingHosts\\com.dervisgenc.writehand`,
     });
   });
 
@@ -133,9 +131,12 @@ describe('Native host installation plan', () => {
       claudeConfigDir: 'C:\\Users\\Ada\\Claude 100%',
     });
     const manifest =
-      'C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer\\com.email_writer.ai.chrome.json';
+      'C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand\\com.dervisgenc.writehand.chrome.json';
     expect(plan.registry).toEqual([
-      { key: 'HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.email_writer.ai', value: manifest },
+      {
+        key: 'HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.dervisgenc.writehand',
+        value: manifest,
+      },
     ]);
     expect(plan.files.map((file) => file.path)).toEqual([platform.hostPath, platform.launcherPath, manifest]);
     expect(manifestOf(plan)).toMatchObject({ path: platform.launcherPath, type: 'stdio' });
@@ -146,7 +147,7 @@ describe('Native host installation plan', () => {
         'setlocal DisableDelayedExpansion',
         'set "EMAIL_WRITER_CLAUDE_PATH=C:\\Users\\Ada\\.local\\bin\\claude.exe"',
         'set "CLAUDE_CONFIG_DIR=C:\\Users\\Ada\\Claude 100%%"',
-        '"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer\\host.mjs" %*',
+        '"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand\\host.mjs" %*',
         '',
       ].join('\r\n'),
     );
@@ -181,18 +182,18 @@ describe('Native host installation plan', () => {
   it('removing a registration touches only that browser’s manifest and registry key', () => {
     expect(planUninstall(hostPlatform('linux', {}, '/h'), 'brave')).toEqual({
       registryKeys: [],
-      files: ['/h/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.email_writer.ai.json'],
+      files: ['/h/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.dervisgenc.writehand.json'],
     });
     expect(planUninstall(windows(), 'edge')).toEqual({
-      registryKeys: ['HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.email_writer.ai'],
-      files: ['C:\\Users\\Ada\\AppData\\Local\\Programs\\email-writer\\com.email_writer.ai.edge.json'],
+      registryKeys: ['HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.dervisgenc.writehand'],
+      files: ['C:\\Users\\Ada\\AppData\\Local\\Programs\\writehand\\com.dervisgenc.writehand.edge.json'],
     });
   });
 
   it('never writes registry keys other than its own per-user registration', async () => {
     const registry = windows().registry!;
     await expect(
-      registry.set('HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.email_writer.ai', 'x'),
+      registry.set('HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.dervisgenc.writehand', 'x'),
     ).rejects.toThrow('Not a registry key of this helper');
     await expect(
       registry.remove('HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\other.host'),

@@ -9,7 +9,7 @@ test('arka plan service worker olarak çalışır ve ayarlar ekranı açılır',
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
-  await expect(page.getByRole('heading', { name: 'Email Writer ayarları' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Writehand ayarları' })).toBeVisible();
   // Varsayılan çeviri dili adıyla gösterilir; kayıtta kod (`en`) tutulur.
   await expect(page.getByLabel('Varsayılan çeviri dili')).toHaveValue('İngilizce');
 });
@@ -44,7 +44,7 @@ test('taslaktaki "Düzelt" düğmesi seçili metni doğrudan işler; sonuç kart
     document.getSelection()!.removeAllRanges();
     document.getSelection()!.addRange(range);
   });
-  const toolbar = page.getByRole('toolbar', { name: 'Email Writer' });
+  const toolbar = page.getByRole('toolbar', { name: 'Writehand' });
   await toolbar.getByRole('button', { name: 'Düzelt' }).click();
 
   // Panel açılmaz; sonuç taslağın yanındaki kartta görünür.
@@ -113,7 +113,7 @@ test('panelde yazarken Outlook kısayollarına klavye olayı sızmaz', async ({ 
     );
   });
 
-  const toolbar = page.getByRole('toolbar', { name: 'Email Writer' });
+  const toolbar = page.getByRole('toolbar', { name: 'Writehand' });
   await toolbar.getByRole('button', { name: 'Yazma yardımcısını panelde aç' }).click();
   await page
     .getByRole('dialog', { name: 'Yazma yardımcısı' })
@@ -134,10 +134,7 @@ test('"Yanıt yaz" kartı: yanıtlanan mesaj belirsizse panelde seçtirir, talim
   const page = await context.newPage();
   await page.goto(FIXTURE_URL);
 
-  await page
-    .getByRole('toolbar', { name: 'Email Writer' })
-    .getByRole('button', { name: 'Yanıt yaz' })
-    .click();
+  await page.getByRole('toolbar', { name: 'Writehand' }).getByRole('button', { name: 'Yanıt yaz' }).click();
   const card = page.getByRole('dialog', { name: 'Yanıt taslağı' });
   await expect(card.getByRole('button', { name: /Bağlam · \d+ mesaj/ })).toBeVisible();
   // Örnek sayfada iki açık mesaj var; hangisinin yanıtlandığı tahmin edilmez.
@@ -162,7 +159,7 @@ test('"Tablo yap" sonucu biçimli gösterir ve taslağa gerçek tablo olarak yaz
   const editor = page.locator('[data-fixture="reply-editor"]');
   // Seçim yok: taslağın kullanıcının yazdığı bölümü bütünüyle işlenir.
   await page.evaluate(() => document.getSelection()?.removeAllRanges());
-  await page.getByRole('toolbar', { name: 'Email Writer' }).getByRole('button', { name: 'Düzelt' }).click();
+  await page.getByRole('toolbar', { name: 'Writehand' }).getByRole('button', { name: 'Düzelt' }).click();
 
   const card = page.getByRole('dialog', { name: 'Düzeltme önerisi' });
   await expect(card.getByLabel('Sonuç', { exact: true })).toHaveValue('Toplantıyı yarın yapabiliriz.');
@@ -193,7 +190,7 @@ test('çok satırlı düz metin taslağın tamamına yazılırken son satır imz
   await page.goto(FIXTURE_URL);
   const editor = page.locator('[data-fixture="reply-editor"]');
   await page.evaluate(() => document.getSelection()?.removeAllRanges());
-  await page.getByRole('toolbar', { name: 'Email Writer' }).getByRole('button', { name: 'Düzelt' }).click();
+  await page.getByRole('toolbar', { name: 'Writehand' }).getByRole('button', { name: 'Düzelt' }).click();
 
   const card = page.getByRole('dialog', { name: 'Düzeltme önerisi' });
   const result = card.getByLabel('Sonuç', { exact: true });

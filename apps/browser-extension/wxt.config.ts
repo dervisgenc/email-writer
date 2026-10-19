@@ -2,6 +2,7 @@ import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
 import { defineConfig } from 'wxt';
 
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/supported-sites';
+import { manifestMessages } from './src/locales';
 
 /**
  * Aynı kaynak koddan Chromium (service worker) ve Firefox (background script)
@@ -17,15 +18,15 @@ export default defineConfig({
   imports: false,
   manifestVersion: 3,
   manifest: ({ browser }) => ({
-    name: 'Email Writer',
-    description: 'Outlook Web içinde e-posta metnini düzeltme, çevirme ve yanıt hazırlama yardımcısı.',
+    // Ad ve açıklama arayüz dillerinde `_locales` dosyalarından gelir (aşağıdaki hook).
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
     permissions: ['storage', 'nativeMessaging'],
-    action: { default_title: 'Email Writer' },
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {
             gecko: {
-              // Mağaza kaydından önce kalıcı kimlik kararı verilmeli (bkz. docs/GELISTIRICI_REHBERI.md).
               id: FIREFOX_EXTENSION_ID,
               // Yerleşik veri paylaşımı beyanı Firefox 140 ile geldi.
               strict_min_version: '140.0',
@@ -38,6 +39,14 @@ export default defineConfig({
       : {}),
   }),
   hooks: {
+    'build:publicAssets': (_wxt, files) => {
+      for (const [language, messages] of Object.entries(manifestMessages())) {
+        files.push({
+          relativeDest: `_locales/${language}/messages.json`,
+          contents: `${JSON.stringify(messages, null, 2)}\n`,
+        });
+      }
+    },
     // Yerel test sayfası yalnızca geliştirme/test derlemesinde desteklenen origin olur.
     // Eşleşmeler manifest yerine giriş noktası seçeneklerine eklenir: `wxt` (dev)
     // MV3'te content script'i manifeste yazmaz, bu seçeneklerle çalışma anında

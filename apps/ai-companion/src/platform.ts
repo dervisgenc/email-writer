@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import { posix, win32, type PlatformPath } from 'node:path';
 import { promisify } from 'node:util';
-import { NATIVE_HOST_NAME } from '@email-writer/contracts';
+import { HELPER_COMMAND, NATIVE_HOST_NAME } from '@email-writer/contracts';
 
 /**
  * Everything that differs between operating systems is described here: where the helper
@@ -76,15 +76,15 @@ const MANIFEST_DIRECTORIES: Record<'darwin' | 'linux', Record<Browser, string>> 
 
 function unixPlatform(os: 'darwin' | 'linux', env: Environment, home: string): HostPlatform {
   const path = posix;
-  const installDirectory = path.join(home, '.local', 'share', 'email-writer');
+  const installDirectory = path.join(home, '.local', 'share', HELPER_COMMAND);
   const hostPath = path.join(installDirectory, 'host.mjs');
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
   return {
     path,
     installDirectory,
     hostPath,
-    launcherPath: path.join(installDirectory, 'email-writer-ai'),
-    credentialsDirectory: path.join(home, '.config', 'email-writer'),
+    launcherPath: path.join(installDirectory, HELPER_COMMAND),
+    credentialsDirectory: path.join(home, '.config', HELPER_COMMAND),
     registration: (browser) => ({
       manifest: path.join(home, MANIFEST_DIRECTORIES[os][browser], `${NATIVE_HOST_NAME}.json`),
       registryKey: null,
@@ -148,7 +148,7 @@ function windowsPlatform(env: Environment, home: string): HostPlatform {
   const appData = location('APPDATA') ?? path.join(home, 'AppData', 'Roaming');
   // Windows' own tools by absolute path, so that nothing on PATH can stand in for them.
   const system32 = (tool: string) => path.join(location('SYSTEMROOT') ?? 'C:\\Windows', 'System32', tool);
-  const installDirectory = path.join(localAppData, 'Programs', 'email-writer');
+  const installDirectory = path.join(localAppData, 'Programs', HELPER_COMMAND);
   const hostPath = path.join(installDirectory, 'host.mjs');
   const ownKey = (key: string) => {
     // Only this helper's own per-user keys are ever written or removed.
@@ -161,8 +161,8 @@ function windowsPlatform(env: Environment, home: string): HostPlatform {
     path,
     installDirectory,
     hostPath,
-    launcherPath: path.join(installDirectory, 'email-writer-ai.cmd'),
-    credentialsDirectory: path.join(localAppData, 'email-writer'),
+    launcherPath: path.join(installDirectory, `${HELPER_COMMAND}.cmd`),
+    credentialsDirectory: path.join(localAppData, HELPER_COMMAND),
     registration: (browser) => ({
       manifest: path.join(installDirectory, `${NATIVE_HOST_NAME}.${browser}.json`),
       registryKey: `HKCU\\Software\\${REGISTRY_LOCATIONS[browser]}\\NativeMessagingHosts\\${NATIVE_HOST_NAME}`,
