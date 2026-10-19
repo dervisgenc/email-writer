@@ -47,6 +47,8 @@ mkdirSync(output, { recursive: true });
 // 1. One CommonJS file: a single executable application starts a CommonJS script.
 const bundle = join(work, 'writehand.cjs');
 const { metafile } = await build({
+  // Metafile paths are relative to this folder, whichever folder the script runs from.
+  absWorkingDir: root,
   entryPoints: [join(app, 'src', 'cli.ts')],
   outfile: bundle,
   bundle: true,
