@@ -7,6 +7,8 @@ import { createAiService } from './ai-service';
 import { createCredentialStore } from './credential-store';
 import { encodeNativeMessage, NativeMessageDecoder, rejectionFor } from './native-protocol';
 import { hostPlatform } from './platform';
+import { registeredBrowsers } from './registrations';
+import { HOST_VERSION } from './version';
 
 const platform = hostPlatform();
 // Native hosts write ONLY framed protocol messages to stdout, never logs or email content.
@@ -63,6 +65,13 @@ async function handle(raw: unknown): Promise<void> {
         break;
       case 'AI_CANCEL':
         payload = service.cancel(request.payload.generationId);
+        break;
+      case 'HOST_INFO':
+        payload = {
+          version: HOST_VERSION,
+          ...platform.target,
+          browsers: await registeredBrowsers(platform, platform.launcherPath),
+        };
         break;
       default:
         return;

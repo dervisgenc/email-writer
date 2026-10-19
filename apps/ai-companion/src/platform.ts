@@ -2,7 +2,12 @@ import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
 import { posix, win32, type PlatformPath } from 'node:path';
 import { promisify } from 'node:util';
-import { HELPER_COMMAND, NATIVE_HOST_NAME } from '@email-writer/contracts';
+import {
+  HELPER_COMMAND,
+  NATIVE_HOST_NAME,
+  type HostBrowser,
+  type HostOperatingSystem,
+} from '@email-writer/contracts';
 
 /**
  * Everything that differs between operating systems is described here: where the helper
@@ -11,9 +16,6 @@ import { HELPER_COMMAND, NATIVE_HOST_NAME } from '@email-writer/contracts';
  * never check the operating system themselves. Paths follow the target system's rules,
  * so each system's description can be tested on any computer.
  */
-
-export const BROWSERS = ['firefox', 'chrome', 'edge', 'brave'] as const;
-export type Browser = (typeof BROWSERS)[number];
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -26,11 +28,15 @@ export interface LauncherOptions {
 
 /** Per-user registry values that point a browser at the host manifest (Windows). */
 export interface Registry {
+  /** The key's default value, or null when the key does not exist. */
+  read(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
   remove(key: string): Promise<void>;
 }
 
 export interface HostPlatform {
+  /** Operating system and architecture as release archives name them. */
+  readonly target: { readonly os: HostOperatingSystem; readonly arch: string };
   readonly path: PlatformPath;
   /** The bundled host and its launcher. */
   readonly installDirectory: string;
@@ -39,7 +45,7 @@ export interface HostPlatform {
   /** Private credential storage, kept on this computer only. */
   readonly credentialsDirectory: string;
   /** Where the browser reads the host manifest; on Windows a registry key points at the file. */
-  registration(browser: Browser): { readonly manifest: string; readonly registryKey: string | null };
+  registration(browser: HostBrowser): { readonly manifest: string; readonly registryKey: string | null };
   /** The launcher script: starts the host with what the browser's environment lacks. */
   launcher(options: LauncherOptions): string;
   /** Opens a URL in the default browser without a shell. */
@@ -59,7 +65,7 @@ function searchPath(path: PlatformPath, value: string | undefined): string[] {
     .filter((directory) => path.isAbsolute(directory));
 }
 
-const MANIFEST_DIRECTORIES: Record<'darwin' | 'linux', Record<Browser, string>> = {
+const MANIFEST_DIRECTORIES: Record<'darwin' | 'linux', Record<HostBrowser, string>> = {
   darwin: {
     firefox: 'Library/Application Support/Mozilla/NativeMessagingHosts',
     chrome: 'Library/Application Support/Google/Chrome/NativeMessagingHosts',
@@ -74,12 +80,13 @@ const MANIFEST_DIRECTORIES: Record<'darwin' | 'linux', Record<Browser, string>> 
   },
 };
 
-function unixPlatform(os: 'darwin' | 'linux', env: Environment, home: string): HostPlatform {
+function unixPlatform(os: 'darwin' | 'linux', arch: string, env: Environment, home: string): HostPlatform {
   const path = posix;
   const installDirectory = path.join(home, '.local', 'share', HELPER_COMMAND);
   const hostPath = path.join(installDirectory, 'host.mjs');
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
   return {
+    target: { os, arch },
     path,
     installDirectory,
     hostPath,
@@ -119,7 +126,7 @@ function unixPlatform(os: 'darwin' | 'linux', env: Environment, home: string): H
 }
 
 /** Per-user registry locations (under HKCU\Software) that each browser reads. */
-const REGISTRY_LOCATIONS: Record<Browser, string> = {
+const REGISTRY_LOCATIONS: Record<HostBrowser, string> = {
   firefox: 'Mozilla',
   chrome: 'Google\\Chrome',
   edge: 'Microsoft\\Edge',
@@ -135,7 +142,13 @@ function batchValue(value: string): string {
 
 const run = promisify(execFile);
 
-function windowsPlatform(env: Environment, home: string): HostPlatform {
+/** The default value in `reg query <key> /ve` output: "    (Default)    REG_SZ    <value>". */
+export function registryDefaultValue(output: string): string | null {
+  // The "(Default)" label is localized; the type name is not.
+  return /\sREG_SZ\s+(.+?)\s*$/m.exec(output)?.[1] ?? null;
+}
+
+function windowsPlatform(arch: string, env: Environment, home: string): HostPlatform {
   const path = win32;
   // Names are case-insensitive on Windows; a copied environment keeps spellings such as "Path".
   const variable = (name: string) => Object.entries(env).find(([key]) => key.toUpperCase() === name)?.[1];
@@ -158,6 +171,7 @@ function windowsPlatform(env: Environment, home: string): HostPlatform {
   };
   const hidden = { windowsHide: true };
   return {
+    target: { os: 'windows', arch },
     path,
     installDirectory,
     hostPath,
@@ -206,6 +220,13 @@ function windowsPlatform(env: Environment, home: string): HostPlatform {
       );
     },
     registry: {
+      async read(key) {
+        const output = await run(system32('reg.exe'), ['query', ownKey(key), '/ve'], hidden).then(
+          ({ stdout }) => stdout,
+          () => '',
+        );
+        return registryDefaultValue(output);
+      },
       async set(key, value) {
         await run(
           system32('reg.exe'),
@@ -229,8 +250,9 @@ export function hostPlatform(
   os: NodeJS.Platform = process.platform,
   env: Environment = process.env,
   home: string = homedir(),
+  arch: string = process.arch,
 ): HostPlatform {
-  if (os === 'win32') return windowsPlatform(env, home);
+  if (os === 'win32') return windowsPlatform(arch, env, home);
   // Other Unix-like systems follow the Linux (XDG) conventions.
-  return unixPlatform(os === 'darwin' ? 'darwin' : 'linux', env, home);
+  return unixPlatform(os === 'darwin' ? 'darwin' : 'linux', arch, env, home);
 }

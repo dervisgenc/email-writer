@@ -20,6 +20,9 @@ export function fetchAiSummary() {
 export function runAiCommand(command: AiCommand) {
   return sendRequest(sendToBackground, createRequest('AI_COMMAND', command, requestId()));
 }
+export function fetchHostInfo() {
+  return sendRequest(sendToBackground, createRequest('HOST_INFO', {}, requestId()));
+}
 export function requestOpenOptions() {
   return sendRequest(sendToBackground, createRequest('OPEN_OPTIONS', {}, requestId()));
 }

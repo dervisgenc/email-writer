@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir, userInfo } from 'node:os';
 import { join } from 'node:path';
-import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
+import { FIREFOX_EXTENSION_ID, HOST_BROWSERS } from '@email-writer/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -11,7 +11,7 @@ import {
   planUninstall,
   type InstallPlan,
 } from '../../apps/ai-companion/src/install-plan';
-import { BROWSERS, hostPlatform } from '../../apps/ai-companion/src/platform';
+import { hostPlatform } from '../../apps/ai-companion/src/platform';
 
 const CHROMIUM_ID = 'abcdefghijklmnopabcdefghijklmnop';
 const options = {
@@ -211,7 +211,7 @@ describe('Native host installation plan', () => {
       extensionId: undefined,
       uninstall: true,
     });
-    expect(() => parseInstallArguments(['safari'])).toThrow(`pnpm ai:install ${BROWSERS.join('|')}`);
+    expect(() => parseInstallArguments(['safari'])).toThrow(`pnpm ai:install ${HOST_BROWSERS.join('|')}`);
     expect(() => parseInstallArguments([])).toThrow('Usage');
   });
 });

@@ -39,6 +39,7 @@ export function createAiHandlers(options: {
         return Promise.resolve(ok({ cancelled: false }));
       return native('AI_CANCEL', payload);
     },
+    HOST_INFO: () => native('HOST_INFO', {}),
     OPEN_OPTIONS: async () => {
       await options.openOptions();
       return ok({ opened: true });

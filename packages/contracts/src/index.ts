@@ -6,6 +6,7 @@ export * from './ai-prompt';
 export * from './brand';
 export * from './context';
 export * from './errors';
+export * from './host';
 export * from './languages';
 export * from './mail';
 export * from './mail-connector';

@@ -1,9 +1,15 @@
-import { FIREFOX_EXTENSION_ID, NATIVE_HOST_NAME, PRODUCT_NAME } from '@email-writer/contracts';
+import {
+  FIREFOX_EXTENSION_ID,
+  HOST_BROWSERS,
+  NATIVE_HOST_NAME,
+  PRODUCT_NAME,
+  type HostBrowser,
+} from '@email-writer/contracts';
 
-import { BROWSERS, type Browser, type HostPlatform } from './platform';
+import type { HostPlatform } from './platform';
 
 export interface InstallArguments {
-  readonly browser: Browser;
+  readonly browser: HostBrowser;
   readonly extensionId: string | undefined;
   readonly uninstall: boolean;
 }
@@ -23,14 +29,14 @@ export interface UninstallPlan {
   readonly files: readonly string[];
 }
 
-const isBrowser = (value: string | undefined): value is Browser =>
-  BROWSERS.some((browser) => browser === value);
+const isBrowser = (value: string | undefined): value is HostBrowser =>
+  HOST_BROWSERS.some((browser) => browser === value);
 
 export function parseInstallArguments(argv: readonly string[]): InstallArguments {
   const args = argv.filter((value) => value !== '--');
   const browser = args.find((value) => !value.startsWith('--'));
   if (!isBrowser(browser))
-    throw new Error(`Usage: pnpm ai:install ${BROWSERS.join('|')} [--extension-id=ID] [--uninstall]`);
+    throw new Error(`Usage: pnpm ai:install ${HOST_BROWSERS.join('|')} [--extension-id=ID] [--uninstall]`);
   return {
     browser,
     extensionId: args.find((value) => value.startsWith('--extension-id='))?.slice('--extension-id='.length),
@@ -41,7 +47,7 @@ export function parseInstallArguments(argv: readonly string[]): InstallArguments
 export function planInstall(
   platform: HostPlatform,
   options: {
-    readonly browser: Browser;
+    readonly browser: HostBrowser;
     readonly extensionId: string | undefined;
     /** The Node.js executable that will run the host. */
     readonly node: string;
@@ -79,7 +85,7 @@ export function planInstall(
   };
 }
 
-export function planUninstall(platform: HostPlatform, browser: Browser): UninstallPlan {
+export function planUninstall(platform: HostPlatform, browser: HostBrowser): UninstallPlan {
   const { manifest, registryKey } = platform.registration(browser);
   // The browser stops finding the host before its manifest is removed.
   return { registryKeys: registryKey === null ? [] : [registryKey], files: [manifest] };
