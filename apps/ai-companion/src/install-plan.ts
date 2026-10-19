@@ -1,92 +1,204 @@
 import {
+  CHROMIUM_EXTENSION_IDS,
   FIREFOX_EXTENSION_ID,
+  HELPER_COMMAND,
   HOST_BROWSERS,
   NATIVE_HOST_NAME,
   PRODUCT_NAME,
   type HostBrowser,
 } from '@email-writer/contracts';
 
+import { serializeHostConfig, type HostConfig } from './host-config';
 import type { HostPlatform } from './platform';
+import type { HostManifest } from './registrations';
 
-export interface InstallArguments {
-  readonly browser: HostBrowser;
-  readonly extensionId: string | undefined;
-  readonly uninstall: boolean;
+export type CliCommand =
+  | { readonly kind: 'host' }
+  | { readonly kind: 'help' }
+  | { readonly kind: 'version' }
+  | { readonly kind: 'install'; readonly extensionIds: readonly string[]; readonly development: boolean }
+  | { readonly kind: 'uninstall'; readonly deleteData: boolean }
+  | { readonly kind: 'status' };
+
+export const USAGE = `Usage: ${HELPER_COMMAND} <command>
+
+Commands:
+  install [--extension-id=ID]... [--dev]
+      Install the helper app for this user and register it with Firefox, Chrome, Edge
+      and Brave. --extension-id allows another extension, e.g. an unpacked development
+      build. --dev installs the Node.js build of a source checkout.
+  uninstall [--delete-data]
+      Remove the browser registrations and the program. --delete-data also signs out
+      of ChatGPT and deletes credentials and API keys from this computer.
+  status
+      Show the version, the browser registrations and whether Claude Code is ready.
+  version
+      Print the version.
+
+Browsers start the program without a command; it then serves the ${PRODUCT_NAME} extension.
+`;
+
+const COMMANDS = new Set(['install', 'uninstall', 'status', 'version', '--version', 'help', '--help', '-h']);
+
+/**
+ * Reads the command line. Browsers start the host with their own arguments (an extension
+ * origin or a manifest path and extension ID), which are never commands. A terminal gets help
+ * instead of a host that would wait for browser messages.
+ */
+export function parseCommand(argv: readonly string[], interactive: boolean): CliCommand {
+  const [name, ...args] = argv;
+  if (name === undefined || !COMMANDS.has(name)) {
+    if (!interactive) return { kind: 'host' };
+    if (name === undefined) return { kind: 'help' };
+    throw new Error(`Unknown command: ${name}\n\n${USAGE}`);
+  }
+  const isExtensionId = (arg: string) => arg.startsWith('--extension-id=');
+  const accept = (options: readonly string[], extensionIds = false) => {
+    const unknown = args.find((arg) => !options.includes(arg) && !(extensionIds && isExtensionId(arg)));
+    if (unknown !== undefined) throw new Error(`Unknown option for ${name}: ${unknown}\n\n${USAGE}`);
+  };
+  switch (name) {
+    case 'install':
+      accept(['--dev'], true);
+      return {
+        kind: 'install',
+        extensionIds: args.filter(isExtensionId).map((arg) => arg.slice('--extension-id='.length)),
+        development: args.includes('--dev'),
+      };
+    case 'uninstall':
+      accept(['--delete-data']);
+      return { kind: 'uninstall', deleteData: args.includes('--delete-data') };
+    case 'status':
+      accept([]);
+      return { kind: 'status' };
+    case 'version':
+    case '--version':
+      accept([]);
+      return { kind: 'version' };
+    default:
+      return { kind: 'help' };
+  }
 }
 
-/** What registering the host with one browser writes. Applying it is left to the caller. */
+const CHROMIUM_ID = /^[a-p]{32}$/;
+const FIREFOX_ID = /^([\w.+-]+@[\w.-]+|\{[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}\})$/i;
+const CHROMIUM_ORIGIN = /^chrome-extension:\/\/([a-p]{32})\/$/;
+
+export interface ExtensionIds {
+  readonly firefox: readonly string[];
+  readonly chromium: readonly string[];
+}
+
+/**
+ * The extensions allowed to start the helper: the store IDs built into it, IDs given on the
+ * command line and IDs of the existing registrations, so that installing again (or updating)
+ * never disconnects an extension that worked before. `uninstall` clears them.
+ */
+export function allowedExtensions(
+  given: readonly string[],
+  registered: readonly HostManifest[],
+): ExtensionIds {
+  for (const id of given)
+    if (!CHROMIUM_ID.test(id) && !FIREFOX_ID.test(id)) throw new Error(`Not an extension ID: ${id}`);
+  const previous = registered.flatMap((manifest) =>
+    manifest.allowed.map((entry) => CHROMIUM_ORIGIN.exec(entry)?.[1] ?? entry),
+  );
+  const all = [...given, ...previous];
+  const unique = (ids: readonly string[]) => [...new Set(ids)];
+  return {
+    firefox: unique([
+      FIREFOX_EXTENSION_ID,
+      ...all.filter((id) => !CHROMIUM_ID.test(id) && FIREFOX_ID.test(id)),
+    ]),
+    chromium: unique([...CHROMIUM_EXTENSION_IDS, ...all.filter((id) => CHROMIUM_ID.test(id))]),
+  };
+}
+
+/** The file a browser registration starts: the program, or the development launcher. */
+export function commandPath(platform: HostPlatform, development: boolean): string {
+  return development ? platform.development.launcherPath : platform.programPath;
+}
+
 export interface InstallPlan {
   /** Directories to create; the mode is ignored on Windows. */
   readonly directories: readonly { readonly path: string; readonly mode?: number }[];
+  /** Where the running program (or the development script) is copied. */
+  readonly program: { readonly path: string; readonly mode: number };
   readonly files: readonly { readonly path: string; readonly content: string; readonly mode: number }[];
   /** Per-user registry keys whose default value points at the manifest (Windows). */
   readonly registry: readonly { readonly key: string; readonly value: string }[];
+  readonly browsers: readonly HostBrowser[];
+  /** Chromium browsers stay unregistered until an extension ID is known (store IDs or --extension-id). */
+  readonly skipped: readonly HostBrowser[];
 }
 
-/** Removing a registration touches only this browser's manifest and registry key. */
-export interface UninstallPlan {
-  readonly registryKeys: readonly string[];
-  readonly files: readonly string[];
-}
-
-const isBrowser = (value: string | undefined): value is HostBrowser =>
-  HOST_BROWSERS.some((browser) => browser === value);
-
-export function parseInstallArguments(argv: readonly string[]): InstallArguments {
-  const args = argv.filter((value) => value !== '--');
-  const browser = args.find((value) => !value.startsWith('--'));
-  if (!isBrowser(browser))
-    throw new Error(`Usage: pnpm ai:install ${HOST_BROWSERS.join('|')} [--extension-id=ID] [--uninstall]`);
-  return {
-    browser,
-    extensionId: args.find((value) => value.startsWith('--extension-id='))?.slice('--extension-id='.length),
-    uninstall: args.includes('--uninstall'),
-  };
-}
-
+/** What installing writes. Applying it is left to the caller. */
 export function planInstall(
   platform: HostPlatform,
   options: {
-    readonly browser: HostBrowser;
-    readonly extensionId: string | undefined;
-    /** The Node.js executable that will run the host. */
+    readonly extensionIds: ExtensionIds;
+    /** Records the computer's settings; `development` also selects the Node.js launcher. */
+    readonly config: HostConfig;
+    /** Development only: the Node.js executable that runs the script. */
     readonly node: string;
-    /** The bundled host program. */
-    readonly host: string;
-    readonly claudePath: string | null;
-    readonly claudeConfigDir: string | undefined;
   },
 ): InstallPlan {
-  const firefox = options.browser === 'firefox';
-  const extensionId = options.extensionId ?? (firefox ? FIREFOX_EXTENSION_ID : '');
-  if (firefox ? !/^[\w@.{}+-]{1,256}$/.test(extensionId) : !/^[a-p]{32}$/.test(extensionId))
-    throw new Error('Supply the installed extension ID with --extension-id=ID.');
-  const { manifest, registryKey } = platform.registration(options.browser);
-  const content = {
-    name: NATIVE_HOST_NAME,
-    description: `${PRODUCT_NAME} helper app`,
-    path: platform.launcherPath,
-    type: 'stdio',
-    ...(firefox
-      ? { allowed_extensions: [extensionId] }
-      : { allowed_origins: [`chrome-extension://${extensionId}/`] }),
-  };
+  const { development } = options.config;
+  const command = commandPath(platform, development);
+  const browsers = HOST_BROWSERS.filter(
+    (browser) => browser === 'firefox' || options.extensionIds.chromium.length > 0,
+  );
+  const manifests = browsers.map((browser) => {
+    const { manifest, registryKey } = platform.registration(browser);
+    const content = {
+      name: NATIVE_HOST_NAME,
+      description: `${PRODUCT_NAME} helper app`,
+      path: command,
+      type: 'stdio',
+      ...(browser === 'firefox'
+        ? { allowed_extensions: options.extensionIds.firefox }
+        : { allowed_origins: options.extensionIds.chromium.map((id) => `chrome-extension://${id}/`) }),
+    };
+    return { manifest, registryKey, content: `${JSON.stringify(content, null, 2)}\n` };
+  });
   return {
     directories: [
       { path: platform.installDirectory, mode: 0o700 },
-      { path: platform.path.dirname(manifest) },
+      ...[...new Set(manifests.map(({ manifest }) => platform.path.dirname(manifest)))]
+        .filter((directory) => directory !== platform.installDirectory)
+        .map((path) => ({ path })),
     ],
+    program: development
+      ? { path: platform.development.scriptPath, mode: 0o600 }
+      : { path: platform.programPath, mode: 0o700 },
     files: [
-      { path: platform.hostPath, content: options.host, mode: 0o600 },
-      { path: platform.launcherPath, content: platform.launcher(options), mode: 0o700 },
-      { path: manifest, content: `${JSON.stringify(content, null, 2)}\n`, mode: 0o600 },
+      { path: platform.configPath, content: serializeHostConfig(options.config), mode: 0o600 },
+      ...(development
+        ? [{ path: command, content: platform.development.launcher(options.node), mode: 0o700 }]
+        : []),
+      ...manifests.map(({ manifest, content }) => ({ path: manifest, content, mode: 0o600 })),
     ],
-    registry: registryKey === null ? [] : [{ key: registryKey, value: manifest }],
+    registry: manifests.flatMap(({ manifest, registryKey }) =>
+      registryKey === null ? [] : [{ key: registryKey, value: manifest }],
+    ),
+    browsers,
+    skipped: HOST_BROWSERS.filter((browser) => !browsers.includes(browser)),
   };
 }
 
-export function planUninstall(platform: HostPlatform, browser: HostBrowser): UninstallPlan {
-  const { manifest, registryKey } = platform.registration(browser);
-  // The browser stops finding the host before its manifest is removed.
-  return { registryKeys: registryKey === null ? [] : [registryKey], files: [manifest] };
+/** Removing the helper: every browser's registration, then the installation folder. */
+export interface UninstallPlan {
+  readonly registryKeys: readonly string[];
+  readonly files: readonly string[];
+  readonly directory: string;
+}
+
+export function planUninstall(platform: HostPlatform): UninstallPlan {
+  const registrations = HOST_BROWSERS.map((browser) => platform.registration(browser));
+  // Browsers stop finding the host before its manifests and program are removed.
+  return {
+    registryKeys: registrations.flatMap(({ registryKey }) => (registryKey === null ? [] : [registryKey])),
+    files: registrations.map(({ manifest }) => manifest),
+    directory: platform.installDirectory,
+  };
 }

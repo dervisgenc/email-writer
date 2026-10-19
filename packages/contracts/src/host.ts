@@ -42,6 +42,8 @@ export const hostInfoSchema = z
     arch: z.string().min(1).max(32),
     /** Kaydı bu kuruluma işaret eden tarayıcılar. */
     browsers: z.array(z.enum(HOST_BROWSERS)).max(HOST_BROWSERS.length),
+    /** Kaynak koddan geliştirme kurulumu (`install --dev`): Node.js ile çalışır, kendini güncellemez. */
+    development: z.boolean(),
   })
   .strict();
 export type HostInfo = z.infer<typeof hostInfoSchema>;
