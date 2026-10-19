@@ -1,6 +1,7 @@
 import { FIREFOX_EXTENSION_ID } from '@email-writer/contracts';
 import { defineConfig } from 'wxt';
 
+import { version } from '../../package.json';
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/supported-sites';
 import { manifestMessages } from './src/locales';
 
@@ -22,6 +23,8 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
+    // Tek sürüm kaynağı kök package.json'dır; yardımcı uygulama da aynı sürümü taşır.
+    version,
     permissions: ['storage', 'nativeMessaging'],
     ...(browser === 'firefox'
       ? {

@@ -1,5 +1,6 @@
 {
   "name": "email-writer",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -27,6 +28,7 @@
     "outlook:dev": "node tests/manual/outlook-live/dev-extension.mjs",
     "outlook:inspect": "node tests/manual/outlook-live/inspect.mjs",
     "verify:packages": "node scripts/verify-packages.mjs",
+    "release:version": "node scripts/release-version.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {
