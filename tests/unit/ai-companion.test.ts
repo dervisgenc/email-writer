@@ -355,8 +355,16 @@ describe('AI service and protected storage', () => {
           trustees: [...dacl.matchAll(/;([^;()]+)\)/g)].map((m) => m[1]).sort(),
         };
       };
-      expect(access(directory)).toEqual({ flags: 'PAI', trustees: [user, 'SY'].sort() });
-      expect(access(file).trustees).toEqual([user, 'SY'].sort());
+      // SDDL names the built-in Administrator account "LA"; on such an account (e.g. a CI
+      // runner) the Administrators group ("BA"), which can open every file anyway, stays listed.
+      const self = user?.endsWith('-500') ? 'LA' : user;
+      const allowed = [self, 'SY', ...(self === 'LA' ? ['BA'] : [])];
+      for (const path of [directory, file]) {
+        const { flags, trustees } = access(path);
+        if (path === directory) expect(flags).toBe('PAI');
+        expect(trustees).toEqual(expect.arrayContaining([self, 'SY']));
+        expect(trustees.filter((trustee) => !allowed.includes(trustee))).toEqual([]);
+      }
     } else {
       expect((await stat(directory)).mode & 0o777).toBe(0o700);
       expect((await stat(file)).mode & 0o777).toBe(0o600);
