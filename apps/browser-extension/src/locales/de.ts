@@ -296,6 +296,12 @@ export const de: ExtensionText = {
       AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code wurde nur als Befehlsskript (claude.cmd) gefunden, das ${PRODUCT_NAME} nicht sicher starten kann. Installieren Sie Claude Code mit dem offiziellen nativen Installationsprogramm und führen Sie pnpm ai:install erneut aus.`,
       AI_VERSION_MISMATCH:
         'Erweiterung und lokale Hilfs-App haben unterschiedliche Versionen. Führen Sie den Installationsbefehl aus den KI-Einstellungen erneut aus.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Die neueste Version der Hilfs-App konnte nicht geprüft werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es später erneut.',
+      HOST_UPDATE_FAILED:
+        'Das Update konnte nicht heruntergeladen oder installiert werden; die installierte Version ist unverändert. Versuchen Sie es später erneut oder führen Sie den Installationsbefehl erneut aus.',
+      HOST_UPDATE_UNVERIFIED:
+        'Das heruntergeladene Update konnte nicht verifiziert werden; es wurde nichts installiert. Die installierte Version funktioniert weiter.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Die Erweiterung erreicht diesen Tab nicht. Prüfen Sie den Websitezugriff oder laden Sie die Seite neu.',
       MESSAGE_REJECTED: 'Eine ungültige Nachricht der Erweiterung wurde abgelehnt.',

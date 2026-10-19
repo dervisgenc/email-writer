@@ -10,6 +10,7 @@ import { commandPath } from './install-plan';
 import { encodeNativeMessage, NativeMessageDecoder, rejectionFor } from './native-protocol';
 import type { HostPlatform } from './platform';
 import { registeredBrowsers } from './registrations';
+import { createUpdater } from './update';
 import { HOST_VERSION } from './version';
 
 /** The browser's native messaging host: framed requests on stdin, framed responses on stdout. */
@@ -38,6 +39,8 @@ export function runHost(platform: HostPlatform, config: HostConfig): void {
         child.once('exit', (code) => (code === 0 ? resolve() : reject(new Error('Browser could not open.'))));
       }),
   });
+
+  const updater = createUpdater({ platform, config });
 
   let inFlight = 0;
   async function handle(raw: unknown): Promise<void> {
@@ -69,6 +72,19 @@ export function runHost(platform: HostPlatform, config: HostConfig): void {
         case 'AI_CANCEL':
           payload = service.cancel(request.payload.generationId);
           break;
+        case 'HOST_UPDATE_CHECK':
+          payload = await updater.check();
+          break;
+        case 'HOST_UPDATE': {
+          const result = await updater.update('ignore');
+          payload = result;
+          // The browser's next request starts the new program; this one exits once it has answered.
+          if (result.version !== HOST_VERSION) {
+            process.stdout.write(encodeNativeMessage({ ...base, ok: true, payload }), shutdown);
+            return;
+          }
+          break;
+        }
         case 'HOST_INFO':
           payload = {
             version: HOST_VERSION,

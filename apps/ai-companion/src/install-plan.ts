@@ -18,7 +18,8 @@ export type CliCommand =
   | { readonly kind: 'version' }
   | { readonly kind: 'install'; readonly extensionIds: readonly string[]; readonly development: boolean }
   | { readonly kind: 'uninstall'; readonly deleteData: boolean }
-  | { readonly kind: 'status' };
+  | { readonly kind: 'status' }
+  | { readonly kind: 'update'; readonly checkOnly: boolean };
 
 export const USAGE = `Usage: ${HELPER_COMMAND} <command>
 
@@ -32,13 +33,26 @@ Commands:
       of ChatGPT and deletes credentials and API keys from this computer.
   status
       Show the version, the browser registrations and whether Claude Code is ready.
+  update [--check]
+      Install the latest release if it is newer, after verifying its signature and
+      checksum. --check only reports whether a newer release exists.
   version
       Print the version.
 
 Browsers start the program without a command; it then serves the ${PRODUCT_NAME} extension.
 `;
 
-const COMMANDS = new Set(['install', 'uninstall', 'status', 'version', '--version', 'help', '--help', '-h']);
+const COMMANDS = new Set([
+  'install',
+  'uninstall',
+  'status',
+  'update',
+  'version',
+  '--version',
+  'help',
+  '--help',
+  '-h',
+]);
 
 /**
  * Reads the command line. Browsers start the host with their own arguments (an extension
@@ -71,6 +85,9 @@ export function parseCommand(argv: readonly string[], interactive: boolean): Cli
     case 'status':
       accept([]);
       return { kind: 'status' };
+    case 'update':
+      accept(['--check']);
+      return { kind: 'update', checkOnly: args.includes('--check') };
     case 'version':
     case '--version':
       accept([]);

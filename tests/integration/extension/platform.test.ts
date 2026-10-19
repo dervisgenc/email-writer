@@ -48,7 +48,7 @@ describe('Ayar deposu', () => {
     expect(result.settings).toMatchObject({ uiLanguage: 'en', tone: 'neutral', revision: 4 });
   });
 
-  it('ilk sürüm kaydını ikinci sürüme taşır; seçimleri korur, yeni alanları varsayılanla doldurur', async () => {
+  it('ilk sürüm kaydını güncel sürüme taşır; seçimleri korur, yeni alanları varsayılanla doldurur', async () => {
     const v1 = {
       schemaVersion: 1,
       revision: 7,
@@ -65,11 +65,26 @@ describe('Ayar deposu', () => {
     expect(stored.issue).toBe('migrated');
     expect(stored.settings).toEqual({
       ...v1,
-      schemaVersion: 2,
+      schemaVersion: 3,
       favoriteLanguages: ['en', 'tr', 'de', 'fr', 'es'],
       writingInstructions: '',
+      checkHelperUpdates: true,
     });
     expect(area.data[SETTINGS_STORAGE_KEY]).toEqual(stored.settings);
+  });
+
+  it('ikinci sürüm kaydına güncelleme denetimi tercihini açık olarak ekler', async () => {
+    const { checkHelperUpdates: _added, ...v2 } = {
+      ...DEFAULT_SETTINGS,
+      schemaVersion: 2,
+      revision: 4,
+      tone: 'formal',
+    };
+    const area = memoryArea({ [SETTINGS_STORAGE_KEY]: v2 });
+    const stored = await createSettingsStore(area).ensureInitialized();
+
+    expect(stored.issue).toBe('migrated');
+    expect(stored.settings).toEqual({ ...v2, schemaVersion: 3, checkHelperUpdates: true });
   });
 
   it('kalıcı talimat ve favori diller sınırları aşamaz; elle yazılan dil adı kabul edilir', () => {
@@ -83,7 +98,7 @@ describe('Ayar deposu', () => {
   });
 
   it('daha yeni şemayla yazılmış kaydı bozmadan korur', async () => {
-    const future = { schemaVersion: 3, revision: 9, somethingNew: true };
+    const future = { schemaVersion: 4, revision: 9, somethingNew: true };
     const area = memoryArea({ [SETTINGS_STORAGE_KEY]: future });
     const store = createSettingsStore(area);
 

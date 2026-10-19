@@ -23,6 +23,12 @@ export function runAiCommand(command: AiCommand) {
 export function fetchHostInfo() {
   return sendRequest(sendToBackground, createRequest('HOST_INFO', {}, requestId()));
 }
+export function checkHostUpdate() {
+  return sendRequest(sendToBackground, createRequest('HOST_UPDATE_CHECK', {}, requestId()));
+}
+export function updateHost() {
+  return sendRequest(sendToBackground, createRequest('HOST_UPDATE', {}, requestId()));
+}
 export function requestOpenOptions() {
   return sendRequest(sendToBackground, createRequest('OPEN_OPTIONS', {}, requestId()));
 }

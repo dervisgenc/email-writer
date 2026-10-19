@@ -7,6 +7,12 @@ export interface NativePort {
   onDisconnect: { addListener(listener: () => void): void };
 }
 
+/** Generation may take up to two minutes; an update downloads a program of about 50 MB. */
+const REQUEST_TIMEOUTS: Partial<Record<RuntimeRequest['type'], number>> = {
+  AI_GENERATE: 130_000,
+  HOST_UPDATE: 600_000,
+};
+
 /** One native process per background, correlated responses, no retries of generation requests. */
 export function createNativeClient(connect: () => NativePort) {
   let port: NativePort | null = null;
@@ -56,25 +62,22 @@ export function createNativeClient(connect: () => NativePort) {
       return new Promise((resolve) => {
         try {
           const connection = getPort();
-          const timer = setTimeout(
-            () => {
-              pending.delete(request.requestId);
-              if (request.type === 'AI_GENERATE') {
-                try {
-                  connection.postMessage({
-                    protocolVersion: PROTOCOL_VERSION,
-                    requestId: crypto.randomUUID(),
-                    type: 'AI_CANCEL',
-                    payload: { generationId: request.payload.generationId },
-                  });
-                } catch {
-                  /* Host may have exited. */
-                }
+          const timer = setTimeout(() => {
+            pending.delete(request.requestId);
+            if (request.type === 'AI_GENERATE') {
+              try {
+                connection.postMessage({
+                  protocolVersion: PROTOCOL_VERSION,
+                  requestId: crypto.randomUUID(),
+                  type: 'AI_CANCEL',
+                  payload: { generationId: request.payload.generationId },
+                });
+              } catch {
+                /* Host may have exited. */
               }
-              resolve(failure(request.requestId, 'AI_UNAVAILABLE'));
-            },
-            request.type === 'AI_GENERATE' ? 130_000 : 90_000,
-          );
+            }
+            resolve(failure(request.requestId, 'AI_UNAVAILABLE'));
+          }, REQUEST_TIMEOUTS[request.type] ?? 90_000);
           pending.set(request.requestId, { finish: resolve, timer });
           connection.postMessage(request);
         } catch {

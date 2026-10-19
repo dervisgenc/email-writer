@@ -256,6 +256,12 @@ export const tr: ExtensionText = {
       AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; ${PRODUCT_NAME} bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurup pnpm ai:install komutunu yeniden çalıştırın.`,
       AI_VERSION_MISMATCH:
         'Eklenti ile yerel yardımcı uygulamanın sürümleri uyuşmuyor. AI ayarlarındaki kurulum komutunu yeniden çalıştırın.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Yardımcı uygulamanın güncel sürümü denetlenemedi. İnternet bağlantınızı kontrol edip daha sonra yeniden deneyin.',
+      HOST_UPDATE_FAILED:
+        'Güncelleme indirilemedi veya kurulamadı; kurulu sürüm değişmedi. Daha sonra yeniden deneyin ya da kurulum komutunu yeniden çalıştırın.',
+      HOST_UPDATE_UNVERIFIED:
+        'İndirilen güncellemenin imzası doğrulanamadı; hiçbir şey kurulmadı. Kurulu sürüm çalışmaya devam ediyor.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Eklenti bu sekmeye ulaşamıyor. Site erişimini kontrol edin veya sayfayı yenileyin.',
       MESSAGE_REJECTED: 'Geçersiz bir eklenti mesajı reddedildi.',

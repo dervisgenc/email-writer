@@ -265,6 +265,12 @@ export const en: ExtensionText = {
       AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code was found only as a command script (claude.cmd), which ${PRODUCT_NAME} cannot start safely. Install Claude Code with the official native installer and run pnpm ai:install again.`,
       AI_VERSION_MISMATCH:
         'The extension and the local helper app are different versions. Run the install command from AI settings again.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Could not check for a newer helper app. Check your internet connection and try again later.',
+      HOST_UPDATE_FAILED:
+        'The update could not be downloaded or installed; the installed version is unchanged. Try again later or run the install command again.',
+      HOST_UPDATE_UNVERIFIED:
+        'The downloaded update could not be verified, so nothing was installed. The installed version keeps working.',
       CONTENT_SCRIPT_UNREACHABLE:
         'The extension cannot reach this tab. Check site access or reload the page.',
       MESSAGE_REJECTED: 'An invalid extension message was rejected.',

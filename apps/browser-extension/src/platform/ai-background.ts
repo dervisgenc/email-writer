@@ -40,6 +40,8 @@ export function createAiHandlers(options: {
       return native('AI_CANCEL', payload);
     },
     HOST_INFO: () => native('HOST_INFO', {}),
+    HOST_UPDATE_CHECK: () => native('HOST_UPDATE_CHECK', {}),
+    HOST_UPDATE: () => native('HOST_UPDATE', {}),
     OPEN_OPTIONS: async () => {
       await options.openOptions();
       return ok({ opened: true });

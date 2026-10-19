@@ -12,8 +12,8 @@ import {
 /**
  * Everything that differs between operating systems is described here: where the helper
  * and its data live, how each browser finds the host, the development launcher, how a URL
- * is opened, where Claude Code and Node.js are usually installed and how a running program
- * is replaced or removed. Other modules use these values and never check the operating
+ * is opened, where Claude Code and Node.js are usually installed, the release archive and
+ * how it is unpacked, and how a running program is replaced or removed. Other modules use these values and never check the operating
  * system themselves. Paths follow the target system's rules, so each system's description
  * can be tested on any computer.
  */
@@ -56,6 +56,10 @@ export interface HostPlatform {
   readonly configPath: string;
   /** Private storage (credentials, update check), kept on this computer only. */
   readonly dataDirectory: string;
+  /** This system's file among the release files, e.g. writehand-darwin-arm64.tar.gz. */
+  readonly releaseArchive: string;
+  /** Unpacks a release archive with the system's own tar (Windows' bsdtar also reads zip). */
+  extractArchive(archive: string, directory: string): Command;
   /** Where the browser reads the host manifest; on Windows a registry key points at the file. */
   registration(browser: HostBrowser): { readonly manifest: string; readonly registryKey: string | null };
   /** Opens a URL in the default browser. */
@@ -116,6 +120,12 @@ function unixPlatform(os: 'darwin' | 'linux', arch: string, env: Environment, ho
     },
     configPath: path.join(installDirectory, 'config.json'),
     dataDirectory: path.join(home, '.config', HELPER_COMMAND),
+    releaseArchive: `${HELPER_COMMAND}-${os}-${arch}.tar.gz`,
+    // macOS keeps tar in /usr/bin; Linux distributions differ, and the host's PATH has both.
+    extractArchive: (archive, directory) => ({
+      file: os === 'darwin' ? '/usr/bin/tar' : 'tar',
+      args: ['-xzf', archive, '-C', directory],
+    }),
     registration: (browser) => ({
       manifest: path.join(home, MANIFEST_DIRECTORIES[os][browser], `${NATIVE_HOST_NAME}.json`),
       registryKey: null,
@@ -202,6 +212,12 @@ function windowsPlatform(arch: string, env: Environment, home: string): HostPlat
     },
     configPath: path.join(installDirectory, 'config.json'),
     dataDirectory: path.join(localAppData, HELPER_COMMAND),
+    // Windows on Arm runs the x64 program through its built-in emulation.
+    releaseArchive: `${HELPER_COMMAND}-windows-x64.zip`,
+    extractArchive: (archive, directory) => ({
+      file: system32('tar.exe'),
+      args: ['-xf', archive, '-C', directory],
+    }),
     registration: (browser) => ({
       manifest: path.join(installDirectory, `${NATIVE_HOST_NAME}.${browser}.json`),
       registryKey: `HKCU\\Software\\${REGISTRY_LOCATIONS[browser]}\\NativeMessagingHosts\\${NATIVE_HOST_NAME}`,

@@ -1,9 +1,11 @@
 import { isSea } from 'node:sea';
+import { AiFailure } from '@email-writer/ai-openai';
 
 import { runHost } from './host';
 import { configuredPlatform, install, removeLeftovers, status, uninstall } from './install';
 import { parseCommand, USAGE } from './install-plan';
 import { hostPlatform } from './platform';
+import { createUpdater, UPDATE_FAILURES } from './update';
 import { HOST_VERSION } from './version';
 
 /**
@@ -40,6 +42,16 @@ async function main(): Promise<void> {
       await status(platform, config);
       return;
     }
+    case 'update': {
+      const updater = createUpdater(await configuredPlatform());
+      if (command.checkOnly) {
+        process.stdout.write(`${updater.describe(await updater.check(true))}\n`);
+        return;
+      }
+      const { version } = await updater.update('inherit');
+      if (version === HOST_VERSION) process.stdout.write(`${updater.describe(await updater.check())}\n`);
+      return;
+    }
     case 'version':
       process.stdout.write(`${HOST_VERSION}\n`);
       return;
@@ -51,6 +63,12 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   // Never on stdout: in host mode stdout carries only framed protocol messages.
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  const message =
+    error instanceof AiFailure
+      ? (UPDATE_FAILURES[error.code] ?? error.code)
+      : error instanceof Error
+        ? error.message
+        : String(error);
+  process.stderr.write(`${message}\n`);
   process.exitCode = 1;
 });

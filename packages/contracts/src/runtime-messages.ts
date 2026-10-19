@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ERROR_CODES } from './errors';
 import { aiCommandSchema, aiInputSchema, aiStatusSchema, aiSummarySchema } from './ai';
-import { hostInfoSchema } from './host';
+import { hostInfoSchema, hostUpdateCheckSchema, hostUpdateResultSchema } from './host';
 import { settingsChangesSchema, settingsSchema } from './settings';
 
 /**
@@ -40,6 +40,8 @@ export const runtimeRequestSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ ...envelope, type: z.literal('HOST_INFO'), payload: emptyPayload }).strict(),
+  z.object({ ...envelope, type: z.literal('HOST_UPDATE_CHECK'), payload: emptyPayload }).strict(),
+  z.object({ ...envelope, type: z.literal('HOST_UPDATE'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('OPEN_OPTIONS'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('GET_PAGE_STATUS'), payload: emptyPayload }).strict(),
   z.object({ ...envelope, type: z.literal('OPEN_PANEL'), payload: emptyPayload }).strict(),
@@ -70,6 +72,8 @@ export const RUNTIME_ROUTES = {
   AI_GENERATE: 'background',
   AI_CANCEL: 'background',
   HOST_INFO: 'background',
+  HOST_UPDATE_CHECK: 'background',
+  HOST_UPDATE: 'background',
   OPEN_OPTIONS: 'background',
   GET_PAGE_STATUS: 'content-script',
   OPEN_PANEL: 'content-script',
@@ -131,6 +135,8 @@ export const RUNTIME_RESPONSE_PAYLOADS = {
   AI_GENERATE: z.object({ text: z.string().min(1).max(30_000) }).strict(),
   AI_CANCEL: z.object({ cancelled: z.boolean() }).strict(),
   HOST_INFO: hostInfoSchema,
+  HOST_UPDATE_CHECK: hostUpdateCheckSchema,
+  HOST_UPDATE: hostUpdateResultSchema,
   OPEN_OPTIONS: z.object({ opened: z.boolean() }).strict(),
   GET_PAGE_STATUS: pageStatusSchema,
   OPEN_PANEL: openPanelResultSchema,

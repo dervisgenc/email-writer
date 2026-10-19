@@ -287,6 +287,12 @@ export const fr: ExtensionText = {
       AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code n’a été trouvé que sous forme de script de commandes (claude.cmd), que ${PRODUCT_NAME} ne peut pas lancer en toute sécurité. Installez Claude Code avec le programme d’installation natif officiel, puis exécutez à nouveau pnpm ai:install.`,
       AI_VERSION_MISMATCH:
         'L’extension et l’application d’assistance locale n’ont pas la même version. Exécutez à nouveau la commande d’installation indiquée dans les paramètres IA.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Impossible de vérifier si une nouvelle version de l’application d’assistance existe. Vérifiez votre connexion Internet et réessayez plus tard.',
+      HOST_UPDATE_FAILED:
+        'La mise à jour n’a pas pu être téléchargée ou installée ; la version installée n’a pas changé. Réessayez plus tard ou exécutez à nouveau la commande d’installation.',
+      HOST_UPDATE_UNVERIFIED:
+        'La mise à jour téléchargée n’a pas pu être vérifiée ; rien n’a été installé. La version installée continue de fonctionner.',
       CONTENT_SCRIPT_UNREACHABLE:
         'L’extension ne peut pas atteindre cet onglet. Vérifiez l’accès au site ou rechargez la page.',
       MESSAGE_REJECTED: 'Un message d’extension non valide a été refusé.',

@@ -45,12 +45,14 @@ describe('AI message boundaries', () => {
     expect(policy(mail, 'OPEN_OPTIONS')).toBe(true);
     expect(policy(mail, 'AI_STATUS')).toBe(false);
     expect(policy(mail, 'AI_COMMAND')).toBe(false);
-    expect(policy(mail, 'HOST_INFO')).toBe(false);
+    for (const type of ['HOST_INFO', 'HOST_UPDATE_CHECK', 'HOST_UPDATE'] as const)
+      expect(policy(mail, type)).toBe(false);
     expect(policy({ ...mail, id: 'other' }, 'AI_GENERATE')).toBe(false);
     expect(policy({ ...mail, url: 'https://evil.test/' }, 'AI_GENERATE')).toBe(false);
     const options = { id: 'ours', tab: { id: 2 }, url: 'chrome-extension://ours/options.html' };
     expect(policy(options, 'AI_COMMAND')).toBe(true);
     expect(policy(options, 'HOST_INFO')).toBe(true);
+    expect(policy(options, 'HOST_UPDATE')).toBe(true);
   });
 
   it('restricts cancellation to the tab that started a generation', async () => {

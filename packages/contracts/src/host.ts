@@ -47,3 +47,19 @@ export const hostInfoSchema = z
   })
   .strict();
 export type HostInfo = z.infer<typeof hostInfoSchema>;
+
+/**
+ * Güncelleme denetimi: yardımcı uygulama en son yayımlanmış sürümü GitHub'dan günde en fazla
+ * bir kez sorar ve sonucu saklar. `latest` null: henüz yayımlanmış sürüm yok veya geliştirme kurulumu.
+ */
+export const hostUpdateCheckSchema = z
+  .object({
+    current: versionSchema,
+    latest: versionSchema.nullable(),
+    available: z.boolean(),
+  })
+  .strict();
+export type HostUpdateCheck = z.infer<typeof hostUpdateCheckSchema>;
+
+/** Güncelleme kuruldu; yardımcı uygulama yanıttan sonra kapanır, sonraki istek yeni sürümü başlatır. */
+export const hostUpdateResultSchema = z.object({ version: versionSchema }).strict();

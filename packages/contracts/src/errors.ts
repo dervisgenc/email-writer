@@ -55,6 +55,12 @@ export const ERROR_CODES = [
   'AI_CLAUDE_UNSUPPORTED_INSTALL',
   /** Eklenti ve yerel yardımcı uygulama farklı sürümlerden; istek tanınmadı. */
   'AI_VERSION_MISMATCH',
+  /** Yardımcı uygulamanın en son sürümü GitHub'dan öğrenilemedi. */
+  'HOST_UPDATE_CHECK_FAILED',
+  /** Güncelleme indirilemedi veya kurulamadı; kurulu sürüm değişmedi. */
+  'HOST_UPDATE_FAILED',
+  /** İndirilen sürümün imzası veya sağlaması doğrulanamadı; hiçbir şey kurulmadı. */
+  'HOST_UPDATE_UNVERIFIED',
   'CONTENT_SCRIPT_UNREACHABLE',
   'MESSAGE_REJECTED',
   'UNEXPECTED',

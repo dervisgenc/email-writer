@@ -246,6 +246,8 @@ describe('Command line', () => {
       deleteData: true,
     });
     expect(parseCommand(['status'], false)).toEqual({ kind: 'status' });
+    expect(parseCommand(['update', '--check'], true)).toEqual({ kind: 'update', checkOnly: true });
+    expect(parseCommand(['update'], true)).toEqual({ kind: 'update', checkOnly: false });
     expect(parseCommand(['--version'], true)).toEqual({ kind: 'version' });
     expect(() => parseCommand(['uninstall', '--dev'], true)).toThrow('Unknown option for uninstall: --dev');
     expect(() => parseCommand(['status', `--extension-id=${CHROMIUM_ID}`], true)).toThrow('Unknown option');
