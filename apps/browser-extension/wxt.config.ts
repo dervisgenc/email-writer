@@ -10,8 +10,8 @@ import { manifestMessages } from './src/locales';
  * için Manifest V3 paketleri üretilir. WXT'de Firefox varsayılanı MV2 olduğu
  * için komutlarda `--mv3` açıkça verilir (bkz. package.json).
  *
- * İzinler bilinçli olarak dardır: `storage`, `nativeMessaging` ve desteklenen Outlook
- * adreslerine statik content script eşleşmeleri. `<all_urls>`, `tabs`,
+ * İzinler bilinçli olarak dardır: `storage`, isteğe bağlı `nativeMessaging` ve desteklenen
+ * Outlook adreslerine statik content script eşleşmeleri. `<all_urls>`, `tabs`,
  * `scripting`, `activeTab`, `cookies`, `webRequest`, `clipboardRead` istenmez.
  */
 export default defineConfig({
@@ -25,7 +25,9 @@ export default defineConfig({
     default_locale: 'en',
     // Tek sürüm kaynağı kök package.json'dır; yardımcı uygulama da aynı sürümü taşır.
     version,
-    permissions: ['storage', 'nativeMessaging'],
+    permissions: ['storage'],
+    // Yardımcı uygulamayla konuşma izni kurulumda istenmez; karşılama sihirbazı gerekçesiyle ister.
+    optional_permissions: ['nativeMessaging'],
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {

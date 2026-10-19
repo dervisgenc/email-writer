@@ -74,8 +74,16 @@ try {
     installed.extension,
   );
 
+  // İlk kurulumda eklenti karşılama sihirbazını kendi sekmesinde açar.
+  const welcome = await waitFor(async () => {
+    const { contexts } = await bidi.send('browsingContext.getTree', {});
+    return contexts.find((item) => /^moz-extension:\/\/[^/]+\/welcome\.html$/.test(item.url));
+  }, 'karşılama sihirbazı sekmesi').catch(() => null);
+  record('İlk kurulumda karşılama sihirbazı açıldı', welcome !== null, welcome?.url ?? '');
+
   const tree = await bidi.send('browsingContext.getTree', {});
-  const context = tree.contexts[0].context;
+  // Sihirbazın sekmesi değil, testin kendi sekmesi kullanılır.
+  const context = tree.contexts.find((item) => !item.url.startsWith('moz-extension://')).context;
   await bidi.send('browsingContext.navigate', { context, url: fixtureUrl, wait: 'complete' });
 
   const evaluate = async (expression) => {

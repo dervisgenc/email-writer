@@ -1,15 +1,18 @@
 import { expect, test } from './extension-fixture';
 
-test('AI ayarları yerel bağlantı yokken kurulum yolunu ve eklenti kimliğini gösterir', async ({
+test('yardımcı uygulama yokken ayarlar izni ve kurulum sihirbazını gösterir; geliştirici talimatı yok', async ({
   context,
   extensionId,
 }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
   await expect(page.getByRole('heading', { name: 'AI bağlantısı', exact: true })).toBeVisible();
-  await expect(page.getByRole('alert')).toContainText('Yerel AI bağlantısına ulaşılamadı');
-  await expect(page.locator('.ew-ai-settings__setup')).toHaveAttribute('open', '');
-  await expect(page.locator('.ew-ai-settings__setup code')).toHaveText(extensionId);
+  await expect(page.getByRole('alert')).toContainText('Yardımcı uygulama bağlı değil');
+  const helper = page.locator('.ew-helper');
+  await expect(helper.locator('.ew-status-pill')).toHaveText('İzin gerekli');
+  await expect(helper.getByRole('button', { name: 'Kurulum sihirbazını aç' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(extensionId);
+  await expect(page.locator('body')).not.toContainText('pnpm');
   await page.screenshot({
     path: 'test-results/ai-settings-light.png',
     fullPage: true,

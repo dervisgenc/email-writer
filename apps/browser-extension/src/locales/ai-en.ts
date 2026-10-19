@@ -14,6 +14,8 @@ export const aiEn: AiText = {
     'claude-code': 'With Claude Code on this computer',
   },
   methodLabel: 'Connection method',
+  recommended: 'Recommended',
+  experimental: 'Experimental',
   statusReady: 'Ready',
   statusSetup: 'Setup needed',
   statusAction: 'Connection needed',
@@ -90,10 +92,10 @@ export const aiEn: AiText = {
     helper: {
       title: 'What is the helper app?',
       summary: 'A small app on your computer that every method needs.',
-      requirements: ['macOS, Linux or Windows.', 'Node.js 22 or later.'],
+      requirements: ['macOS, Linux or Windows. No other software is needed.'],
       steps: [
-        'Install the helper app and restart the browser.',
-        'The “The local AI connection is unavailable” warning on this page goes away and the methods appear.',
+        'Open the setup wizard from Settings → Helper app and run the one-line command it shows.',
+        'The helper app appears as connected within a few seconds; then choose a method here.',
       ],
       notes: [
         'Sign-in details and API keys are kept in a protected file only you can access, not in the browser.',
@@ -141,7 +143,7 @@ export const aiEn: AiText = {
   claudeNote: `Claude Code installed on this computer runs with your own Claude account; usage counts against your Claude plan limits. ${PRODUCT_NAME} does not access or store your Claude credentials. Sign in and out through Claude Code.`,
   claudeAccount: 'Claude Code account',
   claudeNotInstalled:
-    'Claude Code was not found on this computer. Install Claude Code, run pnpm ai:install again, then select Refresh.',
+    'Claude Code was not found on this computer. Install Claude Code, run the helper app’s install command again, then select Refresh.',
   claudeNotLoggedIn:
     'Claude Code is not signed in. Run claude in a terminal and sign in with /login, then select Refresh.',
   claudeApiBilling:
@@ -151,7 +153,7 @@ export const aiEn: AiText = {
   apiKeyLabel: 'API key',
   saveKey: 'Connect key',
   removeKey: 'Remove key',
-  keySaved: 'API key saved in the local connection.',
+  keySaved: 'API key saved in the helper app.',
   manageUsage: 'Manage usage',
   connectionHelp:
     'Manage this connection in ChatGPT Settings → Security and login → Sign in with ChatGPT. It does not appear in Plugins. Work accounts are also subject to organization policy and plan eligibility.',
@@ -160,9 +162,6 @@ export const aiEn: AiText = {
   gotIt: 'Got it',
   privacy:
     'When you request generation, your text, instructions and selected context are sent to OpenAI. The extension does not save them to disk. It cannot access your ChatGPT conversation history.',
-  setup: 'Set up the local connection',
-  setupBody: `The AI connection requires the ${PRODUCT_NAME} local app (macOS, Linux or Windows; Node.js 22+). Follow docs/AI_BAGLANTISI.md in the project. Account credentials are kept in a protected file on your device instead of browser storage. The Claude plan method also requires Claude Code to be installed and signed in.`,
-  extensionId: 'Extension ID for installation:',
   usePlan: 'Using ChatGPT plan',
   useApi: 'Using OpenAI API',
   useClaude: 'Using Claude plan',

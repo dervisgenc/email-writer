@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CHROMIUM_EXTENSION_IDS, REPOSITORY_URL } from './brand';
+
 /**
  * Yerel yardımcı uygulamanın kendisiyle ilgili bilgiler ve eklentiyle sürüm uyumu.
  *
@@ -16,10 +18,56 @@ export const MIN_HOST_VERSION = '0.1.0';
 /** Yardımcı uygulamanın birlikte kaydedildiği tarayıcılar. */
 export const HOST_BROWSERS = ['firefox', 'chrome', 'edge', 'brave'] as const;
 export type HostBrowser = (typeof HOST_BROWSERS)[number];
+export const HOST_BROWSER_NAMES: Readonly<Record<HostBrowser, string>> = {
+  firefox: 'Firefox',
+  chrome: 'Chrome',
+  edge: 'Edge',
+  brave: 'Brave',
+};
 
 /** Sürüm dosyalarında kullanılan işletim sistemi adları (ör. `writehand-darwin-arm64.tar.gz`). */
 export const HOST_OPERATING_SYSTEMS = ['darwin', 'linux', 'windows'] as const;
 export type HostOperatingSystem = (typeof HOST_OPERATING_SYSTEMS)[number];
+/** Sistemlerin kullanıcıya görünen adları (çevrilmez). */
+export const HOST_OPERATING_SYSTEM_NAMES: Readonly<Record<HostOperatingSystem, string>> = {
+  darwin: 'macOS',
+  linux: 'Linux',
+  windows: 'Windows',
+};
+
+const RELEASE_DOWNLOADS = `${REPOSITORY_URL}/releases/latest/download`;
+const CHROMIUM_EXTENSION_ID = /^[a-p]{32}$/;
+
+/**
+ * Yardımcı uygulamayı kuran tek satırlık komut. Firefox kimliği ve mağaza kimlikleri yardımcı
+ * uygulamada kayıtlıdır; yalnızca başka bir Chromium eklentisinin (ör. paketlenmemiş geliştirme
+ * derlemesi) kimliği komuta eklenir.
+ */
+export function helperInstallCommand(os: HostOperatingSystem, extensionId: string | null): string {
+  const id =
+    extensionId !== null &&
+    CHROMIUM_EXTENSION_ID.test(extensionId) &&
+    !CHROMIUM_EXTENSION_IDS.includes(extensionId)
+      ? extensionId
+      : null;
+  if (os === 'windows')
+    return `${id ? `$env:WRITEHAND_EXTENSION_ID='${id}'; ` : ''}irm ${RELEASE_DOWNLOADS}/install.ps1 | iex`;
+  return `curl -fsSL ${RELEASE_DOWNLOADS}/install.sh | sh${id ? ` -s -- --extension-id=${id}` : ''}`;
+}
+
+/** Kaldırırken hesap bilgilerini de silen seçenek (kaldırma komutunun sonuna eklenir). */
+export const HELPER_DELETE_DATA_OPTION: Readonly<Record<HostOperatingSystem, string>> = {
+  darwin: '--delete-data',
+  linux: '--delete-data',
+  windows: '-DeleteData',
+};
+
+/** Yardımcı uygulamayı bütün tarayıcı kayıtlarıyla birlikte kaldıran komut. */
+export function helperUninstallCommand(os: HostOperatingSystem): string {
+  return os === 'windows'
+    ? `& ([scriptblock]::Create((irm ${RELEASE_DOWNLOADS}/install.ps1))) -Uninstall`
+    : `curl -fsSL ${RELEASE_DOWNLOADS}/install.sh | sh -s -- uninstall`;
+}
 
 /** `MAJOR.MINOR.PATCH`; ön sürüm ve derleme ekleri kullanılmaz. */
 export const versionSchema = z.string().regex(/^(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})$/);

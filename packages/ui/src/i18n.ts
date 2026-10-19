@@ -9,6 +9,7 @@ import type {
 } from '@email-writer/contracts';
 import { inject, provide, type InjectionKey, type Ref } from 'vue';
 import type { AiText } from './ai-text';
+import type { HelperText } from './helper';
 
 type CountedNotice = Extract<ContextNotice, { count: number }>['kind'];
 type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
@@ -21,6 +22,7 @@ export interface UiText {
   /** Dil adlarının ve sıralamanın yapıldığı yerel ayar (BCP 47). */
   readonly locale: string;
   readonly ai: AiText;
+  readonly helper: HelperText;
   readonly panelTitle: string;
   readonly close: string;
   /** Okuma bölmesindeki "Yanıt hazırla" düğmesi. */

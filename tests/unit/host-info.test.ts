@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   compareVersions,
+  helperInstallCommand,
+  helperUninstallCommand,
   NATIVE_HOST_NAME,
   runtimeRequestSchema,
   versionSchema,
@@ -35,6 +37,36 @@ describe('Helper version compatibility', () => {
   it('HOST_INFO is a request of its own, so an older helper answers it with AI_VERSION_MISMATCH', () => {
     const request = { protocolVersion: 1, requestId: 'r', type: 'HOST_INFO', payload: {} };
     expect(runtimeRequestSchema.safeParse(request).success).toBe(true);
+  });
+});
+
+describe('Install commands', () => {
+  const id = 'abcdefghijklmnopabcdefghijklmnop';
+  const download = 'https://github.com/dervisgenc/email-writer/releases/latest/download';
+
+  it('install the latest release with one line on each system', () => {
+    expect(helperInstallCommand('darwin', null)).toBe(`curl -fsSL ${download}/install.sh | sh`);
+    expect(helperInstallCommand('linux', id)).toBe(
+      `curl -fsSL ${download}/install.sh | sh -s -- --extension-id=${id}`,
+    );
+    expect(helperInstallCommand('windows', null)).toBe(`irm ${download}/install.ps1 | iex`);
+    expect(helperInstallCommand('windows', id)).toBe(
+      `$env:WRITEHAND_EXTENSION_ID='${id}'; irm ${download}/install.ps1 | iex`,
+    );
+  });
+
+  it('never put anything but a Chromium extension ID into a command', () => {
+    expect(helperInstallCommand('linux', "x'; rm -rf ~")).toBe(`curl -fsSL ${download}/install.sh | sh`);
+    expect(helperInstallCommand('windows', 'writehand@dervisgenc.com')).toBe(
+      `irm ${download}/install.ps1 | iex`,
+    );
+  });
+
+  it('remove the helper app with the same scripts', () => {
+    expect(helperUninstallCommand('linux')).toBe(`curl -fsSL ${download}/install.sh | sh -s -- uninstall`);
+    expect(helperUninstallCommand('windows')).toBe(
+      `& ([scriptblock]::Create((irm ${download}/install.ps1))) -Uninstall`,
+    );
   });
 });
 

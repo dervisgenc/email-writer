@@ -2,8 +2,14 @@
 import type { SelectorReport, Theme } from '@email-writer/contracts';
 import { computed, onMounted, ref } from 'vue';
 
+import { useHelper } from '../../src/composables/use-helper';
 import type { ExtensionText, PopupStatusKey } from '../../src/locales';
-import { activeTab, hasSiteAccess, openOptionsPage } from '../../src/platform/extension-browser';
+import {
+  activeTab,
+  hasSiteAccess,
+  openOptionsPage,
+  openWelcomePage,
+} from '../../src/platform/extension-browser';
 import {
   fetchSelectorReport,
   isSupportedUrl,
@@ -23,10 +29,14 @@ const siteAccessMissing = ref(false);
 const tabId = ref<number | null>(null);
 const selectorReport = ref<SelectorReport['entries']>([]);
 const isDevelopment = import.meta.env.MODE !== 'production';
+// Yardımcı uygulama bağlı değilse kurulumu tamamlamak için sihirbaza yönlendirilir.
+const helper = useHelper();
+const setupNeeded = computed(() => !['checking', 'connected'].includes(helper.view.value.kind));
 
 const statusText = computed(() => props.text.popup.statuses[status.value]);
 
 onMounted(async () => {
+  void helper.refresh();
   const tab = await activeTab();
   if (tab === null || !isSupportedUrl(tab.url)) {
     status.value = 'not-mail-site';
@@ -48,6 +58,11 @@ onMounted(async () => {
   }
 });
 
+async function finishSetup(): Promise<void> {
+  await openWelcomePage();
+  window.close();
+}
+
 async function openPanel(): Promise<void> {
   if (tabId.value === null) {
     return;
@@ -64,6 +79,14 @@ async function openPanel(): Promise<void> {
     <h1 class="popup__title">{{ text.popup.title }}</h1>
     <p class="popup__status" role="status">{{ statusText }}</p>
     <p v-if="siteAccessMissing" class="ew-warning">{{ text.popup.siteAccessMissing }}</p>
+    <div v-if="setupNeeded" class="ew-alert ew-alert--warning" role="status">
+      <span class="ew-alert__body">
+        {{ text.popup.setupNeeded }}
+        <button type="button" class="ew-btn ew-btn--primary ew-btn--small" @click="finishSetup">
+          {{ text.popup.finishSetup }}
+        </button>
+      </span>
+    </div>
     <div class="popup__actions">
       <button type="button" class="ew-button ew-button--primary" :disabled="!canOpen" @click="openPanel">
         {{ text.popup.openPanel }}
@@ -86,10 +109,6 @@ async function openPanel(): Promise<void> {
 </template>
 
 <style>
-body {
-  margin: 0;
-}
-
 .popup {
   width: 320px;
   padding: 16px;

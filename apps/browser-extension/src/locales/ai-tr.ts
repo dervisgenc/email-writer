@@ -14,6 +14,8 @@ export const aiTr: AiText = {
     'claude-code': 'Claude Code ile, bu bilgisayarda',
   },
   methodLabel: 'Bağlantı yöntemi',
+  recommended: 'Önerilen',
+  experimental: 'Deneysel',
   statusReady: 'Hazır',
   statusSetup: 'Kurulum gerekli',
   statusAction: 'Bağlantı gerekli',
@@ -90,10 +92,10 @@ export const aiTr: AiText = {
     helper: {
       title: 'Yardımcı uygulama nedir?',
       summary: 'Bütün yöntemler için gereken, bilgisayarınızda çalışan küçük bir uygulama.',
-      requirements: ['macOS, Linux veya Windows.', 'Node.js 22 veya üstü.'],
+      requirements: ['macOS, Linux veya Windows. Başka bir yazılım gerekmez.'],
       steps: [
-        'Yardımcı uygulamayı kurun ve tarayıcıyı yeniden başlatın.',
-        'Bu sayfada “Yerel AI bağlantısına ulaşılamadı” uyarısı kaybolur ve yöntemler görünür.',
+        'Ayarlar → Yardımcı uygulama bölümünden kurulum sihirbazını açın ve gösterdiği tek satırlık komutu çalıştırın.',
+        'Yardımcı uygulama birkaç saniye içinde bağlı görünür; ardından burada bir yöntem seçin.',
       ],
       notes: [
         'Giriş bilgileri ve API anahtarları tarayıcıda değil, yalnızca sizin erişebildiğiniz korumalı bir dosyada tutulur.',
@@ -141,7 +143,7 @@ export const aiTr: AiText = {
   claudeNote: `Bilgisayarınızda kurulu Claude Code, kendi Claude hesabınızla çalıştırılır; kullanım Claude planınızın limitlerinden düşer. ${PRODUCT_NAME} Claude hesap bilgilerinize erişmez ve bunları saklamaz. Giriş ve çıkış Claude Code üzerinden yapılır.`,
   claudeAccount: 'Claude Code hesabı',
   claudeNotInstalled:
-    'Claude Code bu bilgisayarda bulunamadı. Claude Code’u kurun, ardından pnpm ai:install komutunu yeniden çalıştırıp Yenile’ye basın.',
+    'Claude Code bu bilgisayarda bulunamadı. Claude Code’u kurun, ardından yardımcı uygulamanın kurulum komutunu yeniden çalıştırıp Yenile’ye basın.',
   claudeNotLoggedIn:
     'Claude Code’da oturum açık değil. Terminalde claude komutunu çalıştırıp /login ile giriş yapın, ardından Yenile’ye basın.',
   claudeApiBilling:
@@ -151,7 +153,7 @@ export const aiTr: AiText = {
   apiKeyLabel: 'API anahtarı',
   saveKey: 'Anahtarı bağla',
   removeKey: 'Anahtarı kaldır',
-  keySaved: 'API anahtarı yerel bağlantıda kayıtlı.',
+  keySaved: 'API anahtarı yardımcı uygulamada kayıtlı.',
   manageUsage: 'Kullanımı yönet',
   connectionHelp:
     'ChatGPT bağlantınızı Ayarlar → Security and login → Sign in with ChatGPT bölümünden yönetin. Bu bağlantı Plugins listesinde görünmez. İş hesabında kuruluş politikası ve plan uygunluğu ayrıca geçerlidir.',
@@ -160,9 +162,6 @@ export const aiTr: AiText = {
   gotIt: 'Anladım',
   privacy:
     'Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam OpenAI’a gönderilir. Eklenti bunları diske kaydetmez. ChatGPT sohbet geçmişinize erişilmez.',
-  setup: 'Yerel bağlantı kurulumu',
-  setupBody: `AI bağlantısı için ${PRODUCT_NAME} yerel uygulaması gerekir (macOS, Linux veya Windows; Node.js 22+). Projedeki docs/AI_BAGLANTISI.md rehberini izleyin. Hesap anahtarları tarayıcı yerine cihazınızdaki korumalı dosyada saklanır. Claude aboneliği için Claude Code kurulu ve oturum açık olmalıdır.`,
-  extensionId: 'Kurulum için eklenti kimliği:',
   usePlan: 'ChatGPT planı kullanılıyor',
   useApi: 'OpenAI API kullanılıyor',
   useClaude: 'Claude aboneliği kullanılıyor',

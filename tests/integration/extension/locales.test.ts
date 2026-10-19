@@ -51,6 +51,13 @@ describe('Arayüz dilleri', () => {
     }
   });
 
+  it('kullanıcı metinlerinde geliştirici talimatı yok', () => {
+    for (const language of UI_LANGUAGES) {
+      const developer = strings(textFor(language)).filter(([, value]) => /pnpm |docs\/|\.md\b/.test(value));
+      expect(developer, language).toEqual([]);
+    }
+  });
+
   it('ürün adı metinlere sabit yazılmaz', () => {
     for (const language of UI_LANGUAGES) {
       const hardCoded = strings(textFor(language)).filter(([, value]) => value.includes('Email Writer'));

@@ -18,7 +18,6 @@ const props = defineProps<{
   text: AiText;
   error: string | null;
   busy: boolean;
-  extensionId: string;
 }>();
 const emit = defineEmits<{ command: [command: AiCommand]; refresh: [] }>();
 const key = ref('');
@@ -55,6 +54,10 @@ const METHOD_ICONS: Record<AiMode, IconName> = {
   chatgpt: 'chat',
   'api-key': 'key',
   'claude-code': 'terminal',
+};
+const METHOD_BADGES: Partial<Record<AiMode, 'recommended' | 'experimental'>> = {
+  chatgpt: 'recommended',
+  'claude-code': 'experimental',
 };
 const methodTitle = (mode: AiMode) =>
   ({ chatgpt: props.text.chatgpt, 'api-key': props.text.apiKey, 'claude-code': props.text.claudeCode })[mode];
@@ -158,7 +161,16 @@ function saveKey() {
             @change="chooseMode(mode)"
           />
           <span class="ew-method__glyph"><AppIcon :name="METHOD_ICONS[mode]" :size="16" /></span>
-          <span class="ew-method__title">{{ methodTitle(mode) }}</span>
+          <span class="ew-method__title">
+            {{ methodTitle(mode) }}
+            <span
+              v-if="METHOD_BADGES[mode]"
+              class="ew-badge"
+              :class="{ 'ew-badge--accent': mode === 'chatgpt' }"
+            >
+              {{ text[METHOD_BADGES[mode]] }}
+            </span>
+          </span>
           <span class="ew-method__hint">{{ text.methodHints[mode] }}</span>
           <AppIcon v-if="status.mode === mode" class="ew-method__check" name="check" :size="16" />
         </label>
@@ -345,16 +357,6 @@ function saveKey() {
         </div>
       </div>
     </template>
-    <details class="ew-ai-settings__setup" :open="status === null && !busy">
-      <summary>
-        <AppIcon name="chevronRight" class="ew-ai-settings__setup-chevron" :size="14" />
-        {{ text.setup }}
-      </summary>
-      <p class="ew-muted">{{ text.setupBody }}</p>
-      <p class="ew-muted">
-        {{ text.extensionId }} <code>{{ extensionId }}</code>
-      </p>
-    </details>
     <p class="ew-ai-settings__privacy">
       <AppIcon name="shield" :size="16" />
       <span>{{ status?.mode === 'claude-code' ? text.claudePrivacy : text.privacy }}</span>

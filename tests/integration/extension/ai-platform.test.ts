@@ -33,7 +33,7 @@ const action: PreparedAction = {
 };
 
 describe('AI message boundaries', () => {
-  it('blocks mailbox scripts from account management and blocks unsupported senders from generation', () => {
+  it('keeps account and helper management to extension pages and generation to them and the mailbox', () => {
     const policy = createAiSenderPolicy({
       extensionId: 'ours',
       isOwnPage: (sender) => sender.id === 'ours' && sender.url === 'chrome-extension://ours/options.html',
@@ -53,6 +53,8 @@ describe('AI message boundaries', () => {
     expect(policy(options, 'AI_COMMAND')).toBe(true);
     expect(policy(options, 'HOST_INFO')).toBe(true);
     expect(policy(options, 'HOST_UPDATE')).toBe(true);
+    // The welcome wizard tries a sample revision from its own page.
+    expect(policy(options, 'AI_GENERATE')).toBe(true);
   });
 
   it('restricts cancellation to the tab that started a generation', async () => {

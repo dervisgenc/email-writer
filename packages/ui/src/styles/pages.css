@@ -1,0 +1,391 @@
+/*
+ * Eklentinin kendi sayfaları (ayarlar, karşılama sihirbazı): sayfa kabuğu, parçalı seçim,
+ * anahtar düğmesi, komut kutusu, adım listesi ve yardımcı uygulama kartı. Renkler
+ * tokens.css'teki Fluent değişkenlerinden gelir; açık/koyu tema aynı kurallarla çalışır.
+ */
+body {
+  margin: 0;
+}
+
+.ew-root.ew-page {
+  min-height: 100vh;
+  background: var(--ew-color-surface);
+}
+.ew-root .ew-page__main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+.ew-root .ew-page__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 4px 8px;
+}
+.ew-root .ew-page__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--ew-color-accent), var(--ew-color-accent-hover));
+  color: var(--ew-color-on-accent);
+  box-shadow: var(--ew-shadow-4);
+}
+.ew-root .ew-page__title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+}
+.ew-root .ew-page__subtitle {
+  margin: 2px 0 0;
+  color: var(--ew-color-muted);
+  font-size: 13px;
+}
+
+/* Parçalı seçim: birbirini dışlayan birkaç seçenek (tema, işletim sistemi). */
+.ew-root .ew-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--ew-color-border);
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+}
+.ew-root .ew-segmented__option {
+  padding: 5px 14px;
+  border-radius: 7px;
+  color: var(--ew-color-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--ew-duration) var(--ew-ease),
+    color var(--ew-duration) var(--ew-ease);
+}
+.ew-root .ew-segmented__option:hover {
+  color: var(--ew-color-text);
+}
+.ew-root .ew-segmented__option[data-checked='true'] {
+  background: var(--ew-color-bg);
+  color: var(--ew-color-text);
+  box-shadow: var(--ew-shadow-2);
+}
+.ew-root .ew-segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--ew-color-focus);
+  outline-offset: 1px;
+}
+
+/* Açıklamalı açma/kapama satırı. */
+.ew-root .ew-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+  cursor: pointer;
+}
+.ew-root .ew-switch-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ew-root .ew-switch-row__label {
+  font-weight: 600;
+}
+.ew-root .ew-switch {
+  flex: none;
+  position: relative;
+  width: 40px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--ew-color-border-strong);
+  border-radius: 999px;
+  background: var(--ew-color-bg);
+  appearance: none;
+  cursor: pointer;
+  transition:
+    background var(--ew-duration) var(--ew-ease),
+    border-color var(--ew-duration) var(--ew-ease);
+}
+.ew-root .ew-switch::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ew-color-muted);
+  transition: transform var(--ew-duration) var(--ew-ease);
+}
+.ew-root .ew-switch:checked {
+  border-color: var(--ew-color-accent);
+  background: var(--ew-color-accent);
+}
+.ew-root .ew-switch:checked::before {
+  background: var(--ew-color-on-accent);
+  transform: translateX(20px);
+}
+
+/* Kopyalanabilir terminal komutu; uzun komut satır kaydırarak tamamen görünür, sayfa kaymaz. */
+.ew-root .ew-command {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--ew-color-border-strong);
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+  overflow: hidden;
+}
+.ew-root .ew-command__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.ew-root .ew-command__copy {
+  flex: none;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+}
+
+/* Sihirbazın adımları. */
+.ew-root .ew-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ew-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ew-step;
+}
+.ew-root .ew-steps__item {
+  min-width: 0;
+}
+.ew-root .ew-steps__button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ew-color-muted);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+.ew-root .ew-steps__button:not(:disabled) {
+  cursor: pointer;
+}
+.ew-root .ew-steps__button:not(:disabled):hover {
+  background: var(--ew-color-bg);
+}
+.ew-root .ew-steps__item[data-state='current'] .ew-steps__button {
+  border-color: var(--ew-color-border);
+  background: var(--ew-color-bg);
+  color: var(--ew-color-text);
+  box-shadow: var(--ew-shadow-2);
+}
+.ew-root .ew-steps__marker {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ew-color-bg);
+  border: 1px solid var(--ew-color-border-strong);
+  font-size: 12px;
+}
+.ew-root .ew-steps__item[data-state='current'] .ew-steps__marker {
+  border-color: var(--ew-color-accent);
+  background: var(--ew-color-accent);
+  color: var(--ew-color-on-accent);
+}
+.ew-root .ew-steps__item[data-state='done'] .ew-steps__marker {
+  border-color: var(--ew-color-success);
+  background: var(--ew-color-success-bg);
+  color: var(--ew-color-success);
+}
+.ew-root .ew-steps__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bir adımın ya da kartın sonucunu bildiren satır (bekleniyor / tamam / sorun). */
+.ew-root .ew-progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+  font-size: 13px;
+  line-height: 19px;
+}
+.ew-root .ew-progress[data-tone='success'] {
+  background: var(--ew-color-success-bg);
+  color: var(--ew-color-success);
+}
+.ew-root .ew-progress[data-tone='warning'] {
+  background: var(--ew-color-warning-bg);
+  color: var(--ew-color-warning);
+}
+.ew-root .ew-progress .ew-icon,
+.ew-root .ew-progress .ew-spinner {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* Madde listesi ve açılır ayrıntılar (kart içinde). */
+.ew-root .ew-points {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ew-root .ew-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 19px;
+}
+.ew-root .ew-points .ew-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ew-color-success);
+}
+.ew-root .ew-disclosure {
+  border-top: 1px solid var(--ew-color-border);
+  padding-top: var(--ew-space-3);
+}
+.ew-root .ew-disclosure summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: var(--ew-color-link);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.ew-root .ew-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+.ew-root .ew-disclosure summary .ew-icon {
+  transition: transform var(--ew-duration) var(--ew-ease);
+}
+.ew-root .ew-disclosure[open] summary .ew-icon {
+  transform: rotate(90deg);
+}
+.ew-root .ew-disclosure__body {
+  display: grid;
+  gap: var(--ew-space-3);
+  padding-top: var(--ew-space-3);
+}
+
+/* İki sütunlu karşılaştırma (ör. ne yapar / ne yapmaz); dar ekranda alt alta. */
+.ew-root .ew-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ew-space-3);
+}
+.ew-root .ew-split__column {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--ew-color-surface);
+}
+.ew-root .ew-points[data-kind='never'] .ew-icon {
+  color: var(--ew-color-danger);
+}
+
+/* Alıntılanan örnek metin ve sonucu. */
+.ew-root .ew-sample {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ew-color-border-strong);
+  border-radius: 0 10px 10px 0;
+  background: var(--ew-color-surface);
+  font-size: 13px;
+  line-height: 19px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ew-root .ew-sample[data-kind='result'] {
+  border-left-color: var(--ew-color-success);
+}
+
+/* Sihirbazın Geri / İleri düğmeleri. */
+.ew-root .ew-wizard-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ew-space-2);
+}
+.ew-root .ew-wizard-nav .ew-btn:first-child:not(:last-child) {
+  margin-right: auto;
+}
+.ew-root a.ew-btn {
+  text-decoration: none;
+}
+
+/* Yardımcı uygulama kartı. */
+.ew-root .ew-helper__meta {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--ew-color-muted);
+  font-size: 13px;
+}
+.ew-root .ew-helper__update {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ew-space-3);
+}
+.ew-root .ew-helper__update .ew-progress {
+  flex: 1 1 260px;
+}
+.ew-root .ew-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ew-space-2);
+}
+
+@media (max-width: 640px) {
+  .ew-root .ew-split {
+    grid-template-columns: 1fr;
+  }
+  .ew-root .ew-page__main {
+    padding: 20px 16px 32px;
+  }
+  .ew-root .ew-steps {
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+  }
+  .ew-root .ew-steps__item:not([data-state='current']) .ew-steps__label {
+    display: none;
+  }
+}

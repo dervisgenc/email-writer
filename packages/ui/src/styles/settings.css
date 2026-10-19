@@ -136,6 +136,10 @@
   color: var(--ew-color-on-accent);
 }
 .ew-root .ew-method__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   line-height: var(--ew-line-height-300);
 }

@@ -1,4 +1,5 @@
 import '@email-writer/ui/styles/panel.css';
+import '@email-writer/ui/styles/pages.css';
 
 import { DEFAULT_SETTINGS } from '@email-writer/contracts';
 import { createApp } from 'vue';

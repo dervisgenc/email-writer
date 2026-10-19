@@ -14,6 +14,8 @@ export const aiFr: AiText = {
     'claude-code': 'Avec Claude Code sur cet ordinateur',
   },
   methodLabel: 'Méthode de connexion',
+  recommended: 'Recommandé',
+  experimental: 'Expérimental',
   statusReady: 'Prêt',
   statusSetup: 'Installation requise',
   statusAction: 'Connexion requise',
@@ -91,10 +93,10 @@ export const aiFr: AiText = {
     helper: {
       title: 'Qu’est-ce que l’application d’assistance ?',
       summary: 'Une petite application sur votre ordinateur, nécessaire à toutes les méthodes.',
-      requirements: ['macOS, Linux ou Windows.', 'Node.js 22 ou version ultérieure.'],
+      requirements: ['macOS, Linux ou Windows. Aucun autre logiciel n’est nécessaire.'],
       steps: [
-        'Installez l’application d’assistance et redémarrez le navigateur.',
-        'L’avertissement « La connexion IA locale est indisponible » disparaît de cette page et les méthodes s’affichent.',
+        'Ouvrez l’assistant de configuration depuis Paramètres → Application d’assistance et exécutez la commande d’une ligne qu’il affiche.',
+        'L’application d’assistance apparaît comme connectée en quelques secondes ; choisissez ensuite une méthode ici.',
       ],
       notes: [
         'Les informations de connexion et les clés API sont conservées dans un fichier protégé accessible à vous seul, pas dans le navigateur.',
@@ -142,7 +144,7 @@ export const aiFr: AiText = {
   claudeNote: `Claude Code, installé sur cet ordinateur, s’exécute avec votre propre compte Claude ; l’utilisation est décomptée des limites de votre forfait Claude. ${PRODUCT_NAME} n’accède pas à vos identifiants Claude et ne les enregistre pas. Vous vous connectez et vous déconnectez via Claude Code.`,
   claudeAccount: 'Compte Claude Code',
   claudeNotInstalled:
-    'Claude Code est introuvable sur cet ordinateur. Installez Claude Code, exécutez à nouveau pnpm ai:install, puis choisissez « Actualiser ».',
+    'Claude Code est introuvable sur cet ordinateur. Installez Claude Code, exécutez à nouveau la commande d’installation de l’application d’assistance, puis choisissez « Actualiser ».',
   claudeNotLoggedIn:
     'Claude Code n’est pas connecté. Exécutez claude dans un terminal, connectez-vous avec /login, puis choisissez « Actualiser ».',
   claudeApiBilling:
@@ -152,7 +154,7 @@ export const aiFr: AiText = {
   apiKeyLabel: 'Clé API',
   saveKey: 'Connecter la clé',
   removeKey: 'Supprimer la clé',
-  keySaved: 'Clé API enregistrée dans la connexion locale.',
+  keySaved: 'Clé API enregistrée dans l’application d’assistance.',
   manageUsage: 'Gérer l’utilisation',
   connectionHelp:
     'Gérez cette connexion dans les paramètres ChatGPT, sous Security and login → Sign in with ChatGPT. Elle n’apparaît pas dans Plugins. Les comptes professionnels sont aussi soumis à la stratégie de l’organisation et à l’éligibilité du forfait.',
@@ -161,9 +163,6 @@ export const aiFr: AiText = {
   gotIt: 'Compris',
   privacy:
     'Lorsque vous demandez une génération, votre texte, vos consignes et le contexte sélectionné sont envoyés à OpenAI. L’extension ne les enregistre pas sur le disque. Elle n’a pas accès à l’historique de vos conversations ChatGPT.',
-  setup: 'Configurer la connexion locale',
-  setupBody: `La connexion IA nécessite l’application locale ${PRODUCT_NAME} (macOS, Linux ou Windows ; Node.js 22+). Suivez docs/AI_BAGLANTISI.md dans le projet. Les identifiants des comptes sont conservés dans un fichier protégé sur votre appareil plutôt que dans le stockage du navigateur. La méthode Forfait Claude nécessite aussi que Claude Code soit installé et connecté.`,
-  extensionId: 'ID de l’extension pour l’installation :',
   usePlan: 'Forfait ChatGPT utilisé',
   useApi: 'API OpenAI utilisée',
   useClaude: 'Forfait Claude utilisé',

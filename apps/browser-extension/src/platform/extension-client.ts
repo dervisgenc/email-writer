@@ -1,4 +1,4 @@
-import type { AiCommand, SettingsChanges } from '@email-writer/contracts';
+import type { AiCommand, AiInput, SettingsChanges } from '@email-writer/contracts';
 import { MatchPattern } from '#imports';
 
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from '../bootstrap/supported-sites';
@@ -19,6 +19,13 @@ export function fetchAiSummary() {
 }
 export function runAiCommand(command: AiCommand) {
   return sendRequest(sendToBackground, createRequest('AI_COMMAND', command, requestId()));
+}
+/** Eklenti sayfasından üretim (karşılama sihirbazındaki deneme). */
+export function generateText(input: AiInput) {
+  return sendRequest(
+    sendToBackground,
+    createRequest('AI_GENERATE', { generationId: crypto.randomUUID(), input }, requestId()),
+  );
 }
 export function fetchHostInfo() {
   return sendRequest(sendToBackground, createRequest('HOST_INFO', {}, requestId()));

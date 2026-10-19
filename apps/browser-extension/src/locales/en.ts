@@ -2,7 +2,9 @@ import { PRODUCT_NAME } from '@email-writer/contracts';
 
 import { aiEn } from './ai-en';
 import type { ExtensionText } from './extension-text';
+import { helperEn } from './helper-en';
 import { countWith } from './plural';
+import { welcomeEn } from './welcome-en';
 
 const count = countWith('en');
 
@@ -12,6 +14,7 @@ export const en: ExtensionText = {
   ui: {
     locale: 'en',
     ai: aiEn,
+    helper: helperEn,
     panelTitle: 'Writing assistant',
     close: 'Close',
     threadLauncher: {
@@ -227,7 +230,8 @@ export const en: ExtensionText = {
       EXTENSION_RELOADED: 'The extension was updated. Reload the page to continue.',
       PROCESSING_UNAVAILABLE:
         'Text processing is not connected yet. This version does not revise, translate or draft replies.',
-      AI_HOST_UNAVAILABLE: 'The local AI connection is unavailable. Open AI settings for setup instructions.',
+      AI_HOST_UNAVAILABLE:
+        'The helper app is not connected. Open Settings → Helper app to install or connect it.',
       AI_NOT_CONNECTED: 'The AI session is missing or expired. Reconnect in AI settings.',
       AI_AUTH_FAILED: 'ChatGPT sign-in could not be verified or timed out. Try again.',
       AI_AUTH_EXCHANGE_FAILED:
@@ -259,12 +263,11 @@ export const en: ExtensionText = {
         'Signed out locally; OpenAI revocation could not be confirmed. Disconnect the app in ChatGPT settings.',
       AI_BUSY: 'An AI connection operation is in progress. Wait for it or cancel sign-in.',
       AI_CLAUDE_NOT_INSTALLED:
-        'Claude Code was not found. Install Claude Code and run pnpm ai:install again.',
+        'Claude Code was not found. Install Claude Code, then run the helper app’s install command again.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code is not signed in. Run claude in a terminal and sign in with /login.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code was found only as a command script (claude.cmd), which ${PRODUCT_NAME} cannot start safely. Install Claude Code with the official native installer and run pnpm ai:install again.`,
-      AI_VERSION_MISMATCH:
-        'The extension and the local helper app are different versions. Run the install command from AI settings again.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code was found only as a command script (claude.cmd), which ${PRODUCT_NAME} cannot start safely. Install Claude Code with the official native installer, then run the helper app’s install command again.`,
+      AI_VERSION_MISMATCH: 'The helper app is older than this extension. Update it in Settings → Helper app.',
       HOST_UPDATE_CHECK_FAILED:
         'Could not check for a newer helper app. Check your internet connection and try again later.',
       HOST_UPDATE_FAILED:
@@ -292,6 +295,8 @@ export const en: ExtensionText = {
     openSettings: 'Settings',
     siteAccessMissing: 'Site access has not been granted for this site.',
     developmentBuild: 'Development build',
+    setupNeeded: 'The helper app is not connected yet.',
+    finishSetup: 'Finish setup',
   },
   options: {
     title: `${PRODUCT_NAME} settings`,
@@ -347,6 +352,8 @@ export const en: ExtensionText = {
       'Text is sent to the AI provider you chose (OpenAI or Anthropic) only when you select Revise, Translate or Write reply.',
       'Results appear as a preview first and are never written to your draft without your approval.',
       `${PRODUCT_NAME} never sends email; sending is always up to you.`,
+      'While update checks are on, the helper app asks GitHub for the latest version number at most once a day; the request contains no email or account details. You can turn it off on the helper app card.',
     ],
   },
+  welcome: welcomeEn,
 };

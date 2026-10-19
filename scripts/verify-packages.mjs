@@ -11,7 +11,9 @@ const outputs = {
   firefox: resolve(root, 'apps/browser-extension/.output/firefox-mv3'),
 };
 
-const ALLOWED_PERMISSIONS = ['nativeMessaging', 'storage'];
+const ALLOWED_PERMISSIONS = ['storage'];
+// Yerel yardımcı uygulamayla konuşma izni isteğe bağlıdır; karşılama sihirbazı ister.
+const OPTIONAL_PERMISSIONS = ['nativeMessaging'];
 const FORBIDDEN_PERMISSIONS = [
   '<all_urls>',
   'tabs',
@@ -71,6 +73,9 @@ for (const [browser, directory] of Object.entries(outputs)) {
   const permissions = manifest.permissions ?? [];
   if (JSON.stringify([...permissions].sort()) !== JSON.stringify(ALLOWED_PERMISSIONS)) {
     fail(browser, `beklenmeyen izinler: ${JSON.stringify(permissions)}`);
+  }
+  if (JSON.stringify(manifest.optional_permissions ?? []) !== JSON.stringify(OPTIONAL_PERMISSIONS)) {
+    fail(browser, `beklenmeyen isteğe bağlı izinler: ${JSON.stringify(manifest.optional_permissions)}`);
   }
   const allPermissions = [
     ...permissions,

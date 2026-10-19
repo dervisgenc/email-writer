@@ -6,7 +6,8 @@
   "description": "Vue panel, başlatıcı ve önizleme bileşenleri",
   "exports": {
     ".": "./src/index.ts",
-    "./styles/panel.css": "./src/styles/panel.css"
+    "./styles/panel.css": "./src/styles/panel.css",
+    "./styles/pages.css": "./src/styles/pages.css"
   },
   "scripts": {
     "typecheck": "vue-tsc -p tsconfig.json"

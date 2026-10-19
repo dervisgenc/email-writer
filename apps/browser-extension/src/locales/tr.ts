@@ -2,6 +2,8 @@ import { PRODUCT_NAME } from '@email-writer/contracts';
 
 import { aiTr } from './ai-tr';
 import type { ExtensionText } from './extension-text';
+import { helperTr } from './helper-tr';
+import { welcomeTr } from './welcome-tr';
 
 const plural = (count: number, word: string) => `${count} ${word}`;
 
@@ -11,6 +13,7 @@ export const tr: ExtensionText = {
   ui: {
     locale: 'tr',
     ai: aiTr,
+    helper: helperTr,
     panelTitle: 'Yazma yardımcısı',
     close: 'Kapat',
     threadLauncher: {
@@ -218,7 +221,8 @@ export const tr: ExtensionText = {
       EXTENSION_RELOADED: 'Eklenti güncellendi. Devam etmek için sayfayı yenileyin.',
       PROCESSING_UNAVAILABLE:
         'Metin işleme henüz bağlanmadı. Bu sürümde düzeltme, çeviri ve yanıt üretilmez.',
-      AI_HOST_UNAVAILABLE: 'Yerel AI bağlantısına ulaşılamadı. AI ayarlarından kurulum adımlarını izleyin.',
+      AI_HOST_UNAVAILABLE:
+        'Yardımcı uygulama bağlı değil. Kurmak veya bağlamak için Ayarlar → Yardımcı uygulama bölümünü açın.',
       AI_NOT_CONNECTED: 'AI oturumu açık değil veya süresi doldu. AI ayarlarından yeniden bağlanın.',
       AI_AUTH_FAILED: 'ChatGPT girişi doğrulanamadı veya zaman aşımına uğradı. Yeniden deneyin.',
       AI_AUTH_EXCHANGE_FAILED:
@@ -250,12 +254,12 @@ export const tr: ExtensionText = {
         'Yerel oturum kapatıldı; OpenAI bağlantısının iptali doğrulanamadı. ChatGPT ayarlarından uygulama erişimini kaldırın.',
       AI_BUSY: 'Bir AI bağlantı işlemi sürüyor. Tamamlanmasını bekleyin veya girişi iptal edin.',
       AI_CLAUDE_NOT_INSTALLED:
-        'Claude Code bulunamadı. Claude Code’u kurup pnpm ai:install komutunu yeniden çalıştırın.',
+        'Claude Code bulunamadı. Claude Code’u kurun, ardından yardımcı uygulamanın kurulum komutunu yeniden çalıştırın.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code’da oturum açık değil. Terminalde claude çalıştırıp /login ile giriş yapın.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; ${PRODUCT_NAME} bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurup pnpm ai:install komutunu yeniden çalıştırın.`,
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code yalnızca bir komut betiği (claude.cmd) olarak bulundu; ${PRODUCT_NAME} bunu güvenle başlatamaz. Claude Code’u resmî yerel kurucuyla kurun, ardından yardımcı uygulamanın kurulum komutunu yeniden çalıştırın.`,
       AI_VERSION_MISMATCH:
-        'Eklenti ile yerel yardımcı uygulamanın sürümleri uyuşmuyor. AI ayarlarındaki kurulum komutunu yeniden çalıştırın.',
+        'Yardımcı uygulama bu eklentiden eski. Ayarlar → Yardımcı uygulama bölümünden güncelleyin.',
       HOST_UPDATE_CHECK_FAILED:
         'Yardımcı uygulamanın güncel sürümü denetlenemedi. İnternet bağlantınızı kontrol edip daha sonra yeniden deneyin.',
       HOST_UPDATE_FAILED:
@@ -283,6 +287,8 @@ export const tr: ExtensionText = {
     openSettings: 'Ayarlar',
     siteAccessMissing: 'Bu site için erişim izni verilmemiş.',
     developmentBuild: 'Geliştirme derlemesi',
+    setupNeeded: 'Yardımcı uygulama henüz bağlı değil.',
+    finishSetup: 'Kurulumu tamamla',
   },
   options: {
     title: `${PRODUCT_NAME} ayarları`,
@@ -337,6 +343,8 @@ export const tr: ExtensionText = {
       'Metin yalnızca siz Düzelt, Çevir veya Yanıt yaz’a bastığınızda seçtiğiniz AI sağlayıcısına (OpenAI veya Anthropic) gönderilir.',
       'Sonuç önce önizlemede görünür; siz onaylamadan taslağınıza yazılmaz.',
       `${PRODUCT_NAME} e-posta göndermez; göndermek her zaman sizin elinizdedir.`,
+      'Güncelleme denetimi açıkken yardımcı uygulama günde en fazla bir kez GitHub’dan en son sürüm numarasını alır; bu istek e-posta veya hesap bilgisi içermez. Yardımcı uygulama kartından kapatabilirsiniz.',
     ],
   },
+  welcome: welcomeTr,
 };

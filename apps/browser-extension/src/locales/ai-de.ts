@@ -14,6 +14,8 @@ export const aiDe: AiText = {
     'claude-code': 'Mit Claude Code auf diesem Computer',
   },
   methodLabel: 'Verbindungsmethode',
+  recommended: 'Empfohlen',
+  experimental: 'Experimentell',
   statusReady: 'Bereit',
   statusSetup: 'Einrichtung nötig',
   statusAction: 'Verbindung nötig',
@@ -90,10 +92,10 @@ export const aiDe: AiText = {
     helper: {
       title: 'Was ist die Hilfs-App?',
       summary: 'Eine kleine App auf Ihrem Computer, die jede Methode benötigt.',
-      requirements: ['macOS, Linux oder Windows.', 'Node.js 22 oder neuer.'],
+      requirements: ['macOS, Linux oder Windows. Weitere Software ist nicht nötig.'],
       steps: [
-        'Installieren Sie die Hilfs-App und starten Sie den Browser neu.',
-        'Der Hinweis „Die lokale KI-Verbindung ist nicht verfügbar“ auf dieser Seite verschwindet und die Methoden erscheinen.',
+        'Öffnen Sie über Einstellungen → Hilfs-App den Einrichtungsassistenten und führen Sie den angezeigten einzeiligen Befehl aus.',
+        'Nach wenigen Sekunden erscheint die Hilfs-App als verbunden; wählen Sie dann hier eine Methode.',
       ],
       notes: [
         'Anmeldedaten und API-Schlüssel liegen in einer geschützten Datei, auf die nur Sie zugreifen können, nicht im Browser.',
@@ -141,7 +143,7 @@ export const aiDe: AiText = {
   claudeNote: `Das auf diesem Computer installierte Claude Code läuft mit Ihrem eigenen Claude-Konto; die Nutzung wird auf die Limits Ihres Claude-Plans angerechnet. ${PRODUCT_NAME} greift nicht auf Ihre Claude-Anmeldedaten zu und speichert sie nicht. Sie melden sich über Claude Code an und ab.`,
   claudeAccount: 'Claude Code-Konto',
   claudeNotInstalled:
-    'Claude Code wurde auf diesem Computer nicht gefunden. Installieren Sie Claude Code, führen Sie pnpm ai:install erneut aus und wählen Sie dann „Aktualisieren“.',
+    'Claude Code wurde auf diesem Computer nicht gefunden. Installieren Sie Claude Code, führen Sie den Installationsbefehl der Hilfs-App erneut aus und wählen Sie dann „Aktualisieren“.',
   claudeNotLoggedIn:
     'Claude Code ist nicht angemeldet. Führen Sie claude in einem Terminal aus, melden Sie sich mit /login an und wählen Sie dann „Aktualisieren“.',
   claudeApiBilling:
@@ -151,7 +153,7 @@ export const aiDe: AiText = {
   apiKeyLabel: 'API-Schlüssel',
   saveKey: 'Schlüssel verbinden',
   removeKey: 'Schlüssel entfernen',
-  keySaved: 'API-Schlüssel in der lokalen Verbindung gespeichert.',
+  keySaved: 'API-Schlüssel in der Hilfs-App gespeichert.',
   manageUsage: 'Nutzung verwalten',
   connectionHelp:
     'Verwalten Sie diese Verbindung in den ChatGPT-Einstellungen unter Security and login → Sign in with ChatGPT. Sie erscheint nicht unter Plugins. Für Arbeitskonten gelten zusätzlich Organisationsrichtlinie und Planberechtigung.',
@@ -160,9 +162,6 @@ export const aiDe: AiText = {
   gotIt: 'Verstanden',
   privacy:
     'Wenn Sie Text anfordern, werden Ihr Text, Ihre Anweisungen und der ausgewählte Kontext an OpenAI gesendet. Die Erweiterung speichert sie nicht auf der Festplatte. Sie hat keinen Zugriff auf Ihren ChatGPT-Chatverlauf.',
-  setup: 'Lokale Verbindung einrichten',
-  setupBody: `Die KI-Verbindung benötigt die lokale ${PRODUCT_NAME}-App (macOS, Linux oder Windows; Node.js 22+). Folgen Sie docs/AI_BAGLANTISI.md im Projekt. Kontoanmeldedaten liegen statt im Browserspeicher in einer geschützten Datei auf Ihrem Gerät. Für den Claude-Plan muss außerdem Claude Code installiert und angemeldet sein.`,
-  extensionId: 'Erweiterungs-ID für die Installation:',
   usePlan: 'ChatGPT-Plan wird verwendet',
   useApi: 'OpenAI-API wird verwendet',
   useClaude: 'Claude-Plan wird verwendet',
