@@ -62,6 +62,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          # Failures become annotations, readable on the pull request without opening the log.
+          trap { Write-Output "::error::$_"; exit 1 }
           $version = node -p "require('./package.json').version"
           $program = Join-Path $env:LOCALAPPDATA 'Programs\writehand\writehand.exe'
           $key = 'HKCU\Software\Google\Chrome\NativeMessagingHosts\com.dervisgenc.writehand'
@@ -78,7 +80,14 @@ jobs:
           & ([scriptblock]::Create((Get-Content -Raw release/install.ps1))) -Uninstall
           # A running program cannot delete itself on Windows; its folder goes once it has exited.
           for ($i = 0; $i -lt 30 -and (Test-Path (Split-Path $program)); $i++) { Start-Sleep -Seconds 1 }
-          if (Test-Path (Split-Path $program)) { throw 'The install folder was not removed.' }
+          $folder = Split-Path $program
+          if (Test-Path $folder) {
+            $left = (Get-ChildItem -Recurse -Name $folder) -join ', '
+            $shells = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" | ForEach-Object CommandLine) -join ' | '
+            try { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction Stop; $now = 'removable from this step' }
+            catch { $now = $_.Exception.Message }
+            throw "The install folder was not removed. Left: $left. Windows PowerShell: $shells. Removing it now: $now"
+          }
           reg query $key 2>$null
           if ($LASTEXITCODE -eq 0) { throw 'The registry key was not removed.' }
           exit 0
