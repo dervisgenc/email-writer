@@ -371,7 +371,7 @@ describe('ComposeToolbar', () => {
       { operation: 'translate', language: 'en' },
       'panel',
     ]);
-    expect(wrapper.get('[role="toolbar"]').attributes('aria-label')).toBe('Email Writer');
+    expect(wrapper.get('[role="toolbar"]').attributes('aria-label')).toBe('Writehand');
     wrapper.unmount();
   });
 

@@ -1,5 +1,7 @@
 # Email Writer — implementasyon detayları
 
+> Not (19 Ekim 2026): Ürünün adı **Writehand** oldu. Bu belge "Email Writer" adıyla yazıldı; iç paket adları (`@email-writer/*`) ve depo adı değişmedi. Güncel kurulum ve yayın: [Geliştirici rehberi](./docs/GELISTIRICI_REHBERI.md), [AI bağlantısı](./docs/AI_BAGLANTISI.md).
+
 Tarih: 13 Ekim 2026  
 Durum: İlk aşamanın tasarımı; 15 Ekim 2026 AI bağlantısı ekleri aşağıdadır.
 İlgili belge: [Proje planı](./PROJE_PLANI.md)

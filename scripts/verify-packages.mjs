@@ -11,7 +11,9 @@ const outputs = {
   firefox: resolve(root, 'apps/browser-extension/.output/firefox-mv3'),
 };
 
-const ALLOWED_PERMISSIONS = ['nativeMessaging', 'storage'];
+const ALLOWED_PERMISSIONS = ['storage'];
+// Yerel yardımcı uygulamayla konuşma izni isteğe bağlıdır; karşılama sihirbazı ister.
+const OPTIONAL_PERMISSIONS = ['nativeMessaging'];
 const FORBIDDEN_PERMISSIONS = [
   '<all_urls>',
   'tabs',
@@ -54,9 +56,26 @@ for (const [browser, directory] of Object.entries(outputs)) {
 
   if (manifest.manifest_version !== 3) fail(browser, 'Manifest V3 değil.');
 
+  // Ad ve açıklama `_locales` çevirilerinden gelir; varsayılan dilde karşılıkları olmalı.
+  try {
+    const messages = JSON.parse(
+      readFileSync(join(directory, '_locales', manifest.default_locale, 'messages.json'), 'utf8'),
+    );
+    for (const field of [manifest.name, manifest.description]) {
+      const key = /^__MSG_(\w+)__$/.exec(field)?.[1];
+      if (key === undefined || typeof messages[key]?.message !== 'string')
+        fail(browser, `manifest metni çevrilmemiş: ${field}`);
+    }
+  } catch {
+    fail(browser, `varsayılan dilin _locales dosyası okunamadı (${manifest.default_locale})`);
+  }
+
   const permissions = manifest.permissions ?? [];
   if (JSON.stringify([...permissions].sort()) !== JSON.stringify(ALLOWED_PERMISSIONS)) {
     fail(browser, `beklenmeyen izinler: ${JSON.stringify(permissions)}`);
+  }
+  if (JSON.stringify(manifest.optional_permissions ?? []) !== JSON.stringify(OPTIONAL_PERMISSIONS)) {
+    fail(browser, `beklenmeyen isteğe bağlı izinler: ${JSON.stringify(manifest.optional_permissions)}`);
   }
   const allPermissions = [
     ...permissions,

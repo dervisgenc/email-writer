@@ -1,13 +1,20 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiEs } from './ai-es';
 import type { ExtensionText } from './extension-text';
+import { helperEs } from './helper-es';
 import { countWith } from './plural';
+import { welcomeEs } from './welcome-es';
 
 const count = countWith('es');
 
 export const es: ExtensionText = {
+  description:
+    'Corrige, traduce y redacta correos en Outlook en la Web con ChatGPT o Claude. Primero ves una vista previa; nunca se envía nada.',
   ui: {
     locale: 'es',
     ai: aiEs,
+    helper: helperEs,
     panelTitle: 'Asistente de redacción',
     close: 'Cerrar',
     threadLauncher: {
@@ -15,7 +22,7 @@ export const es: ExtensionText = {
       tooltip: 'Prepara una respuesta a esta conversación y revisa el contexto',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Escribir respuesta',
       replyTooltip: 'Escribe un borrador de respuesta a esta conversación a partir de tu indicación',
       write: 'Escribir',
@@ -238,7 +245,7 @@ export const es: ExtensionText = {
       PROCESSING_UNAVAILABLE:
         'El procesamiento de texto aún no está conectado. Esta versión no corrige, no traduce ni redacta respuestas.',
       AI_HOST_UNAVAILABLE:
-        'La conexión de IA local no está disponible. Abre la configuración de IA para ver los pasos de instalación.',
+        'La aplicación auxiliar no está conectada. Abre Configuración → Aplicación auxiliar para instalarla o conectarla.',
       AI_NOT_CONNECTED: 'Falta la sesión de IA o caducó. Vuelve a conectarte en la configuración de IA.',
       AI_AUTH_FAILED:
         'No se pudo comprobar el inicio de sesión de ChatGPT o se agotó el tiempo. Inténtalo de nuevo.',
@@ -274,13 +281,18 @@ export const es: ExtensionText = {
         'Se cerró la sesión localmente; no se pudo confirmar la revocación en OpenAI. Desconecta la aplicación en la configuración de ChatGPT.',
       AI_BUSY: 'Hay una operación de conexión de IA en curso. Espera o cancela el inicio de sesión.',
       AI_CLAUDE_NOT_INSTALLED:
-        'No se encontró Claude Code. Instala Claude Code y vuelve a ejecutar pnpm ai:install.',
+        'No se encontró Claude Code. Instala Claude Code y después vuelve a ejecutar el comando de instalación de la aplicación auxiliar.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code no tiene la sesión iniciada. Ejecuta claude en un terminal e inicia sesión con /login.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code solo se encontró como script de comandos (claude.cmd), que Email Writer no puede iniciar de forma segura. Instala Claude Code con el instalador nativo oficial y vuelve a ejecutar pnpm ai:install.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code solo se encontró como script de comandos (claude.cmd), que ${PRODUCT_NAME} no puede iniciar de forma segura. Instala Claude Code con el instalador nativo oficial y después vuelve a ejecutar el comando de instalación de la aplicación auxiliar.`,
       AI_VERSION_MISMATCH:
-        'La extensión y la aplicación auxiliar local tienen versiones distintas. Vuelve a ejecutar el comando de instalación de la configuración de IA.',
+        'La aplicación auxiliar es más antigua que esta extensión. Actualízala en Configuración → Aplicación auxiliar.',
+      HOST_UPDATE_CHECK_FAILED:
+        'No se pudo comprobar si hay una versión nueva de la aplicación auxiliar. Revisa tu conexión a Internet y vuelve a intentarlo más tarde.',
+      HOST_UPDATE_FAILED:
+        'No se pudo descargar ni instalar la actualización; la versión instalada no cambió. Vuelve a intentarlo más tarde o ejecuta de nuevo el comando de instalación.',
+      HOST_UPDATE_UNVERIFIED:
+        'No se pudo verificar la actualización descargada, así que no se instaló nada. La versión instalada sigue funcionando.',
       CONTENT_SCRIPT_UNREACHABLE:
         'La extensión no puede acceder a esta pestaña. Revisa el acceso al sitio o vuelve a cargar la página.',
       MESSAGE_REJECTED: 'Se rechazó un mensaje de la extensión no válido.',
@@ -288,7 +300,7 @@ export const es: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'El asistente de redacción está disponible en esta página.',
       waiting: 'Cargando el área de correo…',
@@ -303,9 +315,11 @@ export const es: ExtensionText = {
     openSettings: 'Configuración',
     siteAccessMissing: 'No se concedió acceso a este sitio.',
     developmentBuild: 'Versión de desarrollo',
+    setupNeeded: 'La aplicación auxiliar aún no está conectada.',
+    finishSetup: 'Completar la configuración',
   },
   options: {
-    title: 'Configuración de Email Writer',
+    title: `Configuración de ${PRODUCT_NAME}`,
     subtitle: 'Asistente de redacción para Outlook en la Web',
     preferencesTitle: 'Preferencias de redacción',
     preferencesDescription: 'Idioma, tono y apariencia que se usan en los trabajos nuevos.',
@@ -352,13 +366,15 @@ export const es: ExtensionText = {
     defaultsNote:
       'El idioma y el tono predeterminados no cambian el trabajo abierto; se aplican al siguiente trabajo.',
     privacyTitle: 'Privacidad y datos',
-    privacyDescription: 'Qué hace y qué no hace Email Writer con tu correo.',
+    privacyDescription: `Qué hace y qué no hace ${PRODUCT_NAME} con tu correo.`,
     privacyPoints: [
       'Tus preferencias se guardan solo en este dispositivo.',
       'Los correos que abres se mantienen en memoria solo mientras la página está abierta, para sugerir contexto; nunca se escriben en el disco.',
       'El texto se envía al proveedor de IA que elegiste (OpenAI o Anthropic) solo cuando eliges Corregir, Traducir o Escribir respuesta.',
       'Los resultados aparecen primero como vista previa y nunca se escriben en tu borrador sin tu aprobación.',
-      'Email Writer nunca envía correos; enviar siempre depende de ti.',
+      `${PRODUCT_NAME} nunca envía correos; enviar siempre depende de ti.`,
+      'Mientras la búsqueda de actualizaciones está activada, la aplicación auxiliar consulta a GitHub el número de la última versión como máximo una vez al día; la solicitud no incluye correos ni datos de la cuenta. Puedes desactivarla en la tarjeta de la aplicación auxiliar.',
     ],
   },
+  welcome: welcomeEs,
 };

@@ -1,6 +1,8 @@
 {
   "name": "email-writer",
+  "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.11.2",
   "engines": {
@@ -11,6 +13,7 @@
     "dev:firefox": "pnpm --filter @email-writer/browser-extension dev:firefox",
     "build": "pnpm --filter @email-writer/ai-companion build && pnpm --filter @email-writer/browser-extension build:all",
     "ai:build": "pnpm --filter @email-writer/ai-companion build",
+    "ai:sea": "pnpm --filter @email-writer/ai-companion build:sea",
     "ai:install": "pnpm --filter @email-writer/ai-companion install-host",
     "build:test": "pnpm --filter @email-writer/browser-extension build:test",
     "typecheck": "pnpm -r --parallel typecheck && vue-tsc -p tests/tsconfig.json",
@@ -26,6 +29,7 @@
     "outlook:dev": "node tests/manual/outlook-live/dev-extension.mjs",
     "outlook:inspect": "node tests/manual/outlook-live/inspect.mjs",
     "verify:packages": "node scripts/verify-packages.mjs",
+    "release:version": "node scripts/release-version.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {

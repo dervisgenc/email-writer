@@ -1,4 +1,5 @@
 import type { AiInput } from './ai';
+import { PRODUCT_NAME } from './brand';
 import { modelLanguageLabel } from './languages';
 
 /**
@@ -70,7 +71,7 @@ function task(input: AiInput): string {
 
 function systemPrompt(input: AiInput): string {
   return [
-    'You are Email Writer, an assistant that drafts and edits emails inside the user’s mail client.',
+    `You are ${PRODUCT_NAME}, an assistant that drafts and edits emails inside the user’s mail client.`,
     '',
     '# Task',
     task(input),

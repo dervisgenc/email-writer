@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
 import type { AiText } from '@email-writer/ui';
 
 export const aiEn: AiText = {
@@ -13,6 +14,8 @@ export const aiEn: AiText = {
     'claude-code': 'With Claude Code on this computer',
   },
   methodLabel: 'Connection method',
+  recommended: 'Recommended',
+  experimental: 'Experimental',
   statusReady: 'Ready',
   statusSetup: 'Setup needed',
   statusAction: 'Connection needed',
@@ -30,7 +33,7 @@ export const aiEn: AiText = {
         summary: 'Generates with the usage included in your ChatGPT Plus or Pro plan.',
         requirements: [
           'A ChatGPT Plus or Pro subscription. Free accounts do not support plan usage.',
-          'The Email Writer helper app on this computer.',
+          `The ${PRODUCT_NAME} helper app on this computer.`,
         ],
         steps: [
           'Choose ChatGPT plan as the method.',
@@ -49,7 +52,7 @@ export const aiEn: AiText = {
         summary: 'Generates with your own OpenAI Platform account; you pay for what you use.',
         requirements: [
           'An OpenAI Platform account and an API key.',
-          'The Email Writer helper app on this computer.',
+          `The ${PRODUCT_NAME} helper app on this computer.`,
         ],
         steps: [
           'Create an API key on OpenAI Platform.',
@@ -68,7 +71,7 @@ export const aiEn: AiText = {
         requirements: [
           'A Claude Pro, Max, Team or Enterprise subscription.',
           'Claude Code installed on this computer and signed in with your Claude account.',
-          'The Email Writer helper app. Installed after Claude Code, it finds Claude Code automatically.',
+          `The ${PRODUCT_NAME} helper app. Installed after Claude Code, it finds Claude Code automatically.`,
         ],
         steps: [
           'Install Claude Code by following Anthropic’s official instructions.',
@@ -77,7 +80,7 @@ export const aiEn: AiText = {
           'Choose Claude plan as the method. Your account and plan appear here.',
         ],
         notes: [
-          'Email Writer never sees or stores your Claude password or session; you sign in and out through Claude Code.',
+          `${PRODUCT_NAME} never sees or stores your Claude password or session; you sign in and out through Claude Code.`,
           'Usage counts against your plan limit, which is shared with Claude Code.',
           'On Pro and Max plans, content may be used for model training unless you turned it off in your Claude privacy settings. Team and Enterprise plans are governed by commercial terms.',
           'If Claude Code is signed in with an API key, usage is billed to that API account.',
@@ -89,10 +92,10 @@ export const aiEn: AiText = {
     helper: {
       title: 'What is the helper app?',
       summary: 'A small app on your computer that every method needs.',
-      requirements: ['macOS, Linux or Windows.', 'Node.js 22 or later.'],
+      requirements: ['macOS, Linux or Windows. No other software is needed.'],
       steps: [
-        'Install the helper app and restart the browser.',
-        'The “The local AI connection is unavailable” warning on this page goes away and the methods appear.',
+        'Open the setup wizard from Settings → Helper app and run the one-line command it shows.',
+        'The helper app appears as connected within a few seconds; then choose a method here.',
       ],
       notes: [
         'Sign-in details and API keys are kept in a protected file only you can access, not in the browser.',
@@ -137,11 +140,10 @@ export const aiEn: AiText = {
     'Eligible Plus and Pro accounts can use their plan allowance. Availability depends on your account, workspace and OpenAI access.',
   apiNote:
     'API usage is billed separately by OpenAI. It is independent of your ChatGPT subscription; this method is never selected automatically.',
-  claudeNote:
-    'Claude Code installed on this computer runs with your own Claude account; usage counts against your Claude plan limits. Email Writer does not access or store your Claude credentials. Sign in and out through Claude Code.',
+  claudeNote: `Claude Code installed on this computer runs with your own Claude account; usage counts against your Claude plan limits. ${PRODUCT_NAME} does not access or store your Claude credentials. Sign in and out through Claude Code.`,
   claudeAccount: 'Claude Code account',
   claudeNotInstalled:
-    'Claude Code was not found on this computer. Install Claude Code, run pnpm ai:install again, then select Refresh.',
+    'Claude Code was not found on this computer. Install Claude Code, run the helper app’s install command again, then select Refresh.',
   claudeNotLoggedIn:
     'Claude Code is not signed in. Run claude in a terminal and sign in with /login, then select Refresh.',
   claudeApiBilling:
@@ -151,20 +153,15 @@ export const aiEn: AiText = {
   apiKeyLabel: 'API key',
   saveKey: 'Connect key',
   removeKey: 'Remove key',
-  keySaved: 'API key saved in the local connection.',
+  keySaved: 'API key saved in the helper app.',
   manageUsage: 'Manage usage',
   connectionHelp:
     'Manage this connection in ChatGPT Settings → Security and login → Sign in with ChatGPT. It does not appear in Plugins. Work accounts are also subject to organization policy and plan eligibility.',
   welcome: 'You’re using your ChatGPT plan',
-  welcomeBody:
-    'Eligible generation in Email Writer uses your ChatGPT plan allowance or available credits. Manage this app’s usage in ChatGPT settings.',
+  welcomeBody: `Eligible generation in ${PRODUCT_NAME} uses your ChatGPT plan allowance or available credits. Manage this app’s usage in ChatGPT settings.`,
   gotIt: 'Got it',
   privacy:
     'When you request generation, your text, instructions and selected context are sent to OpenAI. The extension does not save them to disk. It cannot access your ChatGPT conversation history.',
-  setup: 'Set up the local connection',
-  setupBody:
-    'The AI connection requires the Email Writer local app (macOS, Linux or Windows; Node.js 22+). Follow docs/AI_BAGLANTISI.md in the project. Account credentials are kept in a protected file on your device instead of browser storage. The Claude plan method also requires Claude Code to be installed and signed in.',
-  extensionId: 'Extension ID for installation:',
   usePlan: 'Using ChatGPT plan',
   useApi: 'Using OpenAI API',
   useClaude: 'Using Claude plan',

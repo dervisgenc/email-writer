@@ -71,31 +71,6 @@
   font-size: 13px;
   overflow-wrap: anywhere;
 }
-.ew-root .ew-ai-settings__setup {
-  font-size: var(--ew-font-size-200);
-  overflow-wrap: anywhere;
-}
-.ew-root .ew-ai-settings__setup summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ew-color-link);
-  font-weight: 600;
-  cursor: pointer;
-  list-style: none;
-}
-.ew-root .ew-ai-settings__setup summary::-webkit-details-marker {
-  display: none;
-}
-.ew-root .ew-ai-settings__setup-chevron {
-  transition: transform var(--ew-duration) var(--ew-ease);
-}
-.ew-root .ew-ai-settings__setup[open] .ew-ai-settings__setup-chevron {
-  transform: rotate(90deg);
-}
-.ew-root .ew-ai-settings__setup p {
-  margin-top: var(--ew-space-2);
-}
 .ew-root .ew-ai-settings__privacy {
   display: flex;
   align-items: flex-start;

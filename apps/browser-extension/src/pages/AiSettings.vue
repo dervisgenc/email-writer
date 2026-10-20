@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import type { AiCommand, AiStatus, ErrorCode } from '@email-writer/contracts';
 import { AiConnectionGuide, AiConnectionSettings, type UiText } from '@email-writer/ui';
-import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
-import { extensionId } from '../../src/platform/extension-browser';
-import { fetchAiStatus, runAiCommand } from '../../src/platform/extension-client';
+import { fetchAiStatus, runAiCommand } from '../platform/extension-client';
 
-const props = defineProps<{ text: UiText }>();
+/** AI bağlantısı kartı ve bağlantı rehberi: ayarlar sayfası ve karşılama sihirbazı kullanır. */
+const props = withDefaults(defineProps<{ text: UiText; guide?: boolean }>(), { guide: true });
+const emit = defineEmits<{ ready: [ready: boolean] }>();
 const status = shallowRef<AiStatus | null>(null);
 const error = ref<ErrorCode | null>(null);
 const busy = ref(false);
-const id = extensionId();
 const errorText = computed(() => {
   const code = error.value ?? status.value?.error;
   return code ? props.text.errors[code] : null;
 });
+watch(
+  () => status.value?.ready === true,
+  (ready) => emit('ready', ready),
+);
 let disposed = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -77,9 +81,13 @@ onUnmounted(() => {
     :text="text.ai"
     :error="errorText"
     :busy="busy"
-    :extension-id="id"
     @command="command"
     @refresh="refresh(status !== null && !status.signingIn)"
   />
-  <AiConnectionGuide :key="status?.mode ?? 'none'" :text="text.ai" :mode="status?.mode ?? null" />
+  <AiConnectionGuide
+    v-if="guide"
+    :key="status?.mode ?? 'none'"
+    :text="text.ai"
+    :mode="status?.mode ?? null"
+  />
 </template>

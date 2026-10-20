@@ -7,7 +7,7 @@ import { targetLanguageSchema, UI_LANGUAGE_PREFERENCES } from './languages';
  * Cihazda kalıcı saklanan tercihler. E-posta, bağlam, kaynak metin, önizleme
  * ve geri alma verisi bu kayda asla eklenmez.
  */
-export const SETTINGS_SCHEMA_VERSION = 2;
+export const SETTINGS_SCHEMA_VERSION = 3;
 
 export const THEMES = ['system', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -45,12 +45,23 @@ export const settingsSchema = z
     theme: z.enum(THEMES),
     siteEnabled: siteEnabledSchema,
     onboardingSeen: z.boolean(),
+    /**
+     * Yardımcı uygulamanın yeni sürümü olup olmadığı denetlensin mi? Açıkken yardımcı uygulama
+     * günde en fazla bir kez GitHub'a en son sürümü sorar (üçüncü sürümde eklendi).
+     */
+    checkHelperUpdates: z.boolean(),
   })
   .strict();
 
 export type Settings = z.infer<typeof settingsSchema>;
 
-/** İlk sürüm kaydı; yalnızca okunur ve ikinci sürüme taşınır. O sürümün dilleriyle sabittir. */
+/** İkinci sürüm kaydı: üçüncü sürümden yalnızca güncelleme denetimi tercihi eksiktir. */
+export const settingsV2Schema = settingsSchema
+  .omit({ checkHelperUpdates: true })
+  .extend({ schemaVersion: z.literal(2) })
+  .strict();
+
+/** İlk sürüm kaydı; yalnızca okunur ve güncel sürüme taşınır. O sürümün dilleriyle sabittir. */
 export const settingsV1Schema = z
   .object({
     schemaVersion: z.literal(1),
@@ -77,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   theme: 'system',
   siteEnabled: Object.freeze({ 'outlook-web': true }),
   onboardingSeen: false,
+  checkHelperUpdates: true,
 });
 
 /** Kullanıcının değiştirebildiği alanlar. Şema ve sürüm alanları istemciden gelmez. */
@@ -90,6 +102,7 @@ export const settingsChangesSchema = settingsSchema
     theme: true,
     siteEnabled: true,
     onboardingSeen: true,
+    checkHelperUpdates: true,
   })
   .partial()
   .strict();

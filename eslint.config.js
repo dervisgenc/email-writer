@@ -232,6 +232,25 @@ export default tseslint.config(
     },
   },
   {
+    // İşletim sistemi farkları yalnızca yardımcı uygulamanın platform.ts dosyasında.
+    files: [
+      'packages/ai-openai/src/**/*.ts',
+      'packages/ai-claude-code/src/**/*.ts',
+      'apps/ai-companion/src/**/*.ts',
+    ],
+    ignores: ['apps/ai-companion/src/platform.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...['platform', 'arch'].map((property) => ({
+          object: 'process',
+          property,
+          message: 'İşletim sistemi farkları apps/ai-companion/src/platform.ts içinde tanımlanır.',
+        })),
+      ],
+    },
+  },
+  {
     // Sağlayıcı paketleri birbirini bilmez; ortak talimat ve tipler contracts'tadır.
     files: ['packages/ai-openai/src/**/*.ts', 'packages/ai-claude-code/src/**/*.ts'],
     rules: {

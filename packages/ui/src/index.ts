@@ -22,3 +22,8 @@ export type * from './view-model';
 export type { AiGuideItem, AiGuideText, AiText } from './ai-text';
 export { default as AiConnectionGuide } from './components/AiConnectionGuide.vue';
 export { default as AiConnectionSettings } from './components/AiConnectionSettings.vue';
+export { default as CommandBox } from './components/CommandBox.vue';
+export { default as ExtensionPage } from './components/ExtensionPage.vue';
+export { default as HelperCard } from './components/HelperCard.vue';
+export { default as StepList } from './components/StepList.vue';
+export type { HelperText, HelperView } from './helper';

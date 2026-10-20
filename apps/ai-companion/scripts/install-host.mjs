@@ -1,11 +1,13 @@
-import { access } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-// The installer (src/install.ts) is bundled next to the host by `pnpm ai:build`.
-const installer = new URL('../dist/install.mjs', import.meta.url);
-try {
-  await access(installer);
-} catch {
+// `pnpm ai:install [--extension-id=ID]...`: the helper's own installer in development mode.
+const cli = fileURLToPath(new URL('../dist/cli.mjs', import.meta.url));
+if (!existsSync(cli)) {
   console.error('Build the helper app first: pnpm ai:build');
   process.exit(1);
 }
-await import(installer.href);
+const args = process.argv.slice(2).filter((arg) => arg !== '--');
+const { status } = spawnSync(process.execPath, [cli, 'install', '--dev', ...args], { stdio: 'inherit' });
+process.exit(status ?? 1);

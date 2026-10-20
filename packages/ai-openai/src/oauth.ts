@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
+import { PRODUCT_NAME } from '@email-writer/contracts';
 
 import { AiFailure, providerFailure } from './errors';
 
@@ -58,7 +59,7 @@ export function createAuthorization(
     nonce: attempt.nonce,
     code_challenge_method: 'S256',
     code_challenge: createHash('sha256').update(attempt.verifier).digest('base64url'),
-    ...(!account ? { agent_name_hint: 'Email Writer' } : {}),
+    ...(!account ? { agent_name_hint: PRODUCT_NAME } : {}),
     ...(account?.idToken ? { id_token_hint: account.idToken } : {}),
     ...(account?.email ? { login_hint: account.email } : {}),
     ...(account && !account.planEnabled ? { prompt: 'consent' } : {}),

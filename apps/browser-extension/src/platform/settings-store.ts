@@ -4,6 +4,7 @@ import {
   settingsChangesSchema,
   settingsSchema,
   settingsV1Schema,
+  settingsV2Schema,
   type Settings,
   type SettingsChanges,
 } from '@email-writer/contracts';
@@ -69,8 +70,8 @@ export function parseStoredSettings(raw: unknown): StoredSettings {
   if (parsed.success) {
     return { settings: parsed.data, issue: null, writable: true };
   }
-  if (settingsV1Schema.safeParse(raw).success) {
-    // İlk sürümün bütün alanları ikinci sürümde de geçerlidir; yeni alanlar varsayılanla gelir.
+  if ([settingsV1Schema, settingsV2Schema].some((schema) => schema.safeParse(raw).success)) {
+    // Eski sürümlerin bütün alanları güncel sürümde de geçerlidir; yeni alanlar varsayılanla gelir.
     return { settings: salvage(raw), issue: 'migrated', writable: true };
   }
   return { settings: salvage(raw), issue: 'invalid', writable: true };

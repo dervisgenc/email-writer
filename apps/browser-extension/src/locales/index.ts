@@ -1,4 +1,10 @@
-import { resolveUiLanguage, type UiLanguage, type UiLanguagePreference } from '@email-writer/contracts';
+import {
+  PRODUCT_NAME,
+  resolveUiLanguage,
+  UI_LANGUAGES,
+  type UiLanguage,
+  type UiLanguagePreference,
+} from '@email-writer/contracts';
 
 import { de } from './de';
 import { en } from './en';
@@ -19,6 +25,23 @@ export function uiLanguageFor(
 
 export function textFor(preference: UiLanguagePreference): ExtensionText {
   return TEXTS[uiLanguageFor(preference)];
+}
+
+type ManifestMessages = Record<'extName' | 'extDescription', { readonly message: string }>;
+
+/**
+ * Manifestteki ad ve açıklamanın çevirileri (`_locales/<dil>/messages.json`). Tarayıcı
+ * bunları kendi diline göre seçer; derleme bu dosyaları buradan üretir.
+ */
+export function manifestMessages(): Record<UiLanguage, ManifestMessages> {
+  const messages = {} as Record<UiLanguage, ManifestMessages>;
+  for (const language of UI_LANGUAGES) {
+    messages[language] = {
+      extName: { message: PRODUCT_NAME },
+      extDescription: { message: TEXTS[language].description },
+    };
+  }
+  return messages;
 }
 
 export type { ExtensionText, PopupStatusKey } from './extension-text';

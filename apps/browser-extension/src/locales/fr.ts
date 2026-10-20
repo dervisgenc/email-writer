@@ -1,13 +1,20 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiFr } from './ai-fr';
 import type { ExtensionText } from './extension-text';
+import { helperFr } from './helper-fr';
 import { countWith } from './plural';
+import { welcomeFr } from './welcome-fr';
 
 const count = countWith('fr');
 
 export const fr: ExtensionText = {
+  description:
+    'Corrigez, traduisez et rédigez vos e-mails dans Outlook sur le web avec ChatGPT ou Claude. Aperçu d’abord ; rien n’est envoyé.',
   ui: {
     locale: 'fr',
     ai: aiFr,
+    helper: helperFr,
     panelTitle: 'Assistant de rédaction',
     close: 'Fermer',
     threadLauncher: {
@@ -15,7 +22,7 @@ export const fr: ExtensionText = {
       tooltip: 'Préparer une réponse à cette conversation et vérifier le contexte',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Rédiger la réponse',
       replyTooltip: 'Rédiger un brouillon de réponse à cette conversation à partir de votre consigne',
       write: 'Rédiger',
@@ -243,7 +250,7 @@ export const fr: ExtensionText = {
       PROCESSING_UNAVAILABLE:
         'Le traitement du texte n’est pas encore connecté. Cette version ne corrige, ne traduit et ne rédige rien.',
       AI_HOST_UNAVAILABLE:
-        'La connexion IA locale est indisponible. Ouvrez les paramètres IA pour les instructions d’installation.',
+        'L’application d’assistance n’est pas connectée. Ouvrez Paramètres → Application d’assistance pour l’installer ou la connecter.',
       AI_NOT_CONNECTED: 'La session IA est absente ou expirée. Reconnectez-vous dans les paramètres IA.',
       AI_AUTH_FAILED: 'La connexion ChatGPT n’a pas pu être vérifiée ou a expiré. Réessayez.',
       AI_AUTH_EXCHANGE_FAILED:
@@ -277,13 +284,18 @@ export const fr: ExtensionText = {
         'Déconnecté localement ; la révocation chez OpenAI n’a pas pu être confirmée. Déconnectez l’application dans les paramètres ChatGPT.',
       AI_BUSY: 'Une opération de connexion IA est en cours. Patientez ou annulez la connexion.',
       AI_CLAUDE_NOT_INSTALLED:
-        'Claude Code est introuvable. Installez Claude Code et exécutez à nouveau pnpm ai:install.',
+        'Claude Code est introuvable. Installez Claude Code, puis exécutez à nouveau la commande d’installation de l’application d’assistance.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code n’est pas connecté. Exécutez claude dans un terminal et connectez-vous avec /login.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code n’a été trouvé que sous forme de script de commandes (claude.cmd), qu’Email Writer ne peut pas lancer en toute sécurité. Installez Claude Code avec le programme d’installation natif officiel, puis exécutez à nouveau pnpm ai:install.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code n’a été trouvé que sous forme de script de commandes (claude.cmd), que ${PRODUCT_NAME} ne peut pas lancer en toute sécurité. Installez Claude Code avec le programme d’installation natif officiel, puis exécutez à nouveau la commande d’installation de l’application d’assistance.`,
       AI_VERSION_MISMATCH:
-        'L’extension et l’application d’assistance locale n’ont pas la même version. Exécutez à nouveau la commande d’installation indiquée dans les paramètres IA.',
+        'L’application d’assistance est plus ancienne que cette extension. Mettez-la à jour dans Paramètres → Application d’assistance.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Impossible de vérifier si une nouvelle version de l’application d’assistance existe. Vérifiez votre connexion Internet et réessayez plus tard.',
+      HOST_UPDATE_FAILED:
+        'La mise à jour n’a pas pu être téléchargée ou installée ; la version installée n’a pas changé. Réessayez plus tard ou exécutez à nouveau la commande d’installation.',
+      HOST_UPDATE_UNVERIFIED:
+        'La mise à jour téléchargée n’a pas pu être vérifiée ; rien n’a été installé. La version installée continue de fonctionner.',
       CONTENT_SCRIPT_UNREACHABLE:
         'L’extension ne peut pas atteindre cet onglet. Vérifiez l’accès au site ou rechargez la page.',
       MESSAGE_REJECTED: 'Un message d’extension non valide a été refusé.',
@@ -291,7 +303,7 @@ export const fr: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'L’assistant de rédaction est disponible sur cette page.',
       waiting: 'Chargement de la zone de messagerie…',
@@ -306,9 +318,11 @@ export const fr: ExtensionText = {
     openSettings: 'Paramètres',
     siteAccessMissing: 'L’accès à ce site n’a pas été accordé.',
     developmentBuild: 'Version de développement',
+    setupNeeded: 'L’application d’assistance n’est pas encore connectée.',
+    finishSetup: 'Terminer la configuration',
   },
   options: {
-    title: 'Paramètres d’Email Writer',
+    title: `Paramètres de ${PRODUCT_NAME}`,
     subtitle: 'Assistant de rédaction pour Outlook sur le web',
     preferencesTitle: 'Préférences de rédaction',
     preferencesDescription: 'Langue, ton et apparence utilisés pour les nouveaux travaux.',
@@ -355,13 +369,15 @@ export const fr: ExtensionText = {
     defaultsNote:
       'La langue et le ton par défaut ne modifient pas le travail en cours ; ils s’appliquent au travail suivant.',
     privacyTitle: 'Confidentialité et données',
-    privacyDescription: 'Ce qu’Email Writer fait et ne fait pas avec vos e-mails.',
+    privacyDescription: `Ce que ${PRODUCT_NAME} fait et ne fait pas avec vos e-mails.`,
     privacyPoints: [
       'Vos préférences sont enregistrées uniquement sur cet appareil.',
       'Les e-mails que vous ouvrez restent en mémoire uniquement tant que la page est ouverte, pour suggérer du contexte ; ils ne sont jamais écrits sur le disque.',
       'Le texte est envoyé au fournisseur d’IA choisi (OpenAI ou Anthropic) uniquement quand vous choisissez Corriger, Traduire ou Rédiger la réponse.',
       'Les résultats s’affichent d’abord en aperçu et ne sont jamais écrits dans votre brouillon sans votre accord.',
-      'Email Writer n’envoie jamais d’e-mail ; l’envoi reste toujours votre décision.',
+      `${PRODUCT_NAME} n’envoie jamais d’e-mail ; l’envoi reste toujours votre décision.`,
+      'Tant que la recherche de mises à jour est active, l’application d’assistance demande à GitHub le dernier numéro de version au plus une fois par jour ; la requête ne contient ni e-mail ni informations de compte. Vous pouvez la désactiver sur la carte de l’application d’assistance.',
     ],
   },
+  welcome: welcomeFr,
 };

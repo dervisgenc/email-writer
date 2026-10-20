@@ -1,5 +1,5 @@
 import { browser } from '#imports';
-import { NATIVE_HOST_NAME } from '@email-writer/contracts';
+import { NATIVE_HOST_NAME, type HostOperatingSystem } from '@email-writer/contracts';
 
 import type { MessageSender } from './runtime-messaging';
 import type { SettingsStorageArea } from './settings-store';
@@ -52,7 +52,27 @@ export function isOwnExtensionPage(sender: MessageSender): boolean {
   );
 }
 
+/**
+ * Yerel yardımcı uygulamayla konuşma izni (`nativeMessaging`) isteğe bağlıdır: kurulumda uyarı
+ * çıkmaz, karşılama sihirbazı izni gerekçesiyle birlikte ister. İzin yokken tarayıcı
+ * `connectNative`'i sunmaz.
+ */
+export async function hasNativeMessagingPermission(): Promise<boolean> {
+  try {
+    return await browser.permissions.contains({ permissions: ['nativeMessaging'] });
+  } catch {
+    return false;
+  }
+}
+
+/** Tarayıcı izin penceresini açar; kullanıcı tıklamasının içinde, beklemeden çağrılmalıdır. */
+export function requestNativeMessagingPermission(): Promise<boolean> {
+  return browser.permissions.request({ permissions: ['nativeMessaging'] }).catch(() => false);
+}
+
 export function connectAiHost() {
+  if (typeof browser.runtime.connectNative !== 'function')
+    throw new Error('Native messaging is not allowed.');
   const port = browser.runtime.connectNative(NATIVE_HOST_NAME);
   // Read lastError only to acknowledge browser failures; never log native messages.
   port.onDisconnect.addListener(() => {
@@ -74,6 +94,17 @@ export function addRuntimeMessageListener(
 
 export function openOptionsPage(): Promise<void> {
   return browser.runtime.openOptionsPage();
+}
+
+/** Karşılama sihirbazını yeni sekmede açar (`tabs` izni gerekmez). */
+export async function openWelcomePage(): Promise<void> {
+  await browser.tabs.create({ url: browser.runtime.getURL('/welcome.html') });
+}
+
+/** Tarayıcının çalıştığı işletim sistemi; sürüm dosyalarındaki adlarla. */
+export async function operatingSystem(): Promise<HostOperatingSystem> {
+  const { os } = await browser.runtime.getPlatformInfo();
+  return os === 'mac' ? 'darwin' : os === 'win' ? 'windows' : 'linux';
 }
 
 /** Desteklenen sitelere erişim izninin hâlâ verilmiş olup olmadığı. */

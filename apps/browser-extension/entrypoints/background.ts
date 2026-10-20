@@ -9,6 +9,7 @@ import {
   connectAiHost,
   extensionId,
   openOptionsPage,
+  openWelcomePage,
 } from '../src/platform/extension-browser';
 import { createAiHandlers } from '../src/platform/ai-background';
 import { createAiSenderPolicy } from '../src/platform/ai-sender-policy';
@@ -26,7 +27,9 @@ export default defineBackground(() => {
   const settings = createSettingsStore(localSettingsArea);
   const native = createNativeClient(connectAiHost);
 
-  browser.runtime.onInstalled.addListener(() => {
+  browser.runtime.onInstalled.addListener((details) => {
+    // İlk kurulumda karşılama sihirbazı yardımcı uygulamanın kurulumunu ve bağlantıyı anlatır.
+    if (details.reason === 'install') void openWelcomePage();
     void settings.ensureInitialized().then((stored) => {
       if (stored.issue === 'invalid' || stored.issue === 'newer-schema') {
         reportDiagnostic({ code: 'SETTINGS_INVALID', area: 'background' });

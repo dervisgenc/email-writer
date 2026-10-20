@@ -8,7 +8,7 @@ import {
   type createOpenAiOAuth,
   type TokenResponse,
 } from '@email-writer/ai-openai';
-import type { ErrorCode } from '@email-writer/contracts';
+import { PRODUCT_NAME, type ErrorCode } from '@email-writer/contracts';
 
 import type { Credentials, CredentialStore } from './credential-store';
 import { defaultAccountLabel } from './account-label';
@@ -166,15 +166,15 @@ export function createSignIn(deps: {
               }
               response.end(
                 tokens.scope?.split(/\s+/).includes(PLAN_SCOPE)
-                  ? 'Sign-in completed. Return to Email Writer to check text generation availability.'
-                  : 'Sign-in completed. ChatGPT plan usage is not enabled for this connection. Return to Email Writer for account and plan details.',
+                  ? `Sign-in completed. Return to ${PRODUCT_NAME} to check text generation availability.`
+                  : `Sign-in completed. ChatGPT plan usage is not enabled for this connection. Return to ${PRODUCT_NAME} for account and plan details.`,
               );
             } catch (caught) {
               if (!cancelled) error = failureCode(caught);
               response
                 .writeHead(400)
                 .end(
-                  `Sign-in could not be completed (${failureCode(caught)}). Return to Email Writer for details.`,
+                  `Sign-in could not be completed (${failureCode(caught)}). Return to ${PRODUCT_NAME} for details.`,
                 );
             } finally {
               if (!credentialsSaved && tokens?.refresh_token && issuedClientId) {

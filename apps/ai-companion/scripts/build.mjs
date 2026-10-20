@@ -1,12 +1,10 @@
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 
+// Development build: the whole helper app as one script for Node.js (`pnpm ai:install` runs it).
+// The release build (scripts/build-sea.mjs) packs the same entry point into a single program.
 await build({
-  // The native host and its installer, which copies the host next to the launcher.
-  entryPoints: {
-    host: fileURLToPath(new URL('../src/main.ts', import.meta.url)),
-    install: fileURLToPath(new URL('../src/install.ts', import.meta.url)),
-  },
+  entryPoints: { cli: fileURLToPath(new URL('../src/cli.ts', import.meta.url)) },
   outdir: fileURLToPath(new URL('../dist', import.meta.url)),
   outExtension: { '.js': '.mjs' },
   bundle: true,

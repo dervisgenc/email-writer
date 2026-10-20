@@ -24,7 +24,7 @@ import {
   NativeMessageDecoder,
   rejectionFor,
 } from '../../apps/ai-companion/src/native-protocol';
-import { hostPlatform } from '../../apps/ai-companion/src/platform';
+import { hostPlatform, windowsPowerShellEnvironment } from '../../apps/ai-companion/src/platform';
 import { createSignIn } from '../../apps/ai-companion/src/sign-in';
 
 const input: AiInput = {
@@ -347,7 +347,7 @@ describe('AI service and protected storage', () => {
         const sddl = execFileSync(
           join(system32, 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
           ['-NoProfile', '-NonInteractive', '-Command', '(Get-Acl -LiteralPath $env:EW_TARGET).Sddl'],
-          { encoding: 'utf8', env: { ...process.env, EW_TARGET: path } },
+          { encoding: 'utf8', env: windowsPowerShellEnvironment(process.env, { EW_TARGET: path }) },
         ).trim();
         const dacl = sddl.slice(sddl.indexOf('D:'));
         return {
@@ -355,8 +355,16 @@ describe('AI service and protected storage', () => {
           trustees: [...dacl.matchAll(/;([^;()]+)\)/g)].map((m) => m[1]).sort(),
         };
       };
-      expect(access(directory)).toEqual({ flags: 'PAI', trustees: [user, 'SY'].sort() });
-      expect(access(file).trustees).toEqual([user, 'SY'].sort());
+      // SDDL names the built-in Administrator account "LA"; on such an account (e.g. a CI
+      // runner) the Administrators group ("BA"), which can open every file anyway, stays listed.
+      const self = user?.endsWith('-500') ? 'LA' : user;
+      const allowed = [self, 'SY', ...(self === 'LA' ? ['BA'] : [])];
+      for (const path of [directory, file]) {
+        const { flags, trustees } = access(path);
+        if (path === directory) expect(flags).toBe('PAI');
+        expect(trustees).toEqual(expect.arrayContaining([self, 'SY']));
+        expect(trustees.filter((trustee) => !allowed.includes(trustee))).toEqual([]);
+      }
     } else {
       expect((await stat(directory)).mode & 0o777).toBe(0o700);
       expect((await stat(file)).mode & 0o777).toBe(0o600);

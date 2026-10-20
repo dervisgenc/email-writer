@@ -30,6 +30,9 @@ export interface AiText {
   /** Yöntem kartlarındaki kısa açıklama. */
   readonly methodHints: Readonly<Record<AiMode, string>>;
   readonly methodLabel: string;
+  /** Yöntem kartlarındaki rozetler: önerilen (ChatGPT) ve deneysel (Claude). */
+  readonly recommended: string;
+  readonly experimental: string;
   readonly statusReady: string;
   readonly statusSetup: string;
   readonly statusAction: string;
@@ -78,9 +81,6 @@ export interface AiText {
   readonly welcomeBody: string;
   readonly gotIt: string;
   readonly privacy: string;
-  readonly setup: string;
-  readonly setupBody: string;
-  readonly extensionId: string;
   readonly usePlan: string;
   readonly useApi: string;
   readonly useClaude: string;

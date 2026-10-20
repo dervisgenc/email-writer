@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
 import type { AiText } from '@email-writer/ui';
 
 export const aiEs: AiText = {
@@ -13,6 +14,8 @@ export const aiEs: AiText = {
     'claude-code': 'Con Claude Code en este equipo',
   },
   methodLabel: 'Método de conexión',
+  recommended: 'Recomendado',
+  experimental: 'Experimental',
   statusReady: 'Listo',
   statusSetup: 'Falta la instalación',
   statusAction: 'Falta la conexión',
@@ -30,7 +33,7 @@ export const aiEs: AiText = {
         summary: 'Genera texto con el uso incluido en tu plan ChatGPT Plus o Pro.',
         requirements: [
           'Una suscripción ChatGPT Plus o Pro. Las cuentas gratuitas no permiten usar el plan.',
-          'La aplicación auxiliar de Email Writer en este equipo.',
+          `La aplicación auxiliar de ${PRODUCT_NAME} en este equipo.`,
         ],
         steps: [
           'Elige “Plan de ChatGPT” como método.',
@@ -49,7 +52,7 @@ export const aiEs: AiText = {
         summary: 'Genera texto con tu propia cuenta de OpenAI Platform; pagas lo que usas.',
         requirements: [
           'Una cuenta de OpenAI Platform y una clave de API.',
-          'La aplicación auxiliar de Email Writer en este equipo.',
+          `La aplicación auxiliar de ${PRODUCT_NAME} en este equipo.`,
         ],
         steps: [
           'Crea una clave de API en OpenAI Platform.',
@@ -68,7 +71,7 @@ export const aiEs: AiText = {
         requirements: [
           'Una suscripción Claude Pro, Max, Team o Enterprise.',
           'Claude Code instalado en este equipo y con la sesión iniciada en tu cuenta de Claude.',
-          'La aplicación auxiliar de Email Writer. Si la instalas después de Claude Code, lo encuentra automáticamente.',
+          `La aplicación auxiliar de ${PRODUCT_NAME}. Si la instalas después de Claude Code, lo encuentra automáticamente.`,
         ],
         steps: [
           'Instala Claude Code siguiendo las instrucciones oficiales de Anthropic.',
@@ -77,7 +80,7 @@ export const aiEs: AiText = {
           'Elige “Plan de Claude” como método. Aquí aparecerán tu cuenta y tu plan.',
         ],
         notes: [
-          'Email Writer nunca ve ni guarda tu contraseña ni tu sesión de Claude; inicias y cierras sesión a través de Claude Code.',
+          `${PRODUCT_NAME} nunca ve ni guarda tu contraseña ni tu sesión de Claude; inicias y cierras sesión a través de Claude Code.`,
           'El uso se descuenta del límite de tu plan, que compartes con Claude Code.',
           'En los planes Pro y Max, el contenido puede usarse para entrenar modelos, salvo que lo hayas desactivado en tu configuración de privacidad de Claude. Los planes Team y Enterprise se rigen por las condiciones comerciales.',
           'Si Claude Code tiene la sesión iniciada con una clave de API, el uso se factura a esa cuenta de API.',
@@ -89,10 +92,10 @@ export const aiEs: AiText = {
     helper: {
       title: '¿Qué es la aplicación auxiliar?',
       summary: 'Una pequeña aplicación en tu equipo que necesitan todos los métodos.',
-      requirements: ['macOS, Linux o Windows.', 'Node.js 22 o posterior.'],
+      requirements: ['macOS, Linux o Windows. No necesitas ningún otro programa.'],
       steps: [
-        'Instala la aplicación auxiliar y reinicia el navegador.',
-        'El aviso “La conexión de IA local no está disponible” desaparece de esta página y aparecen los métodos.',
+        'Abre el asistente de configuración desde Configuración → Aplicación auxiliar y ejecuta el comando de una línea que muestra.',
+        'En unos segundos la aplicación auxiliar aparece como conectada; después elige un método aquí.',
       ],
       notes: [
         'Los datos de inicio de sesión y las claves de API se guardan en un archivo protegido al que solo tú puedes acceder, no en el navegador.',
@@ -137,11 +140,10 @@ export const aiEs: AiText = {
     'Las cuentas Plus y Pro aptas pueden usar la asignación de su plan. La disponibilidad depende de tu cuenta, tu espacio de trabajo y tu acceso a OpenAI.',
   apiNote:
     'OpenAI factura el uso de la API por separado. Es independiente de tu suscripción de ChatGPT; este método nunca se elige automáticamente.',
-  claudeNote:
-    'Claude Code, instalado en este equipo, se ejecuta con tu propia cuenta de Claude; el uso se descuenta de los límites de tu plan de Claude. Email Writer no accede a tus credenciales de Claude ni las guarda. Inicias y cierras sesión a través de Claude Code.',
+  claudeNote: `Claude Code, instalado en este equipo, se ejecuta con tu propia cuenta de Claude; el uso se descuenta de los límites de tu plan de Claude. ${PRODUCT_NAME} no accede a tus credenciales de Claude ni las guarda. Inicias y cierras sesión a través de Claude Code.`,
   claudeAccount: 'Cuenta de Claude Code',
   claudeNotInstalled:
-    'No se encontró Claude Code en este equipo. Instala Claude Code, vuelve a ejecutar pnpm ai:install y después elige “Actualizar”.',
+    'No se encontró Claude Code en este equipo. Instala Claude Code, vuelve a ejecutar el comando de instalación de la aplicación auxiliar y después elige “Actualizar”.',
   claudeNotLoggedIn:
     'Claude Code no tiene la sesión iniciada. Ejecuta claude en un terminal, inicia sesión con /login y después elige “Actualizar”.',
   claudeApiBilling:
@@ -151,20 +153,15 @@ export const aiEs: AiText = {
   apiKeyLabel: 'Clave de API',
   saveKey: 'Conectar clave',
   removeKey: 'Quitar clave',
-  keySaved: 'Clave de API guardada en la conexión local.',
+  keySaved: 'Clave de API guardada en la aplicación auxiliar.',
   manageUsage: 'Administrar uso',
   connectionHelp:
     'Administra esta conexión en la configuración de ChatGPT, en Security and login → Sign in with ChatGPT. No aparece en Plugins. Las cuentas de trabajo también dependen de la directiva de la organización y de la idoneidad del plan.',
   welcome: 'Estás usando tu plan de ChatGPT',
-  welcomeBody:
-    'La generación apta en Email Writer usa la asignación de tu plan de ChatGPT o los créditos disponibles. Administra el uso de esta aplicación en la configuración de ChatGPT.',
+  welcomeBody: `La generación apta en ${PRODUCT_NAME} usa la asignación de tu plan de ChatGPT o los créditos disponibles. Administra el uso de esta aplicación en la configuración de ChatGPT.`,
   gotIt: 'Entendido',
   privacy:
     'Cuando pides una generación, tu texto, tus indicaciones y el contexto seleccionado se envían a OpenAI. La extensión no los guarda en el disco. No tiene acceso a tu historial de conversaciones de ChatGPT.',
-  setup: 'Configurar la conexión local',
-  setupBody:
-    'La conexión de IA requiere la aplicación local de Email Writer (macOS, Linux o Windows; Node.js 22+). Sigue docs/AI_BAGLANTISI.md en el proyecto. Las credenciales de las cuentas se guardan en un archivo protegido de tu dispositivo en lugar del almacenamiento del navegador. El método Plan de Claude también requiere que Claude Code esté instalado y con la sesión iniciada.',
-  extensionId: 'ID de la extensión para la instalación:',
   usePlan: 'Usando el plan de ChatGPT',
   useApi: 'Usando la API de OpenAI',
   useClaude: 'Usando el plan de Claude',

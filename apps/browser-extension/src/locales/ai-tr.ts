@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
 import type { AiText } from '@email-writer/ui';
 
 export const aiTr: AiText = {
@@ -13,6 +14,8 @@ export const aiTr: AiText = {
     'claude-code': 'Claude Code ile, bu bilgisayarda',
   },
   methodLabel: 'Bağlantı yöntemi',
+  recommended: 'Önerilen',
+  experimental: 'Deneysel',
   statusReady: 'Hazır',
   statusSetup: 'Kurulum gerekli',
   statusAction: 'Bağlantı gerekli',
@@ -30,7 +33,7 @@ export const aiTr: AiText = {
         summary: 'ChatGPT Plus veya Pro planınızın kullanım hakkıyla üretir.',
         requirements: [
           'ChatGPT Plus veya Pro aboneliği. Ücretsiz hesaplar plan kullanımını desteklemez.',
-          'Bu bilgisayarda Email Writer yardımcı uygulaması.',
+          `Bu bilgisayarda ${PRODUCT_NAME} yardımcı uygulaması.`,
         ],
         steps: [
           'Yöntem olarak ChatGPT üyeliği’ni seçin.',
@@ -49,7 +52,7 @@ export const aiTr: AiText = {
         summary: 'Kendi OpenAI Platform hesabınızla, kullandığınız kadar ödeyerek üretir.',
         requirements: [
           'OpenAI Platform hesabı ve bir API anahtarı.',
-          'Bu bilgisayarda Email Writer yardımcı uygulaması.',
+          `Bu bilgisayarda ${PRODUCT_NAME} yardımcı uygulaması.`,
         ],
         steps: [
           'OpenAI Platform’da bir API anahtarı oluşturun.',
@@ -68,7 +71,7 @@ export const aiTr: AiText = {
         requirements: [
           'Claude Pro, Max, Team veya Enterprise aboneliği.',
           'Bu bilgisayarda kurulu ve Claude hesabınızla oturum açılmış Claude Code.',
-          'Email Writer yardımcı uygulaması. Claude Code’dan sonra kurulursa Claude Code’u kendiliğinden bulur.',
+          `${PRODUCT_NAME} yardımcı uygulaması. Claude Code’dan sonra kurulursa Claude Code’u kendiliğinden bulur.`,
         ],
         steps: [
           'Claude Code’u Anthropic’in resmî kurulum adımlarıyla kurun.',
@@ -77,7 +80,7 @@ export const aiTr: AiText = {
           'Yöntem olarak Claude aboneliği’ni seçin. Hesabınız ve planınız burada görünür.',
         ],
         notes: [
-          'Email Writer Claude şifrenizi veya oturum bilgilerinizi görmez ve saklamaz; giriş ve çıkış Claude Code üzerinden yapılır.',
+          `${PRODUCT_NAME} Claude şifrenizi veya oturum bilgilerinizi görmez ve saklamaz; giriş ve çıkış Claude Code üzerinden yapılır.`,
           'Kullanım, Claude Code ile ortak olan plan limitinizden düşer.',
           'Pro ve Max planlarında Claude gizlilik ayarlarından model eğitimini kapatmadıysanız içerik eğitimde kullanılabilir. Team ve Enterprise planları ticari koşullara tabidir.',
           'Claude Code bir API anahtarıyla oturum açmışsa kullanım o API hesabından ücretlendirilir.',
@@ -89,10 +92,10 @@ export const aiTr: AiText = {
     helper: {
       title: 'Yardımcı uygulama nedir?',
       summary: 'Bütün yöntemler için gereken, bilgisayarınızda çalışan küçük bir uygulama.',
-      requirements: ['macOS, Linux veya Windows.', 'Node.js 22 veya üstü.'],
+      requirements: ['macOS, Linux veya Windows. Başka bir yazılım gerekmez.'],
       steps: [
-        'Yardımcı uygulamayı kurun ve tarayıcıyı yeniden başlatın.',
-        'Bu sayfada “Yerel AI bağlantısına ulaşılamadı” uyarısı kaybolur ve yöntemler görünür.',
+        'Ayarlar → Yardımcı uygulama bölümünden kurulum sihirbazını açın ve gösterdiği tek satırlık komutu çalıştırın.',
+        'Yardımcı uygulama birkaç saniye içinde bağlı görünür; ardından burada bir yöntem seçin.',
       ],
       notes: [
         'Giriş bilgileri ve API anahtarları tarayıcıda değil, yalnızca sizin erişebildiğiniz korumalı bir dosyada tutulur.',
@@ -137,11 +140,10 @@ export const aiTr: AiText = {
     'Uygun Plus ve Pro hesapları plan limitlerini kullanabilir. Kullanılabilirlik hesabınıza, çalışma alanınıza ve OpenAI erişimine bağlıdır.',
   apiNote:
     'API kullanımı OpenAI tarafından ayrıca ücretlendirilir. ChatGPT aboneliğinden bağımsızdır; bu yönteme otomatik geçilmez.',
-  claudeNote:
-    'Bilgisayarınızda kurulu Claude Code, kendi Claude hesabınızla çalıştırılır; kullanım Claude planınızın limitlerinden düşer. Email Writer Claude hesap bilgilerinize erişmez ve bunları saklamaz. Giriş ve çıkış Claude Code üzerinden yapılır.',
+  claudeNote: `Bilgisayarınızda kurulu Claude Code, kendi Claude hesabınızla çalıştırılır; kullanım Claude planınızın limitlerinden düşer. ${PRODUCT_NAME} Claude hesap bilgilerinize erişmez ve bunları saklamaz. Giriş ve çıkış Claude Code üzerinden yapılır.`,
   claudeAccount: 'Claude Code hesabı',
   claudeNotInstalled:
-    'Claude Code bu bilgisayarda bulunamadı. Claude Code’u kurun, ardından pnpm ai:install komutunu yeniden çalıştırıp Yenile’ye basın.',
+    'Claude Code bu bilgisayarda bulunamadı. Claude Code’u kurun, ardından yardımcı uygulamanın kurulum komutunu yeniden çalıştırıp Yenile’ye basın.',
   claudeNotLoggedIn:
     'Claude Code’da oturum açık değil. Terminalde claude komutunu çalıştırıp /login ile giriş yapın, ardından Yenile’ye basın.',
   claudeApiBilling:
@@ -151,20 +153,15 @@ export const aiTr: AiText = {
   apiKeyLabel: 'API anahtarı',
   saveKey: 'Anahtarı bağla',
   removeKey: 'Anahtarı kaldır',
-  keySaved: 'API anahtarı yerel bağlantıda kayıtlı.',
+  keySaved: 'API anahtarı yardımcı uygulamada kayıtlı.',
   manageUsage: 'Kullanımı yönet',
   connectionHelp:
     'ChatGPT bağlantınızı Ayarlar → Security and login → Sign in with ChatGPT bölümünden yönetin. Bu bağlantı Plugins listesinde görünmez. İş hesabında kuruluş politikası ve plan uygunluğu ayrıca geçerlidir.',
   welcome: 'ChatGPT planınızı kullanıyorsunuz',
-  welcomeBody:
-    'Email Writer içindeki uygun üretimler ChatGPT planınızın veya kullanılabilir kredilerinizin limitlerini kullanır. Uygulamanın kullanımını ChatGPT ayarlarından yönetebilirsiniz.',
+  welcomeBody: `${PRODUCT_NAME} içindeki uygun üretimler ChatGPT planınızın veya kullanılabilir kredilerinizin limitlerini kullanır. Uygulamanın kullanımını ChatGPT ayarlarından yönetebilirsiniz.`,
   gotIt: 'Anladım',
   privacy:
     'Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam OpenAI’a gönderilir. Eklenti bunları diske kaydetmez. ChatGPT sohbet geçmişinize erişilmez.',
-  setup: 'Yerel bağlantı kurulumu',
-  setupBody:
-    'AI bağlantısı için Email Writer yerel uygulaması gerekir (macOS, Linux veya Windows; Node.js 22+). Projedeki docs/AI_BAGLANTISI.md rehberini izleyin. Hesap anahtarları tarayıcı yerine cihazınızdaki korumalı dosyada saklanır. Claude aboneliği için Claude Code kurulu ve oturum açık olmalıdır.',
-  extensionId: 'Kurulum için eklenti kimliği:',
   usePlan: 'ChatGPT planı kullanılıyor',
   useApi: 'OpenAI API kullanılıyor',
   useClaude: 'Claude aboneliği kullanılıyor',

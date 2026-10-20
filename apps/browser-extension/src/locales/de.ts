@@ -1,13 +1,20 @@
+import { PRODUCT_NAME } from '@email-writer/contracts';
+
 import { aiDe } from './ai-de';
 import type { ExtensionText } from './extension-text';
+import { helperDe } from './helper-de';
 import { countWith } from './plural';
+import { welcomeDe } from './welcome-de';
 
 const count = countWith('de');
 
 export const de: ExtensionText = {
+  description:
+    'E-Mails in Outlook im Web mit ChatGPT oder Claude überarbeiten, übersetzen und schreiben. Erst Vorschau; nichts wird gesendet.',
   ui: {
     locale: 'de',
     ai: aiDe,
+    helper: helperDe,
     panelTitle: 'Schreibassistent',
     close: 'Schließen',
     threadLauncher: {
@@ -15,7 +22,7 @@ export const de: ExtensionText = {
       tooltip: 'Eine Antwort auf diese Unterhaltung entwerfen und den Kontext prüfen',
     },
     compose: {
-      toolbarLabel: 'Email Writer',
+      toolbarLabel: PRODUCT_NAME,
       reply: 'Antwort schreiben',
       replyTooltip: 'Aus Ihrer Anweisung einen Antwortentwurf für diese Unterhaltung schreiben',
       write: 'Schreiben',
@@ -248,7 +255,7 @@ export const de: ExtensionText = {
       PROCESSING_UNAVAILABLE:
         'Die Textverarbeitung ist noch nicht verbunden. Diese Version überarbeitet, übersetzt und beantwortet nichts.',
       AI_HOST_UNAVAILABLE:
-        'Die lokale KI-Verbindung ist nicht verfügbar. Öffnen Sie die KI-Einstellungen für die Einrichtungsschritte.',
+        'Die Hilfs-App ist nicht verbunden. Öffnen Sie Einstellungen → Hilfs-App, um sie zu installieren oder zu verbinden.',
       AI_NOT_CONNECTED:
         'Die KI-Sitzung fehlt oder ist abgelaufen. Verbinden Sie sich in den KI-Einstellungen neu.',
       AI_AUTH_FAILED:
@@ -286,13 +293,18 @@ export const de: ExtensionText = {
         'Lokal abgemeldet; der Widerruf bei OpenAI ließ sich nicht bestätigen. Trennen Sie die App in den ChatGPT-Einstellungen.',
       AI_BUSY: 'Ein Vorgang der KI-Verbindung läuft. Warten Sie oder brechen Sie die Anmeldung ab.',
       AI_CLAUDE_NOT_INSTALLED:
-        'Claude Code wurde nicht gefunden. Installieren Sie Claude Code und führen Sie pnpm ai:install erneut aus.',
+        'Claude Code wurde nicht gefunden. Installieren Sie Claude Code und führen Sie danach den Installationsbefehl der Hilfs-App erneut aus.',
       AI_CLAUDE_NOT_LOGGED_IN:
         'Claude Code ist nicht angemeldet. Führen Sie claude in einem Terminal aus und melden Sie sich mit /login an.',
-      AI_CLAUDE_UNSUPPORTED_INSTALL:
-        'Claude Code wurde nur als Befehlsskript (claude.cmd) gefunden, das Email Writer nicht sicher starten kann. Installieren Sie Claude Code mit dem offiziellen nativen Installationsprogramm und führen Sie pnpm ai:install erneut aus.',
+      AI_CLAUDE_UNSUPPORTED_INSTALL: `Claude Code wurde nur als Befehlsskript (claude.cmd) gefunden, das ${PRODUCT_NAME} nicht sicher starten kann. Installieren Sie Claude Code mit dem offiziellen nativen Installationsprogramm und führen Sie danach den Installationsbefehl der Hilfs-App erneut aus.`,
       AI_VERSION_MISMATCH:
-        'Erweiterung und lokale Hilfs-App haben unterschiedliche Versionen. Führen Sie den Installationsbefehl aus den KI-Einstellungen erneut aus.',
+        'Die Hilfs-App ist älter als diese Erweiterung. Aktualisieren Sie sie unter Einstellungen → Hilfs-App.',
+      HOST_UPDATE_CHECK_FAILED:
+        'Die neueste Version der Hilfs-App konnte nicht geprüft werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es später erneut.',
+      HOST_UPDATE_FAILED:
+        'Das Update konnte nicht heruntergeladen oder installiert werden; die installierte Version ist unverändert. Versuchen Sie es später erneut oder führen Sie den Installationsbefehl erneut aus.',
+      HOST_UPDATE_UNVERIFIED:
+        'Das heruntergeladene Update konnte nicht verifiziert werden; es wurde nichts installiert. Die installierte Version funktioniert weiter.',
       CONTENT_SCRIPT_UNREACHABLE:
         'Die Erweiterung erreicht diesen Tab nicht. Prüfen Sie den Websitezugriff oder laden Sie die Seite neu.',
       MESSAGE_REJECTED: 'Eine ungültige Nachricht der Erweiterung wurde abgelehnt.',
@@ -300,7 +312,7 @@ export const de: ExtensionText = {
     },
   },
   popup: {
-    title: 'Email Writer',
+    title: PRODUCT_NAME,
     statuses: {
       ready: 'Der Schreibassistent ist auf dieser Seite verfügbar.',
       waiting: 'Der E-Mail-Bereich wird geladen…',
@@ -316,9 +328,11 @@ export const de: ExtensionText = {
     openSettings: 'Einstellungen',
     siteAccessMissing: 'Für diese Website wurde kein Websitezugriff gewährt.',
     developmentBuild: 'Entwicklungsversion',
+    setupNeeded: 'Die Hilfs-App ist noch nicht verbunden.',
+    finishSetup: 'Einrichtung abschließen',
   },
   options: {
-    title: 'Email Writer – Einstellungen',
+    title: `${PRODUCT_NAME} – Einstellungen`,
     subtitle: 'Schreibassistent für Outlook im Web',
     preferencesTitle: 'Schreibeinstellungen',
     preferencesDescription: 'Sprache, Ton und Darstellung für neue Arbeiten.',
@@ -365,13 +379,15 @@ export const de: ExtensionText = {
     defaultsNote:
       'Standardsprache und -ton ändern laufende Arbeiten nicht; sie gelten für die nächste Arbeit.',
     privacyTitle: 'Datenschutz und Daten',
-    privacyDescription: 'Was Email Writer mit Ihren E-Mails tut und was nicht.',
+    privacyDescription: `Was ${PRODUCT_NAME} mit Ihren E-Mails tut und was nicht.`,
     privacyPoints: [
       'Ihre Einstellungen werden nur auf diesem Gerät gespeichert.',
       'Geöffnete E-Mails bleiben nur, solange die Seite offen ist, im Arbeitsspeicher, um Kontext vorzuschlagen; sie werden nie auf die Festplatte geschrieben.',
       'Text wird nur dann an den gewählten KI-Anbieter (OpenAI oder Anthropic) gesendet, wenn Sie „Überarbeiten“, „Übersetzen“ oder „Antwort schreiben“ wählen.',
       'Ergebnisse erscheinen zuerst als Vorschau und werden nie ohne Ihre Zustimmung in Ihren Entwurf geschrieben.',
-      'Email Writer sendet nie E-Mails; das Senden bleibt immer Ihnen überlassen.',
+      `${PRODUCT_NAME} sendet nie E-Mails; das Senden bleibt immer Ihnen überlassen.`,
+      'Solange die Update-Prüfung aktiv ist, fragt die Hilfs-App höchstens einmal täglich bei GitHub die neueste Versionsnummer ab; die Anfrage enthält keine E-Mails oder Kontodaten. Sie können sie auf der Karte der Hilfs-App ausschalten.',
     ],
   },
+  welcome: welcomeDe,
 };

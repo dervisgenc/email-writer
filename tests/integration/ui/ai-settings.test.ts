@@ -19,7 +19,7 @@ const disconnected: AiStatus = {
 };
 const render = (status: AiStatus | null) =>
   mount(AiConnectionSettings, {
-    props: { status, text: tr.ui.ai, busy: false, error: null, extensionId: 'test-extension' },
+    props: { status, text: tr.ui.ai, busy: false, error: null },
   });
 
 describe('AI connection settings', () => {
@@ -226,12 +226,20 @@ describe('AI connection settings', () => {
     expect((wrapper.get('input[type=password]').element as HTMLInputElement).value).toBe('');
     wrapper.unmount();
   });
-  it('shows installation guidance when the native host is missing', () => {
+  it('without the helper app shows that setup is needed, without developer instructions', () => {
     const wrapper = render(null);
-    expect(wrapper.get('details').attributes('open')).toBeDefined();
-    expect(wrapper.text()).toContain('test-extension');
-    expect(wrapper.text()).toContain('docs/AI_BAGLANTISI.md');
+    expect(wrapper.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusSetup);
+    expect(wrapper.find('details').exists()).toBe(false);
+    expect(wrapper.text()).not.toMatch(/pnpm|docs\//);
     expect(wrapper.find('input[type=password]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('marks ChatGPT as recommended and Claude as experimental', () => {
+    const wrapper = render(disconnected);
+    const methods = wrapper.findAll('.ew-method');
+    expect(methods[0]!.text()).toContain(tr.ui.ai.recommended);
+    expect(methods[2]!.text()).toContain(tr.ui.ai.experimental);
     wrapper.unmount();
   });
   describe('Claude plan method', () => {

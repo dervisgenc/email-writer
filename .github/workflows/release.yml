@@ -1,0 +1,94 @@
+name: Release
+
+# A vX.Y.Z tag builds every release file, signs SHA256SUMS, attests the build provenance of
+# each file and creates a draft GitHub release. Publishing the draft is left to the maintainer.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Tag and version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag matches package.json and has release notes
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the package.json version $version."
+            exit 1
+          fi
+          node scripts/release-notes.mjs "$version" > /dev/null
+
+  helper:
+    name: Helper app
+    needs: version
+    uses: ./.github/workflows/helper.yml
+
+  extension:
+    name: Extension packages
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @email-writer/browser-extension zip:all
+      - run: pnpm verify:packages
+      - name: Collect the store packages and the source archive
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir extension
+          # One Chromium package serves the Chrome Web Store and Edge Add-ons; Brave uses the Chrome Web Store.
+          mv "apps/browser-extension/.output/writehand-$version-chrome.zip" "extension/writehand-$version-chromium.zip"
+          mv "apps/browser-extension/.output/writehand-$version-firefox.zip" extension/
+          # AMO reviews the source; docs/BUILD.md inside explains how to rebuild the packages.
+          git archive --format=zip --prefix="writehand-$version-source/" -o "extension/writehand-$version-source.zip" HEAD
+      - uses: actions/upload-artifact@v7
+        with:
+          name: extension
+          path: extension/*
+          if-no-files-found: error
+
+  publish:
+    name: Draft release
+    needs: [helper, extension]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
+      - run: cp apps/ai-companion/install/install.sh apps/ai-companion/install/install.ps1 release/
+      - name: Checksums and signature
+        env:
+          WRITEHAND_RELEASE_SIGNING_KEY: ${{ secrets.WRITEHAND_RELEASE_SIGNING_KEY }}
+        run: node scripts/sign-release.mjs release
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: release/*
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          node scripts/release-notes.mjs "$version" > notes.md
+          ls -l release
+          gh release create "$GITHUB_REF_NAME" release/* --draft --verify-tag --title "Writehand $version" --notes-file notes.md
