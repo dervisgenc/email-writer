@@ -1,7 +1,7 @@
-import '@email-writer/ui/styles/panel.css';
-import '@email-writer/ui/styles/pages.css';
+import '@writehand/ui/styles/panel.css';
+import '@writehand/ui/styles/pages.css';
 
-import { DEFAULT_SETTINGS } from '@email-writer/contracts';
+import { DEFAULT_SETTINGS } from '@writehand/contracts';
 import { createApp } from 'vue';
 
 import { textFor, uiLanguageFor } from '../../src/locales';

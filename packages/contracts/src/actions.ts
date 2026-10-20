@@ -8,8 +8,8 @@ export const OPERATIONS = ['revise', 'translate', 'reply', 'compose'] as const;
 export type Operation = (typeof OPERATIONS)[number];
 
 /**
- * Kaynağı kullanıcının talimatı olan işlemler: konuşmaya yanıt (`reply`) ve
- * bağlamsız yeni e-posta metni (`compose`). Diğerleri mevcut metni işler.
+ * Operations whose source is the user's instruction: a reply to the conversation
+ * (`reply`) and a new email without context (`compose`). The others work on existing text.
  */
 export function isInstructionOperation(operation: Operation): operation is 'reply' | 'compose' {
   return operation === 'reply' || operation === 'compose';
@@ -21,8 +21,8 @@ export type Tone = (typeof TONES)[number];
 export type SourceOrigin = 'panel' | 'draft' | 'draft-selection' | 'received-message';
 
 /**
- * Sonucun taslağa nereye yazılacağı. Seçim değiştirme, `selectionId` olmadan
- * temsil edilemez.
+ * Where the result is written in the draft. Replacing a selection cannot be
+ * represented without a `selectionId`.
  */
 export type ApplyTarget =
   | {
@@ -40,8 +40,8 @@ export type ApplyTarget =
 export type ApplyMode = ApplyTarget['mode'];
 
 /**
- * Hazır bir sonucun istenen yönde değiştirilmesi (ör. tabloya çevir, kısalt).
- * Orijinal görev bağlam olarak kalır; değişiklik önceki sonuca uygulanır.
+ * A requested change to a finished result (e.g. turn it into a table, shorten it).
+ * The original task stays as context; the change is applied to the previous result.
  */
 export interface Refinement {
   readonly instruction: string;
@@ -52,10 +52,10 @@ export const REFINEMENTS = ['table', 'list', 'chart', 'shorter', 'formal', 'frie
 export type RefinementKind = (typeof REFINEMENTS)[number];
 export const MAX_REFINEMENT_LENGTH = 500;
 
-/** Biçim gerektiren düzenlemeler; yalnızca taslağın tamamına yazılan sonuçlarda sunulur. */
+/** Refinements that need formatting; offered only for results written to the whole draft. */
 export const RICH_REFINEMENTS: readonly RefinementKind[] = ['table', 'list', 'chart'];
 
-/** Model için açık talimatlar; arayüz etiketleri yerelleştirilir. */
+/** Explicit instructions for the model; the UI labels are localized. */
 export const REFINEMENT_INSTRUCTIONS: Readonly<Record<RefinementKind, string>> = {
   table:
     'Present the key facts or figures as a Markdown table where that makes them easier to read. Keep the greeting, the surrounding sentences and the sign-off as normal text.',
@@ -69,8 +69,8 @@ export const REFINEMENT_INSTRUCTIONS: Readonly<Record<RefinementKind, string>> =
 };
 
 /**
- * Doğrulanmış ve değişmez işlem kaydı. Ekrandaki Vue nesnesinin referansı
- * değil, bağımsız bir veri kopyasıdır. Bu aşamada prompt üretilmez.
+ * Validated, immutable action record. It is an independent copy of the data, not a
+ * reference to the on-screen Vue object. No prompt is built at this stage.
  */
 export interface PreparedAction {
   readonly requestId: string;
@@ -81,27 +81,27 @@ export interface PreparedAction {
     readonly origin: SourceOrigin;
     readonly text: string;
   };
-  /** Yanıt hazırlamada kullanıcının isteği; e-posta içeriğiyle birleştirilmez. */
+  /** The user's request when drafting a reply; never merged with the email content. */
   readonly instruction: string;
-  /** Yalnızca çeviride dolu; yanıt ve yeni ileti konuşmanın veya talimatın dilini izler. */
+  /** Set only for translation; replies and new emails follow the conversation or instruction language. */
   readonly targetLanguage: TargetLanguage | null;
   readonly tone: Tone;
   readonly context: ContextSnapshot | null;
-  /** Hazırlık anındaki hedefin değişmez kopyası. Güncel hedefin sahibi oturumdur. */
+  /** Immutable copy of the target at preparation time. The session owns the current target. */
   readonly target: ApplyTarget | null;
-  /** Varsa önceki sonuç bu talimatla değiştirilir. */
+  /** When set, the previous result is changed with this instruction. */
   readonly refinement: Refinement | null;
   readonly createdAt: string;
 }
 
-/** Önizlemeye kabul edilmeden önce doğrulanan sonuç kaydı. */
+/** Result record validated before it is accepted into the preview. */
 export const previewCandidateSchema = z
   .object({
     requestId: z.string().min(1).max(128),
     sessionId: z.string().min(1).max(128),
     formRevision: z.number().int().nonnegative(),
     text: z.string(),
-    /** Geliştirme kaynağından gelen örnek sonuç işareti. */
+    /** Marks a sample result from the development source. */
     sample: z.boolean(),
   })
   .strict();

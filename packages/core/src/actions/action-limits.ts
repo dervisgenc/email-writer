@@ -1,12 +1,12 @@
 /**
- * İşlem doğrulama sınırları (UTF-16 birimi). Token hesabı değildir; tek
- * yerde tanımlanır.
+ * Action validation limits (in UTF-16 code units). Not a token count; defined in one
+ * place only.
  */
 export const ACTION_LIMITS = Object.freeze({
-  /** Düzeltme veya çeviri kaynağı. */
+  /** Source for revision or translation. */
   maxSourceLength: 20_000,
-  /** Yanıt talimatı. */
+  /** Reply instruction. */
   maxInstructionLength: 5_000,
-  /** Önizlemeye kabul edilen metin. */
+  /** Text accepted into the preview. */
   maxPreviewLength: 30_000,
 });

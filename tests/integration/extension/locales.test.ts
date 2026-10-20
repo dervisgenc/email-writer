@@ -1,25 +1,25 @@
-import { PRODUCT_NAME, UI_LANGUAGES } from '@email-writer/contracts';
+import { PRODUCT_NAME, UI_LANGUAGES } from '@writehand/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { manifestMessages, textFor, uiLanguageFor } from '../../../apps/browser-extension/src/locales';
 import { countWith } from '../../../apps/browser-extension/src/locales/plural';
 
-/** Metin ağacındaki düz metinler, yollarıyla (işlev olan metinler hariç). */
+/** The plain strings in the text tree with their paths (function-valued texts excluded). */
 function strings(value: unknown, path = ''): [string, string][] {
   if (typeof value === 'string') return [[path, value]];
   if (typeof value !== 'object' || value === null) return [];
   return Object.entries(value).flatMap(([key, child]) => strings(child, path ? `${path}.${key}` : key));
 }
 
-describe('Arayüz dilleri', () => {
-  it('"Otomatik" tarayıcının desteklenen ilk dilini seçer; desteklenmeyen dilde İngilizce', () => {
+describe('UI languages', () => {
+  it('"Automatic" picks the first supported browser language and falls back to English', () => {
     expect(uiLanguageFor('auto', ['de-AT', 'en-US'])).toBe('de');
     expect(uiLanguageFor('auto', ['fr-CA'])).toBe('fr');
     expect(uiLanguageFor('auto', ['es-419'])).toBe('es');
     expect(uiLanguageFor('auto', ['pt-BR'])).toBe('en');
   });
 
-  it.each(UI_LANGUAGES)('%s: dil kodu doğru, boş metin yok', (language) => {
+  it.each(UI_LANGUAGES)('%s: has the right language code and no empty strings', (language) => {
     const text = textFor(language);
 
     expect(text.ui.locale).toBe(language);
@@ -29,10 +29,10 @@ describe('Arayüz dilleri', () => {
   });
 
   it.each(UI_LANGUAGES.filter((language) => language !== 'en'))(
-    '%s: İngilizce cümle çevrilmeden kalmamış',
+    '%s: leaves no English sentence untranslated',
     (language) => {
       const english = new Map(strings(textFor('en')));
-      // Kısa metinler (ör. "Neutral", ürün adları) dillerde aynı olabilir; cümleler olamaz.
+      // Short texts (e.g. "Neutral", product names) may be identical across languages; sentences may not.
       const untranslated = strings(textFor(language))
         .filter(([path, value]) => value.length > 30 && english.get(path) === value)
         .map(([path]) => path);
@@ -41,31 +41,31 @@ describe('Arayüz dilleri', () => {
     },
   );
 
-  it('manifest adı her dilde ürün adı; açıklama mağaza sınırı içinde', () => {
+  it('uses the product name as the manifest name in every language and keeps the description within the store limit', () => {
     const messages = manifestMessages();
     expect(Object.keys(messages).sort()).toEqual([...UI_LANGUAGES].sort());
     for (const language of UI_LANGUAGES) {
       expect(messages[language].extName.message).toBe(PRODUCT_NAME);
-      // Chrome Web Store ve Chromium manifest açıklaması en fazla 132 karakter kabul eder.
+      // The Chrome Web Store and Chromium accept at most 132 characters for the manifest description.
       expect(messages[language].extDescription.message.length, language).toBeLessThanOrEqual(132);
     }
   });
 
-  it('kullanıcı metinlerinde geliştirici talimatı yok', () => {
+  it('contains no developer instructions in user-facing text', () => {
     for (const language of UI_LANGUAGES) {
       const developer = strings(textFor(language)).filter(([, value]) => /pnpm |docs\/|\.md\b/.test(value));
       expect(developer, language).toEqual([]);
     }
   });
 
-  it('ürün adı metinlere sabit yazılmaz', () => {
+  it('does not hard-code the product name in texts', () => {
     for (const language of UI_LANGUAGES) {
       const hardCoded = strings(textFor(language)).filter(([, value]) => value.includes('Email Writer'));
       expect(hardCoded, language).toEqual([]);
     }
   });
 
-  it('sayıyı dilin çoğul kuralıyla yazar', () => {
+  it("writes counts with the language's plural rule", () => {
     expect(countWith('en')(0, 'message', 'messages')).toBe('0 messages');
     expect(countWith('fr')(0, 'message', 'messages')).toBe('0 message');
     expect(countWith('de')(1, 'Nachricht', 'Nachrichten')).toBe('1 Nachricht');

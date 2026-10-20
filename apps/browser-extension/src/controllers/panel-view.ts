@@ -8,7 +8,7 @@ import {
   type ErrorField,
   type MessageSnapshot,
   type PageState,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import {
   describeContext,
   isRelatedEntry,
@@ -17,7 +17,7 @@ import {
   type SessionCapabilities,
   type SessionState,
   type StaleReason,
-} from '@email-writer/core';
+} from '@writehand/core';
 import type {
   ApplyView,
   ContextMessageView,
@@ -26,7 +26,7 @@ import type {
   SourceReloadKind,
   StatusView,
   TargetView,
-} from '@email-writer/ui';
+} from '@writehand/ui';
 
 const PREVIEW_LENGTH = 160;
 const RETRYABLE: readonly ErrorCode[] = [
@@ -46,7 +46,7 @@ const STALE_NOTICES: Record<StaleReason, ErrorCode> = {
   'account-changed': 'ACCOUNT_CHANGED',
 };
 
-/** Panel köprüsünün tuttuğu, iş kuralı olmayan geçici arayüz durumu. */
+/** Transient UI state held by the panel bridge; it carries no business rules. */
 export interface TransientUiState {
   readonly pendingReplace: SourceReloadKind | null;
   readonly replyReplaceComposer: ComposerRef | null;
@@ -61,7 +61,7 @@ export interface PanelViewInput {
   readonly capabilities: SessionCapabilities;
   readonly page: PageState;
   readonly ui: TransientUiState;
-  /** Sayfa oturumunda okunan mesajlar. */
+  /** Messages read during the page session. */
   readonly history: readonly HistoryEntry[];
 }
 
@@ -70,7 +70,7 @@ function shorten(text: string): string {
   return singleLine.length > PREVIEW_LENGTH ? `${singleLine.slice(0, PREVIEW_LENGTH)}…` : singleLine;
 }
 
-/** Oturumun çalışabileceği taslak: kaynak veya hedef kaydı, yoksa konuşmanın tek açık taslağı. */
+/** The draft the session works on: the source or target record, else the conversation's only open draft. */
 export function sessionComposer(state: SessionState, page: PageState): ComposerRef | null {
   const { binding } = state;
   if (binding.kind === 'draft' || binding.kind === 'draft-selection') {
@@ -86,7 +86,7 @@ export function sessionComposer(state: SessionState, page: PageState): ComposerR
       : composer.threadKey !== null &&
         isSameThread(thread, { scope: composer.scope, threadKey: composer.threadKey }),
   );
-  // Birden fazla aday varsa kullanıcı taslağın yanındaki düğmeyle seçer; ilk editör seçilmez.
+  // With several candidates the user picks one via the draft's button; the first editor is not chosen.
   return candidates.length === 1 ? (candidates[0] ?? null) : null;
 }
 
@@ -112,9 +112,9 @@ interface ListedMessage {
 }
 
 /**
- * Bağlam denetleyicisinde listelenecek mesajlar: açık konuşmanın son okuması
- * ve oturumda okunan diğer mesajlar (aynı hesap). Açık konuşma grubunda
- * okunma sırası, diğer grupta en son okunan önce gelir.
+ * Messages to list in the context inspector: the latest read of the open conversation
+ * and other messages read during the session (same account). The open conversation
+ * group keeps read order; in the other group the most recently read comes first.
  */
 function listedMessages(state: SessionState, history: readonly HistoryEntry[]): ListedMessage[] {
   const snapshot = state.threadSnapshot;
@@ -246,7 +246,7 @@ function statusView(state: SessionState, ui: TransientUiState): StatusView {
 function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyView {
   const { state, capabilities, ui } = input;
   const { binding } = state;
-  // Talimattan yazılan metin (yanıt veya yeni e-posta) dolu taslağın yerine ancak onayla geçer.
+  // Text written from an instruction (reply or new email) replaces a non-empty draft only after confirmation.
   const isReply = isInstructionOperation(state.form.operation);
   const draftNeedsConfirmation =
     binding.kind === 'draft' &&
@@ -255,8 +255,8 @@ function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyVi
     binding.loadedText.trim() !== '' &&
     binding.canReplaceBody;
 
-  // Bu sonuç az önce yazıldıysa taslağın sürümü eklentinin kendi yazmasıyla ilerlemiştir;
-  // "taslak değişti" gerekçesi yanıltıcı olur (yazma sonucu ayrıca gösterilir).
+  // If this result was just written, the draft revision advanced because of the extension's own write;
+  // a "draft changed" reason would be misleading (the write outcome is shown separately).
   const { lastChange, preview } = state;
   const writtenThisPreview =
     lastChange !== null &&
@@ -287,9 +287,9 @@ function applyView(input: PanelViewInput, composer: ComposerRef | null): ApplyVi
 }
 
 /**
- * Kullanıcı başka bir işleme geçtiyse eski işlemin eskimiş sonucu gösterilmez
- * (ör. karttaki düzeltme sonucu, yanıt hazırlarken panelde kalmaz). Aynı
- * işlemin eskimiş sonucu ise "kaynak değişti" uyarısıyla kopyalanabilir kalır.
+ * If the user switched to another operation, the old operation's stale result is hidden
+ * (e.g. a revise result from the card does not linger in the panel while preparing a reply).
+ * A stale result of the same operation stays copyable with a "source changed" warning.
  */
 function isOtherOperationsPreview(state: SessionState, capabilities: SessionCapabilities): boolean {
   return (
@@ -298,8 +298,8 @@ function isOtherOperationsPreview(state: SessionState, capabilities: SessionCapa
 }
 
 /**
- * Oturum durumundan panelin görünüm verisini üretir. Saf bir fonksiyondur;
- * düğmelerin etkinliği yeniden hesaplanmaz, yetenekler `core`dan gelir.
+ * Builds the panel's view data from the session state. A pure function; button
+ * availability is not recomputed here, the capabilities come from `core`.
  */
 export function toPanelView(input: PanelViewInput): PanelView {
   const { state, capabilities, page, ui, history } = input;
@@ -314,7 +314,7 @@ export function toPanelView(input: PanelViewInput): PanelView {
 
   return {
     operation: form.operation,
-    // Yanıt taslağı veya konuşma varsa konuşmaya yanıt; yeni iletide veya hiçbirinde yeni e-posta.
+    // Reply when there is a reply draft or a conversation; otherwise (new message or neither) new email.
     writeOperation:
       composer !== null
         ? composer.threadKey === null
@@ -338,7 +338,8 @@ export function toPanelView(input: PanelViewInput): PanelView {
     options: {
       targetLanguage: form.targetLanguage,
       tone: form.tone,
-      // Hedef dil yalnızca çeviride seçilir; yanıt ve yeni ileti konuşmanın veya talimatın dilini izler.
+      // The target language is chosen only for translation; reply and new message follow
+      // the language of the conversation or the instruction.
       showTargetLanguage: form.operation === 'translate',
       showTone: form.operation !== 'translate',
       useConversation: form.useConversation,
@@ -366,7 +367,7 @@ export function toPanelView(input: PanelViewInput): PanelView {
         !isOtherOperationsPreview(state, capabilities) &&
         !capabilities.isBusy &&
         capabilities.prepareBlocker === null,
-      // Tablo, liste ve grafik yalnızca taslağın tamamına yazılan sonuçlarda sunulur.
+      // Table, list and chart are offered only for results written to the whole draft.
       rich: capabilities.applyTarget?.mode !== 'replace-selection' && binding.kind !== 'received-message',
     },
     apply: applyView(input, composer),

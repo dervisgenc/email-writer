@@ -1,5 +1,5 @@
-import { DEFAULT_CONTEXT_SELECTION, type MessageSnapshot, type ThreadRef } from '@email-writer/contracts';
-import { buildContext, type BuildContextInput, type HistoryEntry } from '@email-writer/core';
+import { DEFAULT_CONTEXT_SELECTION, type MessageSnapshot, type ThreadRef } from '@writehand/contracts';
+import { buildContext, type BuildContextInput, type HistoryEntry } from '@writehand/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -26,16 +26,16 @@ function input(overrides: Partial<BuildContextInput> = {}): BuildContextInput {
 }
 
 describe('buildContext', () => {
-  it('başka hesap veya konuşmaya ait snapshot reddedilir', () => {
+  it('rejects a snapshot from another account or conversation', () => {
     const snapshot = { ...meetingThread(), ref: { ...threadA, scope: scopeB } };
     const result = buildContext(input({ snapshot }), testDependencies());
 
     expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: 'THREAD_CHANGED' }) });
   });
 
-  it('kesin imzaları ve kanıtlanmış tekrar alıntıları çıkarır, gövdeyi korur', () => {
+  it('removes certain signatures and proven duplicate quotes while keeping the body', () => {
     const result = buildContext(input(), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.text)).toEqual([
       'Merhaba Ayşe,\n\nPerşembe 14:00 toplantısını teyit edebilir misin?',
@@ -54,7 +54,7 @@ describe('buildContext', () => {
     expect(result.value.activeMessageKey).toBe('m3');
   });
 
-  it('bağlamda olmayan içerik taşıyan alıntıyı korur', () => {
+  it('keeps a quote that carries content missing from the context', () => {
     const snapshot = thread([
       message('m1', 0, [body('İlk mesaj')]),
       message('m2', 1, [
@@ -63,19 +63,19 @@ describe('buildContext', () => {
       ]),
     ]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages[1]?.text).toContain('Hiç okunmamış eski bir mesaj');
     expect(result.value.omissions.some((o) => o.reason === 'duplicate-quote')).toBe(false);
   });
 
-  it('emin olunamayan imza veya alıntı çıkarılmaz', () => {
+  it('does not remove an uncertain signature or quote', () => {
     const snapshot = thread([
       message('m1', 0, [body('Merhaba'), signature('Teşekkürler', 'uncertain')]),
       message('m2', 1, [body('Selam'), quote('From: A\n\nMerhaba', 'uncertain')]),
     ]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.text)).toEqual([
       'Merhaba\n\nTeşekkürler',
@@ -84,41 +84,41 @@ describe('buildContext', () => {
     expect(result.value.omissions).toEqual([]);
   });
 
-  it('kullanıcının geri dahil ettiği blok bağlamda kalır', () => {
+  it('keeps a block the user included back in the context', () => {
     const result = buildContext(
       input({ includedBlocks: [{ messageKey: 'm1', blockIndex: 1 }] }),
       testDependencies(),
     );
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages[0]?.text).toContain('Saygılarımla,\nMehmet Demir');
   });
 
-  it('aynı mesaj kimliği iki kez okunduysa tek mesaj alınır', () => {
+  it('takes a single message when the same message ID was read twice', () => {
     const repeated = message('m1', 0, [body('Merhaba')]);
     const snapshot = thread([repeated, { ...repeated, displayOrder: 1 }]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages).toHaveLength(1);
     expect(result.value.omissions).toContainEqual({ messageKey: 'm1', reason: 'duplicate-message' });
   });
 
-  it('aynı içerikli iki ayrı gerçek mesaj korunur', () => {
+  it('keeps two distinct real messages with the same content', () => {
     const snapshot = thread([message('m1', 0, [body('Tamam')]), message('m2', 1, [body('Tamam')])]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.messageKey)).toEqual(['m1', 'm2']);
   });
 
-  it('tarih eksikse yapay tarih üretmez ve ekran sırasını kullanır', () => {
+  it('invents no date when one is missing and uses the display order', () => {
     const snapshot = thread([
       message('m2', 1, [body('İkinci')], { sentAt: '2026-10-11T09:00:00.000Z' }),
       message('m1', 0, [body('Birinci')], { sentAt: null, sentAtText: 'Dün' }),
     ]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.ordering).toBe('display-order');
     expect(result.value.messages.map((m) => [m.messageKey, m.sentAt, m.sentAtText])).toEqual([
@@ -127,7 +127,7 @@ describe('buildContext', () => {
     ]);
   });
 
-  it('otomatik seçimde sınır aşılırsa aktif mesajı korur, eski mesajları raporlar', () => {
+  it('keeps the active message and reports older ones when automatic selection exceeds the limit', () => {
     const snapshot = thread(
       [
         message('m1', 0, [body('a'.repeat(40))]),
@@ -138,23 +138,23 @@ describe('buildContext', () => {
     );
     const policy = { version: 1, maxMessages: 20, maxTotalLength: 90 };
     const result = buildContext(input({ snapshot, policy }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.messageKey)).toEqual(['m2', 'm3']);
     expect(result.value.omissions).toContainEqual({ messageKey: 'm1', reason: 'size-limit' });
   });
 
-  it('mesaj sayısı sınırında en yakın geçmişi alır', () => {
+  it('takes the most recent history at the message count limit', () => {
     const messages = Array.from({ length: 5 }, (_, i) => message(`m${i}`, i, [body(`Mesaj ${i}`)]));
     const policy = { version: 1, maxMessages: 2, maxTotalLength: 60_000 };
     const result = buildContext(input({ snapshot: thread(messages), policy }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.messageKey)).toEqual(['m3', 'm4']);
     expect(result.value.omissions.filter((o) => o.reason === 'message-limit')).toHaveLength(3);
   });
 
-  it('aktif mesaj tek başına sığmıyorsa sessizce kırpmaz', () => {
+  it('does not silently truncate an active message that does not fit on its own', () => {
     const snapshot = thread([message('m1', 0, [body('x'.repeat(100))])]);
     const policy = { version: 1, maxMessages: 20, maxTotalLength: 50 };
     const result = buildContext(input({ snapshot, policy }), testDependencies());
@@ -165,7 +165,7 @@ describe('buildContext', () => {
     });
   });
 
-  it('kullanıcının başka konuşmalardan açıkça eklediği bağlam sınırı aşıyorsa daraltmaz, hata döner', () => {
+  it('returns an error instead of narrowing when context the user explicitly added from other conversations exceeds the limit', () => {
     const snapshot = thread([message('m1', 0, [body('kısa')])]);
     const history = [
       historyEntry(message('o1', 0, [body('a'.repeat(40))]), threadB, 'Başka konu', 0),
@@ -183,20 +183,20 @@ describe('buildContext', () => {
     });
   });
 
-  it('elle çıkarılan mesajı gerekçesiyle kaydeder', () => {
+  it('records a manually excluded message with its reason', () => {
     const result = buildContext(input({ selection: { included: [], excluded: ['m1'] } }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages.map((m) => m.messageKey)).toEqual(['m2', 'm3']);
     expect(result.value.omissions).toContainEqual({ messageKey: 'm1', reason: 'user-excluded' });
-    // m1 bağlamda olmadığı için m2'deki m1 alıntısı artık tekrar sayılmaz.
+    // m1 is not in the context, so the quote of m1 in m2 no longer counts as a duplicate.
     expect(result.value.messages[0]?.text).toContain('Perşembe 14:00');
   });
 
-  it('aynı girdiden kimlik ve zaman hariç aynı içeriği üretir', () => {
+  it('produces the same content from the same input, apart from ID and time', () => {
     const first = buildContext(input(), { clock: { now: () => 't1' }, ids: sequentialIds('a') });
     const second = buildContext(input(), { clock: { now: () => 't2' }, ids: sequentialIds('b') });
-    if (!first.ok || !second.ok) throw new Error('beklenmeyen hata');
+    if (!first.ok || !second.ok) throw new Error('unexpected error');
 
     const { contextId: _a, createdAt: _b, ...firstContent } = first.value;
     const { contextId: _c, createdAt: _d, ...secondContent } = second.value;
@@ -204,38 +204,38 @@ describe('buildContext', () => {
     expect(first.value.contextId).not.toBe(second.value.contextId);
   });
 
-  it('üretilen bağlam değişmezdir ve kaynak snapshot ile bağ taşımaz', () => {
+  it('produces an immutable context that shares no references with the source snapshot', () => {
     const snapshot = meetingThread();
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(Object.isFrozen(result.value)).toBe(true);
     expect(Object.isFrozen(result.value.messages[0])).toBe(true);
     expect(result.value.coverage).not.toBe(snapshot.coverage);
   });
 
-  it('satır sonlarını ve son boşlukları normalize eder, sayılara dokunmaz', () => {
+  it('normalizes line breaks and trailing whitespace without touching numbers', () => {
     const snapshot = thread([
       message('m1', 0, [body('Tutar: 1.250,00 TL   \r\n\r\n\r\nTarih: 12.10.2026\t')]),
     ]);
     const result = buildContext(input({ snapshot }), testDependencies());
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.messages[0]?.text).toBe('Tutar: 1.250,00 TL\n\nTarih: 12.10.2026');
   });
 
-  describe('oturumda okunan mesajlar', () => {
+  describe('messages read during the session', () => {
     const current = () => thread([message('cur', 0, [body('Güncel mesaj')])], { subject: 'RE: Teklif' });
 
-    it('aynı konuşmadan veya aynı konudan okunanlar varsayılan olarak bağlamdadır', () => {
+    it('includes messages read from the same conversation or subject by default', () => {
       const history = [
         historyEntry(message('old', 0, [body('Aynı konuşmadan eski mesaj')]), threadA, 'Teklif', 0),
         historyEntry(message('same-subject', 0, [body('Aynı konu')]), threadB, 'FW: RE: Teklif', 1),
       ];
       const result = buildContext(input({ snapshot: current(), history }), testDependencies());
-      if (!result.ok) throw new Error('beklenmeyen hata');
+      if (!result.ok) throw new Error('unexpected error');
 
-      // Sıra: önce geçmişte okunanlar (okunma sırasıyla), sonra açık mesaj.
+      // Order: messages from the history first (in read order), then the open message.
       expect(result.value.messages.map((m) => [m.messageKey, m.conversation])).toEqual([
         ['old', 'current'],
         ['same-subject', 'current'],
@@ -244,7 +244,7 @@ describe('buildContext', () => {
       expect(result.value.activeMessageKey).toBe('cur');
     });
 
-    it('başka konudan okunan mesaj varsayılan olarak girmez; kullanıcı eklerse "other" olarak girer', () => {
+    it('leaves out a message read from another subject by default, and includes it as "other" when the user adds it', () => {
       const history = [historyEntry(message('other', 0, [body('Alakasız')]), threadB, 'Fatura', 0)];
 
       const byDefault = buildContext(input({ snapshot: current(), history }), testDependencies());
@@ -252,7 +252,7 @@ describe('buildContext', () => {
         input({ snapshot: current(), history, selection: { included: ['other'], excluded: [] } }),
         testDependencies(),
       );
-      if (!byDefault.ok || !added.ok) throw new Error('beklenmeyen hata');
+      if (!byDefault.ok || !added.ok) throw new Error('unexpected error');
 
       expect(byDefault.value.messages.map((m) => m.messageKey)).toEqual(['cur']);
       expect(added.value.messages.map((m) => [m.messageKey, m.conversation, m.subject])).toEqual([
@@ -261,25 +261,25 @@ describe('buildContext', () => {
       ]);
     });
 
-    it('başka hesabın mesajı hiçbir koşulda bağlama girmez', () => {
+    it("never lets another account's message into the context", () => {
       const foreign: ThreadRef = { ...threadA, scope: scopeB };
       const history = [historyEntry(message('foreign', 0, [body('Başka hesap')]), foreign, 'RE: Teklif', 0)];
       const result = buildContext(
         input({ snapshot: current(), history, selection: { included: ['foreign'], excluded: [] } }),
         testDependencies(),
       );
-      if (!result.ok) throw new Error('beklenmeyen hata');
+      if (!result.ok) throw new Error('unexpected error');
 
       expect(result.value.messages.map((m) => m.messageKey)).toEqual(['cur']);
     });
 
-    it('aynı mesaj hem geçmişte hem güncel okumada varsa güncel okuma kullanılır, sırası korunur', () => {
+    it('uses the current read when a message is both in the history and the current read, keeping its position', () => {
       const history = [
         historyEntry(message('cur', 0, [body('Eski okuma')]), threadA, 'Teklif', 0),
         historyEntry(message('later', 0, [body('Sonra okunan')]), threadA, 'Teklif', 1),
       ];
       const result = buildContext(input({ snapshot: current(), history }), testDependencies());
-      if (!result.ok) throw new Error('beklenmeyen hata');
+      if (!result.ok) throw new Error('unexpected error');
 
       expect(result.value.messages.map((m) => [m.messageKey, m.text])).toEqual([
         ['cur', 'Güncel mesaj'],
@@ -288,23 +288,23 @@ describe('buildContext', () => {
     });
   });
 
-  it('kullanıcının düzenlediği metin orijinalin yerine kullanılır ve işaretlenir', () => {
+  it('uses and marks the text the user edited in place of the original', () => {
     const result = buildContext(
       input({ edits: [{ messageKey: 'm2', text: '  Yalnızca fatura sorusu.  ' }] }),
       testDependencies(),
     );
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     const edited = result.value.messages.find((m) => m.messageKey === 'm2');
     expect(edited).toMatchObject({ text: 'Yalnızca fatura sorusu.', edited: true });
     expect(result.value.messages.filter((m) => m.edited)).toHaveLength(1);
-    // Düzenlenen mesajın blokları için imza/alıntı ayıklaması kaydedilmez.
+    // No signature/quote removals are recorded for the blocks of an edited message.
     expect(result.value.omissions.some((o) => o.messageKey === 'm2' && o.blockIndex !== undefined)).toBe(
       false,
     );
   });
 
-  it('bütün mesajlar çıkarılırsa bağlam oluşturulmaz', () => {
+  it('builds no context when all messages are excluded', () => {
     const result = buildContext(
       input({ selection: { included: [], excluded: ['m1', 'm2', 'm3'] } }),
       testDependencies(),

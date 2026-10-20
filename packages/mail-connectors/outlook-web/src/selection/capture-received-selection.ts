@@ -6,7 +6,7 @@ import {
   type ReceivedMessageSelection,
   type Result,
   type ThreadRef,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
 import type { IdentityRegistry } from '../identity/identity-registry';
@@ -18,9 +18,10 @@ function bodyContaining(bodies: readonly HTMLElement[], node: Node): HTMLElement
 }
 
 /**
- * Salt okunur gelen mesajdaki seçimi, ait olduğu mesajın kimliğiyle verir.
- * Bu seçim o mesaja yazma hakkı oluşturmaz. Arama kutusu veya sayfanın başka
- * bir bölümündeki seçim kaynak kabul edilmez.
+ * Returns the selection in a read-only received message, with the key of the
+ * message it belongs to. This selection grants no right to write to that
+ * message. A selection in the search box or elsewhere on the page is not
+ * accepted as a source.
  */
 export function captureReceivedSelection(
   document: Document,
@@ -40,7 +41,7 @@ export function captureReceivedSelection(
     return ok(null);
   }
   if (startBody === null || startBody !== endBody) {
-    // Seçim iki mesaja veya mesaj dışına taşıyor.
+    // The selection spans two messages or extends outside the message.
     return err(appError('SELECTION_INVALID', { field: 'source' }));
   }
 

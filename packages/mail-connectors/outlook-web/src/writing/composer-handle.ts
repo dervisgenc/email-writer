@@ -1,14 +1,14 @@
-import type { ComposerRef } from '@email-writer/contracts';
+import type { ComposerRef } from '@writehand/contracts';
 
 import type { EditorTracker } from '../observation/observe-editor';
 import type { ComposerAnatomy } from '../reading/composer-anatomy';
 
-/** Bağlantı modülünün içinde, canlı bir editöre erişmek için kullanılan kayıt. */
+/** Connector-internal record used to access a live editor. */
 export interface ComposerHandle {
   readonly ref: ComposerRef;
   readonly editor: HTMLElement;
   readonly tracker: EditorTracker;
-  /** Editörün güncel yapısını anlık olarak okur. */
+  /** Reads the editor's current structure on demand. */
   readAnatomy(): ComposerAnatomy;
 }
 
@@ -26,10 +26,11 @@ export function isEditorWritable(editor: HTMLElement): boolean {
 }
 
 /**
- * İmza ve önceki yazışma korunmuş mu? Aynı kalmalı ya da yalnızca sonuna içerik
- * eklenmiş olmalıdır: Outlook alıntıyı taslağa geç (ör. ilk düzenlemeden sonra)
- * ekleyebilir. Eklentinin yazdığı içerik korunan bölgenin önüne girer; korunan
- * bölgenin başı değişirse (ör. son satır imzaya birleşti) sonuç doğrulanamaz.
+ * Are the signature and earlier mail preserved? They must stay the same or only
+ * gain content at the end: Outlook may add the quote to the draft late (e.g.
+ * after the first edit). The extension's content goes before the protected
+ * region; if the start of that region changes (e.g. the last line merged into
+ * the signature), the result cannot be verified.
  */
 export function isProtectedIntact(before: string, current: string): boolean {
   const original = comparableText(before);
@@ -37,7 +38,7 @@ export function isProtectedIntact(before: string, current: string): boolean {
   return now === original || original === '' || now.startsWith(`${original} `);
 }
 
-/** Yazma sonrası doğrulamada, editörün eklediği boşluk farklarını yok sayar. */
+/** For post-write verification; ignores whitespace differences the editor introduces. */
 export function comparableText(text: string): string {
   return text.normalize('NFC').replace(/\s+/gu, ' ').trim();
 }

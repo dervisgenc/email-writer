@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { HOST_BROWSERS, NATIVE_HOST_NAME, type HostBrowser } from '@email-writer/contracts';
+import { HOST_BROWSERS, NATIVE_HOST_NAME, type HostBrowser } from '@writehand/contracts';
 
 import type { HostPlatform } from './platform';
 

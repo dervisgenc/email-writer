@@ -9,7 +9,7 @@ import AppIcon from './AppIcon.vue';
 const props = defineProps<{
   message: ContextMessageView;
   disabled: boolean;
-  /** Aktif mesaj tanınamadığında yanıt verilecek mesajı seçme düğmesi gösterilir. */
+  /** Shows a control for picking the reply target when the active message could not be identified. */
   chooseReplyTarget: boolean;
   replyGroup: string;
 }>();
@@ -43,7 +43,7 @@ function save(): void {
   emit('text-change', draft.value);
 }
 
-/** Düzenleme alanında Escape yalnızca düzenlemeyi kapatır; panel açık kalır. */
+/** In the edit field, Escape only ends editing; the panel stays open. */
 function cancelOnEscape(event: KeyboardEvent): void {
   event.stopPropagation();
   editing.value = false;
@@ -123,7 +123,7 @@ function cancelOnEscape(event: KeyboardEvent): void {
         </button>
       </div>
     </div>
-    <!-- E-posta HTML'i render edilmez; metin düz metin olarak gösterilir. -->
+    <!-- Email HTML is never rendered; the text is shown as plain text. -->
     <p v-else-if="!expanded" class="ew-msg__preview" dir="auto">{{ message.preview }}</p>
     <pre v-else :id="bodyId" class="ew-msg__body" dir="auto">{{ message.text }}</pre>
 

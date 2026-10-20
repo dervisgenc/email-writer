@@ -6,11 +6,11 @@ import { hostInfoSchema, hostUpdateCheckSchema, hostUpdateResultSchema } from '.
 import { settingsChangesSchema, settingsSchema } from './settings';
 
 /**
- * Ortamlar arası şema doğrulamalı mesajlar. AI_GENERATE yalnızca kullanıcının
- * üretim için seçtiği metni taşır. Hesap ve yardımcı uygulama yönetimi (AI_COMMAND,
- * HOST_*) eklenti sayfalarıyla sınırlı; OPEN_PANEL ve OPEN_OPTIONS doğrudan yazma veya
- * üretim başlatamaz. AI_* ve HOST_* istekleri aynı zarfla yerel yardımcı uygulamaya
- * iletilir; zarfın sürümü ile yardımcı uygulamanın sürüm uyumu için bkz. `host.ts`.
+ * Schema-validated messages between runtime contexts. AI_GENERATE carries only the text
+ * the user chose for generation. Account and helper app management (AI_COMMAND, HOST_*) is
+ * limited to extension pages; OPEN_PANEL and OPEN_OPTIONS cannot write or start a
+ * generation directly. AI_* and HOST_* requests are forwarded to the local helper app in
+ * the same envelope; for the envelope version and helper app compatibility, see `host.ts`.
  */
 export const PROTOCOL_VERSION = 1 as const;
 
@@ -64,7 +64,7 @@ export const runtimeRequestSchema = z.discriminatedUnion('type', [
 export type RuntimeRequest = z.infer<typeof runtimeRequestSchema>;
 export type RuntimeRequestType = RuntimeRequest['type'];
 
-/** Hangi mesajın hangi ortama gönderilebileceği. Alıcı bu tabloya göre reddeder. */
+/** Which message may be sent to which context. The receiver rejects anything else based on this table. */
 export const RUNTIME_ROUTES = {
   AI_STATUS: 'background',
   AI_SUMMARY: 'background',
@@ -95,7 +95,7 @@ export type PageStatus = z.infer<typeof pageStatusSchema>;
 
 export const openPanelResultSchema = z.object({ opened: z.boolean() }).strict();
 
-/** Seçici doğrulaması için içeriksiz tanı: yalnızca anahtar, durum ve eşleşme sayısı. */
+/** Content-free diagnostics for selector verification: only key, status and match count. */
 export const selectorReportSchema = z
   .object({
     entries: z
@@ -117,9 +117,9 @@ export type SelectorReport = z.infer<typeof selectorReportSchema>;
 export const settingsResultSchema = z.object({ settings: settingsSchema }).strict();
 
 /**
- * `conflict`: kayıt bu sırada başka bir ekranda değişmişti; yalnızca istenen
- * alanlar güncel kayda uygulandı. `read-only`: daha yeni bir şemayla yazılmış
- * kayıt korunuyor, üzerine yazılmadı.
+ * `conflict`: the record had changed in another view in the meantime; only the requested
+ * fields were applied to the current record. `read-only`: a record written with a newer
+ * schema is kept and was not overwritten.
  */
 export const patchSettingsResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('saved'), settings: settingsSchema }).strict(),
@@ -127,7 +127,7 @@ export const patchSettingsResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('read-only'), settings: settingsSchema }).strict(),
 ]);
 
-/** Her istek türünün yanıt şeması. */
+/** Response schema for each request type. */
 export const RUNTIME_RESPONSE_PAYLOADS = {
   AI_STATUS: aiStatusSchema,
   AI_SUMMARY: aiSummarySchema,

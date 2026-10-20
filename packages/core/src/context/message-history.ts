@@ -1,21 +1,16 @@
-import {
-  isSameScope,
-  type MessageSnapshot,
-  type ThreadRef,
-  type ThreadSnapshot,
-} from '@email-writer/contracts';
+import { isSameScope, type MessageSnapshot, type ThreadRef, type ThreadSnapshot } from '@writehand/contracts';
 
 /**
- * Sayfa oturumu boyunca okunan bir mesaj. Okuma bölmesi yalnızca seçili
- * mesajı gösterdiğinde, aynı konuşmanın önceki mesajlarına başka yoldan
- * ulaşılamaz. Geçmiş yalnızca bellekte tutulur; kalıcı saklanmaz ve hesap
- * değişince silinir.
+ * A message read during the page session. When the reading pane shows only the selected
+ * message, there is no other way to reach earlier messages of the same conversation. The
+ * history lives in memory only; it is never persisted and is cleared when the account
+ * changes.
  */
 export interface HistoryEntry {
   readonly threadRef: ThreadRef;
   readonly subject: string | null;
   readonly message: MessageSnapshot;
-  /** İlk okunma sırası; farklı okumalardaki mesajları sıralamak için. */
+  /** First-read order, used to order messages from different reads. */
   readonly order: number;
 }
 
@@ -26,12 +21,12 @@ export interface MessageHistory {
 
 export const EMPTY_HISTORY: MessageHistory = Object.freeze({ entries: [], nextOrder: 0 });
 
-/** Bellekte tutulan en fazla mesaj; başlangıç kararıdır, ölçülmüş sınır değildir. */
+/** Maximum number of messages kept in memory; a starting value, not a measured limit. */
 export const HISTORY_LIMIT = 40;
 
 /**
- * Bir konuşma okumasını geçmişe ekler. Aynı mesaj yeniden okunursa içeriği
- * güncellenir ve ilk okunma sırası korunur. Sınır aşılırsa en eski mesajlar çıkar.
+ * Adds a conversation read to the history. If a message is read again, its content is
+ * updated and its first-read order is kept. Past the limit, the oldest messages drop out.
  */
 export function recordSnapshot(
   history: MessageHistory,
@@ -49,15 +44,15 @@ export function recordSnapshot(
 }
 
 /**
- * Yanıt ve iletme önekleri (yaygın dillerde); sondaki ":" zorunludur. Türkçe
- * "İLT" ayrıca yazılır: büyük noktalı İ, büyük/küçük harf eşlemesinde "i" olmaz.
+ * Reply and forward prefixes (in common languages); the trailing ":" is required. Turkish
+ * "İLT" is listed separately because the dotted capital İ does not case-fold to "i".
  */
 const REPLY_PREFIX =
   /^\s*(?:re|fw|fwd|aw|wg|sv|vs|tr|rv|ynt|yanıt|ilt|İlt|antw|res|enc)\s*(?:\[\d+\])?\s*:\s*/iu;
 
 /**
- * Konuyu karşılaştırma için sadeleştirir: "RE: FW: Teklif" ile "Teklif" aynı
- * konudur. Boş konu `null` olur; boş konular birbirine bağlanmaz.
+ * Simplifies a subject for comparison: "RE: FW: Proposal" and "Proposal" are the same
+ * subject. An empty subject becomes `null`; empty subjects are never linked to each other.
  */
 export function normalizeSubject(subject: string | null): string | null {
   if (subject === null) {
@@ -73,9 +68,9 @@ export function normalizeSubject(subject: string | null): string | null {
 }
 
 /**
- * Geçmişteki bir mesaj açık konuşmayla ilişkili mi: aynı konuşmadan veya
- * aynı konudan. İlişkili mesajlar varsayılan olarak bağlama girer; başka
- * hesabın mesajı hiçbir zaman ilişkili sayılmaz.
+ * Whether a history message is related to the open conversation: from the same
+ * conversation or with the same subject. Related messages join the context by default;
+ * a message from another account is never considered related.
  */
 export function isRelatedEntry(entry: HistoryEntry, thread: ThreadRef, subject: string | null): boolean {
   if (!isSameScope(entry.threadRef.scope, thread.scope)) {

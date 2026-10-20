@@ -1,4 +1,4 @@
-import type { Clock, IdGenerator } from '@email-writer/core';
+import type { Clock, IdGenerator } from '@writehand/core';
 
 export function fixedClock(iso = '2026-10-13T10:00:00.000Z'): Clock {
   return { now: () => iso };

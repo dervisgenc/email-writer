@@ -1,6 +1,6 @@
 import { expect, test } from './extension-fixture';
 
-test('yardımcı uygulama yokken ayarlar izni ve kurulum sihirbazını gösterir; geliştirici talimatı yok', async ({
+test('without the helper app, settings show the permission and the setup wizard with no developer instructions', async ({
   context,
   extensionId,
 }) => {
@@ -26,7 +26,7 @@ test('yardımcı uygulama yokken ayarlar izni ve kurulum sihirbazını gösterir
   });
 });
 
-test('simüle yerel bağlantıyla ChatGPT hesabı, ilk kullanım bildirimi ve model seçimi', async ({
+test('ChatGPT account, first-use notice and model selection over a simulated native connection', async ({
   context,
   extensionId,
 }) => {

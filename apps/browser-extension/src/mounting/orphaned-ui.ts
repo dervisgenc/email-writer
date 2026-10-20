@@ -1,11 +1,11 @@
-/** Eklentinin sayfaya eklediği gölge kök etiketleri. */
-const OWN_UI_TAGS = 'email-writer-launcher, email-writer-panel';
+/** Tags of the shadow roots the extension adds to the page. */
+const OWN_UI_TAGS = 'writehand-launcher, writehand-panel';
 
 /**
- * Eklenti güncellenince veya yeniden kurulunca eski içerik betiği (özellikle
- * Firefox'ta) temizlik yapamadan durdurulur; sayfaya eklediği araç çubuğu ve
- * panel kökleri sahipsiz ve tepkisiz kalır. Yeni oturum, kendi arayüzünü
- * eklemeden önce bunları kaldırır. Kaldırılan kök sayısını döndürür.
+ * When the extension is updated or reinstalled, the old content script (especially
+ * in Firefox) is stopped before it can clean up, leaving its toolbar and panel roots
+ * orphaned and unresponsive. The new session removes them before adding its own UI.
+ * Returns the number of roots removed.
  */
 export function removeOrphanedUi(document: Document): number {
   const stale = [...document.querySelectorAll(OWN_UI_TAGS)];

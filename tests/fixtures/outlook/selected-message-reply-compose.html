@@ -1,18 +1,18 @@
 <!--
-  ANONİMLEŞTİRİLMİŞ GERÇEK YAPI — selected-message-reading-pane.html ile aynı
-  hesap ve görünüm; kullanıcı "Reply"a bastıktan sonraki okuma bölmesi
-  (15 Ekim 2026, Firefox 157, iş hesabı, İngilizce arayüz).
+  ANONYMIZED REAL STRUCTURE — same account and view as
+  selected-message-reading-pane.html; the reading pane after the user clicks
+  "Reply" (October 15, 2026, Firefox 157, work account, English UI).
 
-  Gözlenenler (`pnpm outlook:inspect structure`, maskeli):
-  - Okuma bölmesindeki mesaj (#ItemReadingPaneContainer, gövde, konu başlığı,
-    MSG_<ileti>_FROM) tamamen kaldırılır; yerine yanıt editörü gelir.
-  - Editör kaydırılan bir kapsayıcının içindedir:
+  Observed (`pnpm outlook:inspect structure`, masked):
+  - The message in the reading pane (#ItemReadingPaneContainer, body, subject
+    header, MSG_<message>_FROM) is removed entirely and replaced by the reply editor.
+  - The editor sits inside a scrolling container:
     #docking_InitVisiblePart_N.owaMailComposeEditorScrollContainer >
     #docking_DockingTriggerPart_N > #editorParent_N > div[role=textbox][contenteditable].
-  - Orijinal mesaj editörde alıntı olarak durur (#appendonsend → hr → #divRplyFwdMsg).
-  - Taslağın başlık parçaları yeni bir öğe kimliği taşır (MSG_<taslak>_TO / _SUBJECT).
-  - İleti listesinde aynı satır seçili kalır.
-  Bütün metinler, adlar, adresler ve kimlikler uydurmadır.
+  - The original message stays in the editor as a quote (#appendonsend → hr → #divRplyFwdMsg).
+  - The draft's header parts carry a new item ID (MSG_<draft>_TO / _SUBJECT).
+  - The same row stays selected in the message list.
+  All texts, names, addresses and IDs are made up.
 -->
 <div id="owa-me-control-container">
   <button aria-label="Account manager for Deniz Yılmaz">DY</button>

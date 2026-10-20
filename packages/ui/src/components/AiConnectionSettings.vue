@@ -5,7 +5,7 @@ import {
   type AiCommand,
   type AiMode,
   type AiStatus,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 import type { AiText } from '../ai-text';
 import { inputValue } from '../input-value';
@@ -61,7 +61,7 @@ const METHOD_BADGES: Partial<Record<AiMode, 'recommended' | 'experimental'>> = {
 };
 const methodTitle = (mode: AiMode) =>
   ({ chatgpt: props.text.chatgpt, 'api-key': props.text.apiKey, 'claude-code': props.text.claudeCode })[mode];
-/** Kartın başındaki kısa durum: hazır mı, kurulum mu, bağlantı mı gerekiyor. */
+/** Short status at the top of the card: ready, needs setup, or needs a connection. */
 const pill = computed<{ tone: 'success' | 'warning' | 'neutral'; label: string }>(() => {
   const status = props.status;
   if (status === null) {

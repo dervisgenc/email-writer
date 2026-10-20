@@ -1,12 +1,12 @@
-import { LanguagePicker, languageLabel, matchLanguage, provideUiText } from '@email-writer/ui';
+import { LanguagePicker, languageLabel, matchLanguage, provideUiText } from '@writehand/ui';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { defineComponent, h, ref, type Component } from 'vue';
 
 import { tr } from '../../../apps/browser-extension/src/locales/tr';
 
-describe('Dil adları ve eşleme', () => {
-  it('arayüz dilindeki adı, İngilizce adı ve kodu katalog koduna çevirir', () => {
+describe('Language names and matching', () => {
+  it('maps a name in the UI language, an English name or a code to the catalog code', () => {
     expect(matchLanguage('Almanca', 'tr')).toBe('de');
     expect(matchLanguage('german', 'tr')).toBe('de');
     expect(matchLanguage('brezilya portekizcesi', 'tr')).toBe('pt-BR');
@@ -34,7 +34,7 @@ function picker(props: Record<string, unknown>) {
 }
 
 describe('LanguagePicker', () => {
-  it('yazılan veya listeden seçilen dili koda çevirip yayar; geçersiz girdide son değere döner', async () => {
+  it('emits the code of a typed or picked language, and reverts to the last value on invalid input', async () => {
     const { wrapper, emitted } = picker({ modelValue: 'en' });
     const input = wrapper.get('input');
     expect((input.element as HTMLInputElement).value).toBe('İngilizce');
@@ -50,7 +50,7 @@ describe('LanguagePicker', () => {
     wrapper.unmount();
   });
 
-  it('ekleme alanı onaylanınca temizlenir ve eklenmiş dilleri önermez', async () => {
+  it('clears the add field on commit and does not suggest languages already added', async () => {
     const { wrapper, emitted } = picker({ modelValue: null, clearOnCommit: true, exclude: ['de'] });
     const options = wrapper.findAll('option').map((option) => option.attributes('value'));
     expect(options).not.toContain('Almanca');

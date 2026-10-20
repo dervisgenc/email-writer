@@ -8,13 +8,8 @@ import {
   type Operation,
   type Settings,
   type ThreadRef,
-} from '@email-writer/contracts';
-import {
-  createSession,
-  usesConversationContext,
-  type IdGenerator,
-  type SessionState,
-} from '@email-writer/core';
+} from '@writehand/contracts';
+import { createSession, usesConversationContext, type IdGenerator, type SessionState } from '@writehand/core';
 
 import type { ActionController } from './action-controller';
 import type { SessionStore } from './session-store';
@@ -24,17 +19,17 @@ export type OpenRequest =
   | { readonly origin: 'thread-launcher'; readonly thread: ThreadRef }
   | { readonly origin: 'composer-launcher'; readonly composer: ComposerRef };
 
-/** Yazma alanındaki araç çubuğundan doğrudan başlatılan işlem. */
+/** An operation started directly from the toolbar on the compose area. */
 export type QuickAction =
   | { readonly operation: 'revise' }
-  /** Dil yoksa kart dili sorar; seçim ve taslak önce yakalanır. */
+  /** Without a language the card asks for one; the selection and draft are captured first. */
   | { readonly operation: 'translate'; readonly language: TargetLanguage | null }
   | { readonly operation: 'reply' }
   | { readonly operation: 'compose' };
 
 /**
- * Oturumun gösterildiği yer. Aynı oturum sağdaki panelde veya yazma alanının
- * yanındaki küçük kartta gösterilir; ikisi aynı anda açık olmaz.
+ * Where the session is shown. The same session appears in the right-hand panel or
+ * in the small card next to the compose area; never both at once.
  */
 export type PanelSurface =
   | { readonly kind: 'closed' }
@@ -54,12 +49,12 @@ export interface PanelController {
   surface(): PanelSurface;
   open(request: OpenRequest): void;
   /**
-   * Yazma alanındaki düğmeden işlemi doğrudan başlatır ve sonucu taslağın
-   * yanındaki kartta gösterir. Düzeltme ve çeviri, taslağı veya seçimi alıp
-   * hemen hazırlanır; yanıt ve yeni e-posta için kart talimat bekler.
+   * Starts the operation directly from the compose area button and shows the result
+   * in the card next to the draft. Revise and translate take the draft or selection
+   * and run right away; for reply and new email the card waits for an instruction.
    */
   runQuickAction(composer: ComposerRef, action: QuickAction): Promise<void>;
-  /** Karttaki çalışmayı sağdaki panelde sürdürür. */
+  /** Continues the card's work in the right-hand panel. */
   expandToPanel(): void;
   close(): void;
   changeOperation(operation: Operation): void;
@@ -68,7 +63,7 @@ export interface PanelController {
   dispose(): void;
 }
 
-/** Oturumda kullanıcıya ait bir içerik var mı? */
+/** Does the session hold any of the user's content? */
 function hasUserWork(state: SessionState): boolean {
   return (
     state.form.sourceText.trim() !== '' ||
@@ -87,9 +82,9 @@ function isSameOptionalThread(a: ThreadRef | null, b: ThreadRef | null): boolean
 }
 
 /**
- * Panelin açılmasını, hedef seçimini ve sayfa olaylarını koordine eder. Panel
- * yalnızca kullanıcı bir düğmeye bastığında açılır; e-posta açmak tek başına
- * okuma veya işlem başlatmaz.
+ * Coordinates opening the panel, target selection and page events. The panel
+ * opens only when the user presses a button; opening an email does not by itself
+ * start a read or an operation.
  */
 export function createPanelController(deps: PanelControllerDependencies): PanelController {
   const { store, connector, actions, ids } = deps;
@@ -121,8 +116,8 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
   };
 
   /**
-   * Kullanıcı istediğinde (yanıt veya "konuşmayı da kullan") konuşmayı okur.
-   * Oturum meşgulken okuma başlamaz; bu yüzden taslak okumasından sonra çağrılır.
+   * Reads the conversation when the user asks for it (reply or "Also use the conversation").
+   * A read cannot start while the session is busy, so this is called after the draft is read.
    */
   const readThreadIfNeeded = async () => {
     const state = store.getState();
@@ -132,9 +127,9 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
   };
 
   /**
-   * Çalışma, kullanıcının o an baktığı e-postaya aittir. Başka bir e-postaya
-   * geçilince oturum o e-postayla yeniden başlar; kullanıcıdan "yeni çalışma"
-   * onayı istenmez. Önceki e-postanın metni ve sonucu bırakılır.
+   * Work belongs to the email the user is currently looking at. Switching to another
+   * email restarts the session with that email; the user is not asked to confirm
+   * "new work". The previous email's text and result are dropped.
    */
   const followThread = (thread: ThreadRef | null, operation: Operation): void => {
     const state = store.getState();
@@ -142,13 +137,13 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
       return;
     }
     actions.cancelPending();
-    // Yeni ileti yazma bir konuşmaya ait değildir; konuşmaya geçilince yanıt olur.
+    // Composing a new message belongs to no conversation; on moving to a conversation it becomes a reply.
     freshSession(thread, thread !== null && operation === 'compose' ? 'reply' : operation);
   };
 
   /**
-   * Kullanıcı başka bir e-postaya geçti mi? Oturum bir konuşmaya bağlı değilse
-   * (ör. yeni ileti yazılıyor) ve içinde iş varsa, o çalışma korunur.
+   * Did the user switch to another email? If the session is not tied to a conversation
+   * (e.g. a new message is being composed) and holds work, that work is kept.
    */
   const isNewConversation = (current: ThreadRef): boolean => {
     const state = store.getState();
@@ -166,7 +161,7 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
     ) {
       followThread(event.current, store.getState().form.operation);
       if (surface.kind === 'inline') {
-        // Kart önceki e-postanın taslağına aitti.
+        // The card belonged to the previous email's draft.
         setSurface({ kind: 'closed' });
       } else if (surface.kind === 'panel') {
         void readThreadIfNeeded();
@@ -196,7 +191,7 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
         case 'composer-launcher':
           followThread(threadOfComposer(request.composer), store.getState().form.operation);
           setSurface({ kind: 'panel' });
-          // Seçim, odak panele geçmeden ve ilk beklemeden önce yakalanır.
+          // Capture the selection before focus moves to the panel and before the first await.
           void actions.loadFromComposer(request.composer).then(readThreadIfNeeded);
           return;
       }
@@ -212,13 +207,13 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
         changes: { operation: action.operation, ...(language === null ? {} : { targetLanguage: language }) },
       });
       setSurface({ kind: 'inline', composerKey: composer.composerKey });
-      // Seçim, odak karta geçmeden ve ilk beklemeden önce yakalanır.
+      // Capture the selection before focus moves to the card and before the first await.
       const loaded = await actions.loadFromComposer(composer);
       if (loaded !== 'loaded') {
         return;
       }
       await readThreadIfNeeded();
-      // Yanıt ve yeni e-posta için kart talimat, dili seçilmemiş çeviri için dil bekler.
+      // The card waits for an instruction (reply, new email) or a language (translate without one).
       const awaitsInput =
         isInstructionOperation(action.operation) ||
         (action.operation === 'translate' && action.language === null);
@@ -235,7 +230,7 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
     },
 
     close() {
-      // Form verisi bellekte kalır; yalnızca devam eden okuma ve bekleme iptal edilir.
+      // Form data stays in memory; only the in-progress read and wait are cancelled.
       actions.cancelPending();
       setSurface({ kind: 'closed' });
     },

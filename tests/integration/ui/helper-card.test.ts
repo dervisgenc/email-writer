@@ -1,5 +1,5 @@
-import type { HostInfo } from '@email-writer/contracts';
-import { HelperCard, type HelperView } from '@email-writer/ui';
+import type { HostInfo } from '@writehand/contracts';
+import { HelperCard, type HelperView } from '@writehand/ui';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 

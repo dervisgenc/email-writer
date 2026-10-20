@@ -1,5 +1,5 @@
-import { createSession } from '@email-writer/core';
-import { ok, type TextProcessor } from '@email-writer/contracts';
+import { createSession } from '@writehand/core';
+import { ok, type TextProcessor } from '@writehand/contracts';
 import { computed, shallowRef, watch } from 'vue';
 import type { ContentScriptContext } from '#imports';
 
@@ -29,14 +29,13 @@ import type { MailPageProvider } from './mail-provider';
 export interface ExtensionSessionOptions {
   readonly ctx: ContentScriptContext;
   readonly provider: MailPageProvider;
-  /** Gerçek AI bağlantısı veya test derlemesindeki örnek sonuç kaynağı. */
+  /** The real AI connection, or the sample result source in the test build. */
   readonly processor: TextProcessor | null;
 }
 
 /**
- * Sayfa oturumunun bütün parçalarını bir araya getirir. Bağımlılıklar fonksiyon
- * parametreleriyle verilir; bağımlılık enjeksiyonu kütüphanesi veya uygulama
- * çapında olay otobüsü kullanılmaz.
+ * Wires together all parts of the page session. Dependencies are passed as function
+ * parameters; no dependency injection library or app-wide event bus is used.
  */
 export async function createExtensionSession(options: ExtensionSessionOptions): Promise<() => void> {
   const { ctx, provider, processor } = options;
@@ -77,12 +76,12 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   const appearance = computed(() => resolveAppearance(settings.value.theme, pageTheme.value));
   const surface = shallowRef(panel.surface());
 
-  // Önceki (durdurulmuş) betiğin sahipsiz kalmış arayüzü yeni arayüzden önce kaldırılır.
+  // Remove UI orphaned by a previous (stopped) script before mounting the new one.
   removeOrphanedUi(document);
   const mountedPanel = await mountPanel(ctx, { session, text, appearance });
   const stopSurface = panel.onSurfaceChange((next) => {
     surface.value = next;
-    // Outlook teması kullanıcı ayarlarından değişmiş olabilir; arayüz açılırken yeniden okunur.
+    // The Outlook theme may have changed in the user's settings; re-read it when the UI opens.
     refreshPageTheme();
     mountedPanel.setOpen(next.kind === 'panel');
   });
@@ -136,7 +135,7 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   syncLaunchers();
 
   const stopSettings = onSettingsStorageChanged(SETTINGS_STORAGE_KEY, (raw) => {
-    // Varsayılan dil/ton değişikliği açık çalışmayı değiştirmez; sonraki oturumda kullanılır.
+    // A change to the default language/tone does not alter open work; it applies to the next session.
     settings.value = parseStoredSettings(raw).settings;
   });
 
@@ -153,7 +152,7 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
       },
       GET_SELECTOR_REPORT: async () => ok({ entries: [...provider.selectorReport()] }),
       OPEN_PANEL: async () => {
-        // Yalnızca paneli açar; e-posta veya sonuç metni taşımaz, yazma yapamaz.
+        // Only opens the panel; carries no email or result text and cannot write.
         const canOpen = siteEnabled.value && connector.getPageState().support === 'ready';
         if (canOpen) {
           mountedPanel.rememberOpener(null);

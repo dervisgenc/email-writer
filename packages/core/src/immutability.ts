@@ -5,8 +5,8 @@ export type DeepReadonly<T> = T extends (infer U)[]
     : T;
 
 /**
- * İşlem kayıtlarına giden verinin, oturumun canlı nesnelerinden bağımsız ve
- * değişmez olmasını sağlar. Yalnızca düz veri nesneleri için kullanılır.
+ * Keeps data that goes into action records immutable and independent of the session's
+ * live objects. Use only on plain data objects.
  */
 export function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {

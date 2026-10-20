@@ -1,11 +1,11 @@
-import { isInstructionOperation, type ApplyTarget, type Operation } from '@email-writer/contracts';
+import { isInstructionOperation, type ApplyTarget, type Operation } from '@writehand/contracts';
 
 import type { SessionState, SourceBinding } from '../session/session-state';
 
 /**
- * Kaynak kaydından güvenli yazma hedefini türetir. Panelde yazılmış metin veya
- * gelen mesaj, açık taslağın üzerine otomatik yazma yetkisi vermez. Yanıt
- * hazırlamada dolu bir taslağı değiştirmek ayrıca açık onay ister.
+ * Derives a safe write target from the source binding. Text typed in the panel or a
+ * received message never grants permission to overwrite the open draft automatically.
+ * Replacing a non-empty draft when drafting a reply also requires explicit confirmation.
  */
 export function deriveApplyTarget(binding: SourceBinding, operation: Operation): ApplyTarget | null {
   switch (binding.kind) {
@@ -25,7 +25,7 @@ export function deriveApplyTarget(binding: SourceBinding, operation: Operation):
           expectedRevision: binding.composerRevision,
         };
       }
-      // Talimattan yazılan metin dolu bir taslağın yerine kendiliğinden geçmez; kullanıcı onaylar.
+      // Text written from an instruction never replaces a non-empty draft on its own; the user confirms.
       if (!isEmpty && binding.canReplaceBody && !isInstructionOperation(operation)) {
         return {
           mode: 'replace-body',
@@ -41,7 +41,7 @@ export function deriveApplyTarget(binding: SourceBinding, operation: Operation):
   }
 }
 
-/** Yazmada kullanılacak güncel hedef. Tek sahibi oturumdur. */
+/** Current target for the write. The session is its only owner. */
 export function effectiveApplyTarget(state: SessionState): ApplyTarget | null {
   if (state.binding.kind === 'received-message') {
     return null;

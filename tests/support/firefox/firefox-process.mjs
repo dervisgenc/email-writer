@@ -1,11 +1,11 @@
-// Firefox'u WebDriver BiDi açık başlatır ve bağlantı noktasının hazır olmasını bekler.
+// Starts Firefox with WebDriver BiDi enabled and waits for its port to be ready.
 //
-// macOS'ta Firefox, uygulama olarak `open` ile başlatılır. Terminalin alt süreci
-// olarak başlatılan Firefox'u macOS gizlilik koruması terminalin izinleriyle
-// değerlendirir; terminalin "diğer uygulamaların verileri" izni yoksa Firefox
-// kendi veri klasörünü okuyamaz ve "Profile Missing" hatasıyla kapanır.
+// On macOS, Firefox is started as an app with `open`. macOS privacy protection
+// judges a Firefox started as a child of the terminal by the terminal's
+// permissions; without the terminal's "data from other apps" permission, Firefox
+// cannot read its own data folder and exits with "Profile Missing".
 //
-// Windows'ta Firefox PATH'te bulunmaz; kurulum klasörlerinde aranır.
+// On Windows, Firefox is not on PATH, so it is looked up in its install folders.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { connect } from 'node:net';
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 
 const MAC_DEFAULT_APP = '/Applications/Firefox.app';
 
-/** Firefox'un Windows'taki olağan kurulum yerleri (sistem geneli, 32 bit, kullanıcı düzeyi). */
+/** Firefox's usual install locations on Windows (system-wide, 32-bit, per-user). */
 function windowsFirefox(env) {
   const candidates = [env.ProgramFiles, env['ProgramFiles(x86)'], env.LOCALAPPDATA]
     .filter(Boolean)
@@ -23,7 +23,7 @@ function windowsFirefox(env) {
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
-/** `FIREFOX_BIN` verilmişse onu, yoksa platformun varsayılan Firefox'unu kullanır. */
+/** Uses `FIREFOX_BIN` when set, otherwise the platform's default Firefox. */
 export function resolveFirefox(env = process.env) {
   const binary = env.FIREFOX_BIN;
   if (process.platform === 'darwin') {
@@ -38,7 +38,7 @@ export function firefoxVersion(firefox = resolveFirefox()) {
   try {
     return execFileSync(firefox.binary, ['--version'], { encoding: 'utf8' }).trim();
   } catch {
-    return 'bilinmiyor';
+    return 'unknown';
   }
 }
 
@@ -58,8 +58,8 @@ export async function isBidiListening(port) {
 }
 
 /**
- * Yerel bir bağlantı noktasında dinleyen süreç var mı? Geliştirme sunucuları
- * yalnızca IPv6 (`::1`) üzerinde dinleyebildiği için iki adres de denenir.
+ * Is any process listening on a local port? Both addresses are tried because
+ * development servers may listen only on IPv6 (`::1`).
  */
 export async function isPortInUse(port) {
   const results = await Promise.all([isPortOpen(port, '127.0.0.1'), isPortOpen(port, '::1')]);
@@ -67,8 +67,8 @@ export async function isPortInUse(port) {
 }
 
 /**
- * Firefox'u ayrı bir profil ve BiDi bağlantı noktasıyla başlatır.
- * `stop()` yalnızca bu profille başlatılan Firefox'u kapatır.
+ * Starts Firefox with a separate profile and BiDi port.
+ * `stop()` closes only the Firefox started with this profile.
  */
 export async function launchFirefox({ profile, port, headless = false, urls = [], timeoutMs = 30_000 }) {
   const firefox = resolveFirefox();
@@ -91,7 +91,7 @@ export async function launchFirefox({ profile, port, headless = false, urls = []
   const started = Date.now();
   while (!(await isPortOpen(port))) {
     if (child?.exitCode != null || Date.now() - started > timeoutMs) {
-      throw new Error(`Firefox BiDi bağlantı noktası açılmadı (${port}).`);
+      throw new Error(`The Firefox BiDi port did not open (${port}).`);
     }
     await sleep(250);
   }
@@ -109,16 +109,16 @@ export async function launchFirefox({ profile, port, headless = false, urls = []
 }
 
 /**
- * Yalnızca bu profille başlatılmış Firefox'u kapatır ve BiDi bağlantı
- * noktasının kapanmasını bekler. Kullanıcının kendi Firefox'una dokunulmaz:
- * eşleşme, profil yolunu taşıyan ana süreçle sınırlıdır.
+ * Closes only the Firefox started with this profile and waits for the BiDi
+ * port to close. The user's own Firefox is left alone: matching is limited to
+ * the main process whose command line carries the profile path.
  */
 export async function stopFirefoxWithProfile(profile, port = null, timeoutMs = 15_000) {
   try {
     if (process.platform === 'win32') {
-      // pkill yok: komut satırında bu profilin yolu geçen Firefox süreçleri PowerShell ile
-      // kapatılır. Yol boşluk içerirse tırnaklanır, bu yüzden yalnızca yolun kendisi aranır.
-      // Profil yolu betiğe ortam değişkeniyle verilir; komut metnine eklenmez.
+      // No pkill: PowerShell stops the Firefox processes whose command line contains this
+      // profile's path. A path with spaces gets quoted, so only the path itself is matched.
+      // The profile path reaches the script through an environment variable, not the command text.
       execFileSync(
         join(
           process.env.SystemRoot ?? 'C:\\Windows',
@@ -139,7 +139,7 @@ export async function stopFirefoxWithProfile(profile, port = null, timeoutMs = 1
       execFileSync('pkill', ['-TERM', '-f', `firefox .*--profile ${profile}`]);
     }
   } catch {
-    // Bu profille çalışan Firefox yok.
+    // No Firefox is running with this profile.
   }
   const started = Date.now();
   while (port !== null && (await isPortOpen(port)) && Date.now() - started < timeoutMs) {

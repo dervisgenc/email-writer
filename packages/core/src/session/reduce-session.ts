@@ -12,7 +12,7 @@ import {
   type Result,
   type ThreadSnapshot,
   type UndoOutcome,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { validatePreviewCandidate } from '../actions/validate-preview';
 import { effectiveApplyTarget } from '../editing/derive-apply-target';
@@ -36,7 +36,7 @@ export type SessionEvent =
       readonly context: Result<ContextSnapshot, AppError>;
     }
   | {
-      /** Kullanıcı konuşmada başka bir mesajı açtı; arka planda okunan yeni içerik. */
+      /** The user opened another message in the conversation; new content read in the background. */
       readonly type: 'thread-refreshed';
       readonly snapshot: ThreadSnapshot;
       readonly context: Result<ContextSnapshot, AppError>;
@@ -93,7 +93,7 @@ function hasFormChanges(form: SessionForm, changes: Partial<SessionForm>): boole
   return (Object.keys(changes) as (keyof SessionForm)[]).some((key) => form[key] !== changes[key]);
 }
 
-/** Hedef veya kaynak kaydının bağlı olduğu editör. */
+/** The editor the target or source binding points to. */
 function trackedComposer(state: SessionState): ComposerRef | null {
   const target = effectiveApplyTarget(state);
   if (target !== null) {
@@ -125,7 +125,7 @@ function staleReasonForWriteError(error: AppError): StaleReason | null {
 function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
   switch (event.type) {
     case 'account-changed':
-      // Eski hesabın içerikleri ve devam eden işlemleri temizlenir.
+      // Clear the previous account's content and pending operations.
       return createSession({
         sessionId: state.sessionId,
         thread: null,
@@ -141,7 +141,7 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       if (event.current === null || !isSameThread(state.thread, event.current)) {
         return markStale(state, 'thread-changed');
       }
-      // Kullanıcı çalışmanın konuşmasına geri döndü; çalışma yeniden geçerlidir.
+      // The user returned to the work's conversation; the work is valid again.
       return state.staleReason === 'thread-changed' ? { ...state, staleReason: null } : state;
 
     case 'thread-content-changed':
@@ -169,7 +169,7 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       }
       const next = { ...state, targetComposerRevision: event.revision };
       if (state.phase.status === 'applying') {
-        // Eklentinin kendi yazması; sonuç `apply-finished` ile işlenir.
+        // The extension's own write; the result is handled by `apply-finished`.
         return next;
       }
       const expected = effectiveApplyTarget(state)?.expectedRevision ?? null;
@@ -185,7 +185,7 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       if (composer === null || !isSameComposer(composer, event.previous)) {
         return state;
       }
-      // Aynı editör konuşmaya sonradan bağlandı; çalışma geçerli kalır, kayıtlar yeni kimliği taşır.
+      // The same editor was linked to the conversation later; the work stays valid under the new ref.
       return rebindComposer(state, event.ref);
     }
 
@@ -196,9 +196,9 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
 }
 
 /**
- * Geri alma taslağı sonucun hazırlandığı metne döndürdü (bağlantı modülü doğruladı).
- * Gövde veya boş taslak hedefinde aynı sonuç yeniden uygulanabilir; seçim kaydı ise
- * geri almayla geçersizleşir, kullanıcı metni yeniden seçer.
+ * Undo restored the draft to the text the result was prepared from (verified by the
+ * connector). For a body or empty-draft target the same result can be applied again; a
+ * selection record becomes invalid on undo and the user selects the text again.
  */
 function afterUndo(state: SessionState, revision: number): SessionState {
   const next: SessionState = { ...state, lastChange: null, targetComposerRevision: revision };
@@ -239,8 +239,8 @@ function rebindComposer(state: SessionState, ref: ComposerRef): SessionState {
 }
 
 /**
- * Oturum olaylarını saf biçimde uygular. Kimliği tutmayan veya iptal edilmiş
- * işlemlere ait geç olaylar durumu değiştirmez.
+ * Applies session events as a pure function. Late events with a mismatched ID or from
+ * cancelled operations leave the state unchanged.
  */
 export function reduceSession(state: SessionState, event: SessionEvent): SessionState {
   switch (event.type) {
@@ -266,7 +266,7 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
         return state;
       }
       if (state.thread === null || !isSameThread(state.thread, event.snapshot.ref)) {
-        // Okuma sırasında konuşma değişti: yarım bağlam atılır, girdi korunur.
+        // The conversation changed during the read: drop the partial context, keep the input.
         return { ...state, phase: { status: 'error', error: appError('THREAD_CHANGED') } };
       }
       const next = withContext(
@@ -282,9 +282,9 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
     }
 
     case 'thread-refreshed': {
-      // Bağlam yalnızca kullanılıyorsa ve kullanıcı bir sonuç üzerinde
-      // çalışmıyorsa sessizce yenilenir. Önizleme varken bağlam değişirse
-      // önizleme eskirdi; o durumda "bağlam eskidi" uyarısı (contextStale) kalır.
+      // Refresh the context silently only while it is in use and the user is not working
+      // on a result. Changing the context under a preview would make the preview stale;
+      // in that case the "context is stale" warning (contextStale) stays.
       const isIdle = state.phase.status === 'idle' || state.phase.status === 'editing';
       if (
         !isIdle ||
@@ -321,9 +321,9 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
         event.binding.kind === 'draft' || event.binding.kind === 'draft-selection'
           ? event.binding.composerRevision
           : null;
-      // Önizleme yalnızca kaynak metin gerçekten değiştiyse eskir. Aynı metin yeniden
-      // alınınca (ör. kart aynı düğmeyle yeniden açılınca) yalnızca taslağın güncel
-      // sürümü kaydedilir; hazır sonuç o sürüme uygulanabilir kalır.
+      // The preview goes stale only if the source text actually changed. When the same text
+      // is loaded again (e.g. the card is reopened with the same button), only the draft's
+      // current revision is recorded; the finished result stays applicable to it.
       const sourceChanged = event.text !== state.form.sourceText;
       return rest({
         ...state,
@@ -341,8 +341,8 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
       if (state.phase.status === 'applying' || !hasFormChanges(state.form, event.changes)) {
         return state;
       }
-      // Form değişikliği hazırlanmış işlemi ve önizlemeyi eskitir; geç gelen
-      // sonuç form sürümü tutmayacağı için kabul edilmez.
+      // A form change makes the prepared action and the preview stale; a late result is
+      // rejected because its form revision no longer matches.
       return rest({
         ...state,
         form: { ...state.form, ...event.changes },
@@ -411,7 +411,7 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
       if (state.preview === null || state.phase.status === 'applying' || state.preview.text === event.text) {
         return state;
       }
-      // Önizlemeyi düzenlemek yeni bir üretim değildir; yalnızca önizleme sürümü artar.
+      // Editing the preview is not a new generation; only the preview revision increases.
       return rest({
         ...state,
         preview: {
@@ -465,7 +465,7 @@ export function reduceSession(state: SessionState, event: SessionEvent): Session
         composerRef: target.composerRef,
       };
       if (outcome.status === 'uncertain') {
-        // Aynı işlem otomatik tekrarlanmaz; önizleme korunur.
+        // The same write is never retried automatically; the preview is kept.
         return {
           ...state,
           lastChange: { ...base, outcome: 'uncertain', undoId: null, composerRevisionAfter: null },

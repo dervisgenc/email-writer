@@ -1,9 +1,9 @@
-import type { ComposerRef, ThreadRef } from '@email-writer/contracts';
+import type { ComposerRef, ThreadRef } from '@writehand/contracts';
 
 /**
- * Eklentinin montaj koduna verilen düğme konumları. Bu dar arayüzde
- * `HTMLElement` kullanılabilir; bu nesneler `core`, işlem kayıtları veya
- * depolamaya geçirilmez.
+ * Button positions handed to the extension's mounting code. This narrow
+ * interface may use `HTMLElement`; these objects never reach `core`, operation
+ * records or storage.
  */
 export interface OutlookLauncherAnchor {
   readonly key: string;
@@ -20,8 +20,8 @@ export interface AnchorSources {
 }
 
 /**
- * Konuşma bölmesinin üst köşesi ve her taslak editörünün alt köşesi.
- * Konumlar gerçek Outlook arayüzünde doğrulanana kadar adaydır.
+ * The top corner of the conversation pane and the bottom corner of each draft
+ * editor. These positions are candidates until verified in the real Outlook UI.
  */
 export function locateLauncherAnchors(sources: AnchorSources): OutlookLauncherAnchor[] {
   const anchors: OutlookLauncherAnchor[] = [];
@@ -35,8 +35,8 @@ export function locateLauncherAnchors(sources: AnchorSources): OutlookLauncherAn
   }
   for (const composer of sources.composers) {
     anchors.push({
-      // Anahtar konuşma bağını içermez: taslak sonradan yanıta bağlansa da araç çubuğu ve
-      // içindeki kart yeniden kurulmaz (kullanıcının basmakta olduğu düğme kaybolmaz).
+      // The key leaves out the thread binding: if the draft is later bound to a reply, the
+      // toolbar and its card are not rebuilt (the button the user is pressing does not vanish).
       key: `composer:${composer.ref.composerKey}`,
       element: composer.editor,
       placement: 'bottom-end',

@@ -12,7 +12,7 @@ if (!/^\d+\.\d+\.\d+$/.test(version) || start === -1) {
 }
 const body = changelog.slice(start).split('\n').slice(1);
 const end = body.findIndex((line) => line.startsWith('## '));
-const download = 'https://github.com/dervisgenc/email-writer/releases/latest/download';
+const download = 'https://github.com/dervisgenc/writehand/releases/latest/download';
 
 console.log(`${body
   .slice(0, end === -1 ? undefined : end)
@@ -33,4 +33,4 @@ Windows (PowerShell):
 irm ${download}/install.ps1 | iex
 \`\`\`
 
-The extension's welcome page shows the same command. \`SHA256SUMS\` lists every file's checksum and \`SHA256SUMS.sig\` is its Ed25519 signature; the helper app verifies both before it updates itself. Build provenance: \`gh attestation verify <file> --repo dervisgenc/email-writer\`.`);
+The extension's welcome page shows the same command. \`SHA256SUMS\` lists every file's checksum and \`SHA256SUMS.sig\` is its Ed25519 signature; the helper app verifies both before it updates itself. Build provenance: \`gh attestation verify <file> --repo dervisgenc/writehand\`.`);

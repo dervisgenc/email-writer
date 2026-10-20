@@ -1,4 +1,4 @@
-/* Bağlam denetleyicisi */
+/* Context inspector */
 .ew-context__group {
   margin: var(--ew-space-1) 0 0;
   color: var(--ew-color-muted);
@@ -53,7 +53,7 @@
   margin-top: 1px;
 }
 
-/* Bağlamdaki tek bir mesaj */
+/* A single message in the context */
 .ew-msg {
   display: flex;
   flex-direction: column;

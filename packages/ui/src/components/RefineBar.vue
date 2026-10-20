@@ -4,7 +4,7 @@ import {
   RICH_REFINEMENTS,
   MAX_REFINEMENT_LENGTH,
   type RefinementKind,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { computed, ref, useId } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -12,8 +12,8 @@ import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 
 /**
- * Hazır sonucu değiştirme: hazır yönler (tablo, liste, grafik, kısalt, ton) ve
- * kullanıcının yazdığı istek. Biçim gerektiren yönler yalnızca `rich` iken sunulur.
+ * Refines a finished result: preset directions (table, list, chart, shorten, tone) and a
+ * request the user types. Directions that need formatting are offered only when `rich` is set.
  */
 const props = defineProps<{ rich: boolean; disabled: boolean }>();
 const emit = defineEmits<{ refine: [kind: RefinementKind]; 'refine-custom': [instruction: string] }>();

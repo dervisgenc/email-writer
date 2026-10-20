@@ -1,7 +1,7 @@
-import '@email-writer/ui/styles/panel.css';
+import '@writehand/ui/styles/panel.css';
 
-import type { TextProcessor } from '@email-writer/contracts';
-import { createOutlookWebConnector } from '@email-writer/outlook-web';
+import type { TextProcessor } from '@writehand/contracts';
+import { createOutlookWebConnector } from '@writehand/outlook-web';
 import { defineContentScript } from '#imports';
 
 import { createExtensionSession } from '../src/bootstrap/create-extension-session';
@@ -13,9 +13,9 @@ import { localSettingsArea, sendToBackground } from '../src/platform/extension-b
 import { createSettingsStore } from '../src/platform/settings-store';
 
 /**
- * Normal ve geliştirme derlemeleri gerçek AI bağlantısını kullanır.
- * Yalnızca test derlemesinde etiketli örnek sonuçlar vardır; bu modül
- * üretim paketinden derleme sırasında çıkarılır.
+ * Regular and development builds use the real AI connection.
+ * Only the test build has labeled sample results; this module is
+ * stripped from the production bundle at build time.
  */
 async function loadTextProcessor(): Promise<TextProcessor | null> {
   if (import.meta.env.MODE !== 'test') {
@@ -37,8 +37,8 @@ export default defineContentScript({
       document,
       ownUiSelector: OWN_UI_SELECTOR,
       subscribeLocation: (listener) => {
-        // Konum değişikliği yeniden keşif işaretidir; doğru konuşmayı tek başına belirlemez.
-        // WXT dinleyiciyi bağlam geçersiz olduğunda kendisi kaldırır.
+        // A location change only triggers rediscovery; it does not identify the right conversation.
+        // WXT removes the listener itself when the context is invalidated.
         let active = true;
         ctx.addEventListener(window, 'wxt:locationchange', () => {
           if (active) {
@@ -64,7 +64,7 @@ export default defineContentScript({
         processor: await loadTextProcessor(),
       });
     } catch {
-      // Eklenti hatası e-posta uygulamasının normal kullanımını bozmamalı.
+      // An extension failure must not break normal use of the mail app.
       outlook.connector.dispose();
       reportDiagnostic({ code: 'UNEXPECTED', area: 'content-script' });
     }

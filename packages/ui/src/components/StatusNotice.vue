@@ -31,7 +31,7 @@ const message = computed(() => describe(props.status));
 </script>
 
 <template>
-  <!-- Bekleme ve başarı mesajları kısa biçimde, nazikçe duyurulur. -->
+  <!-- Progress and success messages are kept short and announced politely. -->
   <div class="ew-status" :data-kind="status.kind" aria-live="polite" role="status">
     <template v-if="status.kind !== 'none'">
       <span v-if="status.kind === 'busy'" class="ew-spinner" aria-hidden="true" />

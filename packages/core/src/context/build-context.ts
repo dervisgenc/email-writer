@@ -15,7 +15,7 @@ import {
   type Result,
   type ThreadRef,
   type ThreadSnapshot,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import type { Clock, IdGenerator } from '../dependencies';
 import { deepFreeze } from '../immutability';
@@ -26,24 +26,24 @@ import { orderMessages } from './order-messages';
 import { isDuplicateQuote, quotableLineSequences } from './remove-duplicate-quotes';
 
 export interface BuildContextInput {
-  /** Oturumun bağlı olduğu konuşma. Snapshot başka bir kapsama aitse işlem durur. */
+  /** The conversation the session is bound to. If the snapshot belongs to another scope, the action stops. */
   readonly expectedThread: ThreadRef;
-  /** Açık konuşmanın son okuması; aktif mesaj ve kapsam bilgisi buradan gelir. */
+  /** Latest read of the open conversation; the active message and coverage come from here. */
   readonly snapshot: ThreadSnapshot;
   /**
-   * Bu sayfa oturumunda daha önce okunan mesajlar. Aynı konuşmadan veya aynı
-   * konudan olanlar varsayılan olarak bağlama girer; diğerleri yalnızca
-   * kullanıcı eklerse girer. Başka hesabın mesajları hiç kullanılmaz.
+   * Messages read earlier in this page session. Those from the same conversation or with
+   * the same subject join the context by default; others join only if the user adds them.
+   * Messages from another account are never used.
    */
   readonly history?: readonly HistoryEntry[];
   readonly selection: ContextSelection;
-  /** Kullanıcının otomatik çıkarılan imza/alıntı bloklarından geri dahil ettikleri. */
+  /** Automatically removed signature/quote blocks that the user brought back. */
   readonly includedBlocks: readonly BlockRef[];
-  /** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metinleri. */
+  /** Message texts the user edited in the context panel. */
   readonly edits?: readonly ContextEdit[];
   /**
-   * Bağlantı modülü aktif mesajı tanıyamadığında kullanıcının açıkça seçtiği
-   * yanıt hedefi. Snapshot'ın kendi aktif mesajı varsa o önceliklidir.
+   * Reply target the user picked explicitly when the connector could not identify the
+   * active message. The snapshot's own active message takes precedence if present.
    */
   readonly replyTargetKey?: string | null;
   readonly policy?: ContextPolicy;
@@ -56,7 +56,7 @@ export interface BuildContextDependencies {
 
 const BLOCK_SEPARATOR = '\n\n';
 
-/** Bağlama girebilecek bir mesaj ve hangi konuşmadan geldiği. */
+/** A message that may join the context, and which conversation it came from. */
 interface Candidate {
   readonly message: MessageSnapshot;
   readonly subject: string | null;
@@ -79,10 +79,9 @@ function blockKey(messageKey: string, blockIndex: number): string {
 }
 
 /**
- * Seçili mesaj kümesini bağlam metnine çevirir. Tekrar alıntı kararı kümedeki
- * diğer mesajlara göre verilir; böylece dışarıda kalan bir mesajın alıntısı
- * "zaten bağlamda" sayılıp silinmez. Kullanıcının düzenlediği metin olduğu
- * gibi (normalize edilerek) alınır.
+ * Turns the selected set of messages into context text. Duplicate quotes are judged
+ * against the other messages in the set, so the quote of a message left out is not
+ * dropped as "already in context". Text the user edited is taken as is (normalized).
  */
 function renderMessages(candidates: readonly Candidate[], options: RenderOptions): RenderedSet {
   const sequencesByMessage = new Map(
@@ -157,9 +156,9 @@ function removeDuplicateMessages(messages: readonly MessageSnapshot[]): {
 }
 
 /**
- * Açık konuşmanın mesajlarını ve geçmişteki mesajları tek listede toplar.
- * Aynı mesaj iki kaynakta varsa güncel okuma kullanılır. Sıra: geçmişteki ilk
- * okunma sırası, ardından henüz geçmişte olmayan güncel mesajların ekran sırası.
+ * Collects the open conversation's messages and the history messages into one list.
+ * If a message appears in both, the current read wins. Order: first-read order from the
+ * history, then the display order of current messages not yet in the history.
  */
 function collectCandidates(
   snapshot: ThreadSnapshot,
@@ -190,14 +189,14 @@ function collectCandidates(
       })),
   ].sort((a, b) => a.rank - b.rank);
 
-  // Farklı okumalardaki ekran sıraları karşılaştırılamaz; ortak sıra yeniden numaralanır.
+  // Display orders from different reads are not comparable; the merged order is renumbered.
   return ranked.map(({ candidate }, displayOrder) => ({
     ...candidate,
     message: { ...candidate.message, displayOrder },
   }));
 }
 
-/** Sentetik veya gerçek tarihlere göre sıralar; aday bilgisi korunur. */
+/** Orders by synthetic or real dates; candidate metadata is kept. */
 function orderCandidates(candidates: readonly Candidate[]) {
   const byMessage = new Map(candidates.map((candidate) => [candidate.message, candidate]));
   const { ordered, ordering } = orderMessages(candidates.map((candidate) => candidate.message));
@@ -207,7 +206,7 @@ function orderCandidates(candidates: readonly Candidate[]) {
   };
 }
 
-/** Aktif mesajı en başa, ardından yakından uzağa önce eski sonra yeni mesajları koyar. */
+/** Puts the active message first, then older messages from nearest to farthest, then newer ones. */
 function rankByProximity(ordered: readonly Candidate[], activeMessageKey: string | null): Candidate[] {
   const activeIndex = ordered.findIndex(({ message }) => message.messageKey === activeMessageKey);
   const anchor = activeIndex >= 0 ? activeIndex : ordered.length - 1;
@@ -219,9 +218,9 @@ function tooLarge(details: Record<string, number>): AppError {
 }
 
 /**
- * Seçimi uygular ve sınırları denetler. Kullanıcının başka konuşmalardan
- * açıkça eklediği mesajlar habersizce daraltılmaz (sığmazsa hata döner).
- * Varsayılan olarak giren mesajlar aktif mesaja yakınlığa göre sınıra kadar alınır.
+ * Applies the selection and enforces the limits. Messages the user explicitly added from
+ * other conversations are never silently trimmed (an error is returned if they do not fit).
+ * Default messages are taken by proximity to the active message, up to the limit.
  */
 function selectCandidates(
   ordered: readonly Candidate[],
@@ -271,7 +270,7 @@ function selectCandidates(
     const { totalLength } = renderMessages([...included, candidate], options);
     if (totalLength > policy.maxTotalLength) {
       if (included.length === 0) {
-        // Aktif mesaj tek başına sığmıyor: sessizce kırpılmaz.
+        // The active message alone does not fit: never truncate it silently.
         return err(tooLarge({ limit: policy.maxTotalLength, length: totalLength }));
       }
       for (const rest of ranked.slice(index)) {
@@ -286,9 +285,9 @@ function selectCandidates(
 }
 
 /**
- * Açık konuşma ve oturumda okunan ilgili mesajlardan, seçim ve politikaya
- * göre değişmez bir bağlam üretir. Ağ isteği yapmaz, yeni cümle üretmez.
- * Kimlik ve saat dışarıdan verildiği için aynı girdi aynı içerik sonucunu üretir.
+ * Builds an immutable context from the open conversation and related messages read in the
+ * session, according to the selection and the policy. Makes no network requests and writes
+ * no new sentences. IDs and the clock are injected, so the same input yields the same content.
  */
 export function buildContext(
   input: BuildContextInput,

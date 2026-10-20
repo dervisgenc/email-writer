@@ -1,4 +1,4 @@
-import type { ContextOrdering, MessageSnapshot } from '@email-writer/contracts';
+import type { ContextOrdering, MessageSnapshot } from '@writehand/contracts';
 
 function parseReliableTime(sentAt: string | null): number | null {
   if (sentAt === null) {
@@ -13,8 +13,8 @@ function compareDisplayOrder(a: MessageSnapshot, b: MessageSnapshot): number {
 }
 
 /**
- * Bütün mesajların tarihi güvenilirse eskiden yeniye sıralar. Bir tanesinin
- * bile tarihi eksikse ekrandaki güvenilir sıra korunur; yapay tarih atanmaz.
+ * Orders messages from oldest to newest if every message has a reliable date. If even one
+ * date is missing, the reliable on-screen order is kept; no synthetic dates are assigned.
  */
 export function orderMessages(messages: readonly MessageSnapshot[]): {
   ordered: MessageSnapshot[];

@@ -11,7 +11,7 @@ import {
   type ErrorCode,
   type MailScope,
   type Result,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { editableRegionRange, emptyInsertionRange, type ComposerAnatomy } from '../reading/composer-anatomy';
 import type { SelectionRegistry } from '../selection/selection-registry';
@@ -28,9 +28,9 @@ export interface WriteDependencies {
   readonly undo: UndoStore;
   readonly writer: EditorWriter;
   readonly createId: () => string;
-  /** Editörün bir sonraki normal yeniden çizimini bekler; sonuç tekrar doğrulanır. */
+  /** Waits for the editor's next regular re-render; the result is then verified again. */
   readonly settle: () => Promise<void>;
-  /** Uygulama kimliği → sonuç. Aynı kimlikle ikinci kez yazılmaz. */
+  /** Apply operation id → outcome. The same id never writes twice. */
   readonly attempts: Map<string, 'applied' | 'uncertain' | 'rejected'>;
 }
 
@@ -69,7 +69,7 @@ function planWrite(
         record.revision === target.expectedRevision &&
         anatomy.editableText.slice(record.start, record.end) === record.text;
       if (!isValid) {
-        // Aynı metni sayfanın başka yerinde aramak yasaktır; yeniden seçim istenir.
+        // Searching for the same text elsewhere on the page is forbidden; ask for a new selection.
         return err(appError('SELECTION_INVALID', { field: 'target' }));
       }
       const range = rangeForOffsets(deps.document, anatomy.editableSegments, record.start, record.end);
@@ -95,18 +95,18 @@ function planWrite(
 }
 
 /**
- * Hedefi DOM'a yazmadan hemen önce tekrar doğrular, düz metni tek düzenleme
- * olarak yerleştirir ve editörü yeniden okuyarak sonucu kontrol eder. Son
- * kontrol ile yazma arasında bekleme veya ağ işlemi yoktur.
- */
-/**
- * Biçimli içerikte tablo hücreleri " | " ile okunur, liste imleri ve grafik
- * çubukları metin değildir. Karşılaştırma boşluk ve hücre ayırıcısı yok sayılarak yapılır.
+ * In rich content, table cells read back joined by " | ", and list markers and
+ * chart bars are not text. The comparison ignores whitespace and cell separators.
  */
 function richComparable(text: string): string {
   return text.normalize('NFC').replace(/[\s|]+/gu, '');
 }
 
+/**
+ * Re-validates the target right before writing to the DOM, inserts the plain
+ * text as a single edit and checks the result by reading the editor again.
+ * There is no await or network call between the last check and the write.
+ */
 export async function applyText(request: ApplyRequest, deps: WriteDependencies): Promise<ApplyOutcome> {
   if (request.text.trim().length > 0) {
     await focusEditor(request.target.composerRef, deps);
@@ -115,9 +115,9 @@ export async function applyText(request: ApplyRequest, deps: WriteDependencies):
 }
 
 /**
- * Outlook taslağa odak geçince alıntıyı doldurabilir veya içeriği yeniden
- * düzenleyebilir. Editör yazmadan önce odaklanır ve bu tepki beklenir; bütün
- * denetimler ondan sonra, yazmayla aralarında bekleme olmadan yapılır.
+ * When the draft gains focus, Outlook may fill in the quote or restructure the
+ * content. The editor is focused before writing and that reaction is awaited;
+ * all checks run afterwards, with no await between them and the write.
  */
 export async function focusEditor(ref: ComposerRef, deps: WriteDependencies): Promise<void> {
   if (!isSameScope(ref.scope, deps.scope())) {
@@ -151,7 +151,7 @@ async function applyFocused(request: ApplyRequest, deps: WriteDependencies): Pro
   if (!isSameScope(target.composerRef.scope, deps.scope())) {
     return rejected('TARGET_MISSING');
   }
-  // Cümle içindeki bir seçime biçimli içerik yazılmaz.
+  // Rich content is never written into a selection within a sentence.
   if (rich !== undefined && target.mode === 'replace-selection') {
     return rejected('WRITE_UNSUPPORTED');
   }
@@ -159,7 +159,7 @@ async function applyFocused(request: ApplyRequest, deps: WriteDependencies): Pro
   if (handle === null || !isEditorWritable(handle.editor)) {
     return rejected('TARGET_MISSING');
   }
-  // IME ile yazım sürüyorsa kullanıcı bu taslağı değiştiriyor demektir.
+  // An active IME composition means the user is changing this draft.
   if (handle.tracker.isComposing() || handle.tracker.sync() !== target.expectedRevision) {
     return rejected('TARGET_CHANGED');
   }
@@ -175,7 +175,7 @@ async function applyFocused(request: ApplyRequest, deps: WriteDependencies): Pro
   const compare = rich === undefined ? comparableText : richComparable;
   const expected = compare(prefix + (rich?.visibleText ?? text) + suffix);
 
-  // Yazmadan önce işaretlenir: beklenmeyen bir hata olsa bile otomatik tekrar yapılmaz.
+  // Marked before writing, so even an unexpected error never leads to an automatic retry.
   deps.attempts.set(applyOperationId, 'uncertain');
   let accepted: boolean;
   try {
@@ -217,7 +217,7 @@ async function applyFocused(request: ApplyRequest, deps: WriteDependencies): Pro
 
   const boundariesIntact = after.editableText.startsWith(prefix) && after.editableText.endsWith(suffix);
   if (!boundariesIntact) {
-    // Değişen bölüm kesin sınırlanamıyorsa geri alma sunulmaz.
+    // If the changed part cannot be delimited exactly, undo is not offered.
     deps.undo.forgetComposer(target.composerRef.composerKey);
     return { status: 'applied', composerRevision: revisionAfter, undoId: null };
   }

@@ -1,5 +1,5 @@
-import { PRODUCT_NAME } from '@email-writer/contracts';
-import type { AiText } from '@email-writer/ui';
+import { PRODUCT_NAME } from '@writehand/contracts';
+import type { AiText } from '@writehand/ui';
 
 export const aiEs: AiText = {
   title: 'Conexión de IA',

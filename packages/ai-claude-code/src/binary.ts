@@ -1,6 +1,6 @@
 import { access, constants, open, readFile, stat } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative } from 'node:path';
-import { appError, err, ok, type AppError, type Result } from '@email-writer/contracts';
+import { appError, err, ok, type AppError, type Result } from '@writehand/contracts';
 
 /** How Claude Code is started: an executable and the arguments that precede Claude Code's own. */
 export interface ClaudeCommand {

@@ -1,12 +1,12 @@
 import { browser } from '#imports';
-import { NATIVE_HOST_NAME, type HostOperatingSystem } from '@email-writer/contracts';
+import { NATIVE_HOST_NAME, type HostOperatingSystem } from '@writehand/contracts';
 
 import type { MessageSender } from './runtime-messaging';
 import type { SettingsStorageArea } from './settings-store';
 
 /**
- * Tarayıcı eklenti API'lerine dokunan tek yer. Tarayıcıya özgü bir fark
- * gerekirse burada uyarlanır; iş kurallarına `if Firefox` kontrolleri yayılmaz.
+ * The only place that touches browser extension APIs. Browser-specific differences
+ * are adapted here, so `if Firefox` checks do not spread into business rules.
  */
 export const localSettingsArea: SettingsStorageArea = {
   get: (key) => browser.storage.local.get(key),
@@ -24,6 +24,11 @@ export function onSettingsStorageChanged(key: string, listener: (value: unknown)
   return () => browser.storage.onChanged.removeListener(handler);
 }
 
+/** The extension icon (`public/icon/`), shown as the brand mark on the extension's own pages. */
+export function brandIconUrl(): string {
+  return browser.runtime.getURL('/icon/128.png');
+}
+
 export function sendToBackground(message: unknown): Promise<unknown> {
   return browser.runtime.sendMessage(message);
 }
@@ -33,8 +38,8 @@ export function sendToTab(tabId: number, message: unknown): Promise<unknown> {
 }
 
 /**
- * Genel `tabs` izni olmadan etkin sekme alınır. Adres yalnızca eklentinin
- * erişim izni olan (desteklenen) sitelerde tarayıcı tarafından verilir.
+ * Gets the active tab without the broad `tabs` permission. The browser exposes the URL
+ * only on (supported) sites the extension has access to.
  */
 export async function activeTab(): Promise<{ readonly id: number; readonly url: string | undefined } | null> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -43,7 +48,7 @@ export async function activeTab(): Promise<{ readonly id: number; readonly url: 
 
 const extensionOrigin = () => browser.runtime.getURL('/');
 
-/** Mesaj yalnızca bu eklentinin kendi ekranlarından (araç çubuğu, ayarlar) kabul edilir. */
+/** Messages are accepted only from this extension's own screens (toolbar, settings). */
 export function isOwnExtensionPage(sender: MessageSender): boolean {
   return (
     sender.id === browser.runtime.id &&
@@ -53,9 +58,9 @@ export function isOwnExtensionPage(sender: MessageSender): boolean {
 }
 
 /**
- * Yerel yardımcı uygulamayla konuşma izni (`nativeMessaging`) isteğe bağlıdır: kurulumda uyarı
- * çıkmaz, karşılama sihirbazı izni gerekçesiyle birlikte ister. İzin yokken tarayıcı
- * `connectNative`'i sunmaz.
+ * Permission to talk to the local helper app (`nativeMessaging`) is optional: no warning at
+ * install time; the welcome wizard requests it along with the reason. Without it the browser
+ * does not expose `connectNative`.
  */
 export async function hasNativeMessagingPermission(): Promise<boolean> {
   try {
@@ -65,7 +70,7 @@ export async function hasNativeMessagingPermission(): Promise<boolean> {
   }
 }
 
-/** Tarayıcı izin penceresini açar; kullanıcı tıklamasının içinde, beklemeden çağrılmalıdır. */
+/** Opens the browser permission prompt; must be called inside a user click, before any await. */
 export function requestNativeMessagingPermission(): Promise<boolean> {
   return browser.permissions.request({ permissions: ['nativeMessaging'] }).catch(() => false);
 }
@@ -96,18 +101,18 @@ export function openOptionsPage(): Promise<void> {
   return browser.runtime.openOptionsPage();
 }
 
-/** Karşılama sihirbazını yeni sekmede açar (`tabs` izni gerekmez). */
+/** Opens the welcome wizard in a new tab (no `tabs` permission needed). */
 export async function openWelcomePage(): Promise<void> {
   await browser.tabs.create({ url: browser.runtime.getURL('/welcome.html') });
 }
 
-/** Tarayıcının çalıştığı işletim sistemi; sürüm dosyalarındaki adlarla. */
+/** The operating system the browser runs on, using the names from the release files. */
 export async function operatingSystem(): Promise<HostOperatingSystem> {
   const { os } = await browser.runtime.getPlatformInfo();
   return os === 'mac' ? 'darwin' : os === 'win' ? 'windows' : 'linux';
 }
 
-/** Desteklenen sitelere erişim izninin hâlâ verilmiş olup olmadığı. */
+/** Whether access to the supported sites is still granted. */
 export async function hasSiteAccess(origins: readonly string[]): Promise<boolean> {
   try {
     return await browser.permissions.contains({ origins: [...origins] });

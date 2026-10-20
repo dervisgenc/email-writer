@@ -1,14 +1,14 @@
-import type { PageSupport } from '@email-writer/contracts';
+import type { PageSupport } from '@writehand/contracts';
 
 import { NON_MAIL_PATH_PREFIXES, queryFirst } from './selectors';
 
-/** Posta arayüzü işaretleri bu süre içinde görünmezse ekran desteklenmiyor sayılır. */
+/** If no mail UI markers appear within this time, the screen counts as unsupported. */
 export const DEFAULT_WAIT_LIMIT_MS = 15_000;
 
 /**
- * Görünen alanın posta arayüzü olup olmadığını belirler. Aynı alan adındaki
- * takvim veya giriş ekranına düğme eklenmez. Bir seçici eşleşmediğinde bütün
- * sayfanın metnini yedek yöntem olarak almak yasaktır.
+ * Decides whether the visible area is the mail UI. No button is added to the
+ * calendar or sign-in screens on the same domain. Falling back to the whole
+ * page's text when a selector does not match is forbidden.
  */
 export function detectPage(
   document: Document,

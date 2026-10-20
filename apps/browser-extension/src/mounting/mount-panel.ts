@@ -1,4 +1,4 @@
-import type { UiText } from '@email-writer/ui';
+import type { UiText } from '@writehand/ui';
 import { createApp, ref, type Ref } from 'vue';
 import { createShadowRootUi, type ContentScriptContext } from '#imports';
 
@@ -8,8 +8,8 @@ import type { Appearance } from './appearance';
 import PanelHost from './PanelHost.vue';
 
 /**
- * Outlook'un klavye kısayolları panelde yazarken tetiklenmesin diye bu olaylar
- * gölge kökün dışına taşınmaz.
+ * These events are kept from leaving the shadow root so that Outlook's keyboard
+ * shortcuts do not fire while typing in the panel.
  */
 export const ISOLATED_EVENTS = [
   'keydown',
@@ -24,7 +24,7 @@ export const ISOLATED_EVENTS = [
 
 export interface MountedPanel {
   setOpen(open: boolean): void;
-  /** Kapatıldığında odak mümkünse paneli açan düğmeye döner. */
+  /** On close, focus returns to the button that opened the panel when possible. */
   rememberOpener(element: HTMLElement | null): void;
   remove(): void;
 }
@@ -41,7 +41,7 @@ export async function mountPanel(
   let opener: HTMLElement | null = null;
 
   const ui = await createShadowRootUi(ctx, {
-    name: 'email-writer-panel',
+    name: 'writehand-panel',
     position: 'inline',
     anchor: 'body',
     append: 'last',

@@ -1,4 +1,4 @@
-import { FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@email-writer/contracts';
+import { FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@writehand/contracts';
 import { defineConfig } from 'wxt';
 
 import { version } from '../../package.json';
@@ -6,36 +6,36 @@ import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/suppor
 import { manifestMessages } from './src/locales';
 
 /**
- * Aynı kaynak koddan Chromium (service worker) ve Firefox (background script)
- * için Manifest V3 paketleri üretilir. WXT'de Firefox varsayılanı MV2 olduğu
- * için komutlarda `--mv3` açıkça verilir (bkz. package.json).
+ * Builds Manifest V3 packages for Chromium (service worker) and Firefox
+ * (background script) from the same source. WXT defaults to MV2 for Firefox,
+ * so the commands pass `--mv3` explicitly (see package.json).
  *
- * İzinler bilinçli olarak dardır: `storage`, isteğe bağlı `nativeMessaging` ve desteklenen
- * Outlook adreslerine statik content script eşleşmeleri. `<all_urls>`, `tabs`,
- * `scripting`, `activeTab`, `cookies`, `webRequest`, `clipboardRead` istenmez.
+ * Permissions are deliberately narrow: `storage`, optional `nativeMessaging`, and static
+ * content script matches for the supported Outlook addresses. `<all_urls>`, `tabs`,
+ * `scripting`, `activeTab`, `cookies`, `webRequest` and `clipboardRead` are not requested.
  */
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   imports: false,
   manifestVersion: 3,
   manifest: ({ browser }) => ({
-    // Ad ve açıklama arayüz dillerinde `_locales` dosyalarından gelir (aşağıdaki hook).
+    // Name and description come from the `_locales` files in each UI language (hook below).
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
-    // Tek sürüm kaynağı kök package.json'dır; yardımcı uygulama da aynı sürümü taşır.
+    // The root package.json is the single version source; the helper app carries the same version.
     version,
     permissions: ['storage'],
-    // Yardımcı uygulamayla konuşma izni kurulumda istenmez; karşılama sihirbazı gerekçesiyle ister.
+    // The helper app permission is not requested at install; the welcome wizard asks for it with a reason.
     optional_permissions: ['nativeMessaging'],
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {
             gecko: {
               id: FIREFOX_EXTENSION_ID,
-              // Yerleşik veri paylaşımı beyanı Firefox 140 ile geldi.
+              // The built-in data collection declaration arrived in Firefox 140.
               strict_min_version: '140.0',
-              // Yalnızca kullanıcı üretim istediğinde seçilen metin OpenAI'a gönderilir.
+              // Selected text is sent to OpenAI only when the user requests a generation.
               data_collection_permissions: { required: ['personalCommunications', 'authenticationInfo'] },
             },
             gecko_android: { strict_min_version: '142.0' },
@@ -44,8 +44,8 @@ export default defineConfig({
       : {}),
   }),
   zip: {
-    // Mağaza paketleri: writehand-<sürüm>-chrome.zip (Chrome, Edge, Brave) ve -firefox.zip. AMO'nun
-    // istediği kaynak arşivi bütün monorepoyu kapsamalı; sürüm iş akışı onu `git archive` ile üretir.
+    // Store packages: writehand-<version>-chrome.zip (Chrome, Edge, Brave) and -firefox.zip. The source
+    // archive AMO requires must cover the whole monorepo; the release workflow builds it with `git archive`.
     artifactTemplate: `${HELPER_COMMAND}-{{version}}-{{browser}}.zip`,
     zipSources: false,
   },
@@ -58,11 +58,11 @@ export default defineConfig({
         });
       }
     },
-    // Yerel test sayfası yalnızca geliştirme/test derlemesinde desteklenen origin olur.
-    // Eşleşmeler manifest yerine giriş noktası seçeneklerine eklenir: `wxt` (dev)
-    // MV3'te content script'i manifeste yazmaz, bu seçeneklerle çalışma anında
-    // kaydeder. Manifestteki content script, host izni ve gölge kök stilinin
-    // web_accessible_resources eşleşmeleri de aynı seçeneklerden üretilir.
+    // The local test page is a supported origin only in development/test builds.
+    // The matches are added to the entrypoint options rather than the manifest: in MV3
+    // `wxt` (dev) does not write the content script to the manifest but registers it at
+    // runtime from these options. The manifest's content script, host permissions and the
+    // shadow root stylesheet's web_accessible_resources matches are generated from them too.
     'entrypoints:resolved': (wxt, entrypoints) => {
       if (wxt.config.mode === 'production') {
         return;

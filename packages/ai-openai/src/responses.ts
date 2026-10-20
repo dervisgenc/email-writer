@@ -1,4 +1,4 @@
-import { aiModelSchema, type AiInput, type AiModel } from '@email-writer/contracts';
+import { aiModelSchema, type AiInput, type AiModel } from '@writehand/contracts';
 import { z } from 'zod';
 
 import { AiFailure, providerFailure } from './errors';

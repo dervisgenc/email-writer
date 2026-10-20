@@ -5,8 +5,8 @@ const MAX_BYTES = 900_000;
 const littleEndian = endianness() === 'LE';
 
 /**
- * Tanınmayan bir isteğe verilecek yanıt. İstek kimliği okunabiliyorsa eklenti uzun
- * süre beklemez: büyük olasılıkla eklenti ile yardımcı uygulama farklı sürümlerdendir.
+ * The reply to an unrecognized request. When the request id is readable, the extension
+ * does not wait long: most likely the extension and the helper app are different versions.
  */
 export function rejectionFor(raw: unknown, protocolVersion: number): object | null {
   if (typeof raw !== 'object' || raw === null || !('requestId' in raw)) return null;

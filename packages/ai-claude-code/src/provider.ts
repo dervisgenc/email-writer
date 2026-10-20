@@ -12,7 +12,7 @@ import {
   type AppError,
   type ErrorCode,
   type Result,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { z } from 'zod';
 
 import type { ClaudeCommand } from './binary';
@@ -174,7 +174,7 @@ export function createClaudeCodeProvider(options: {
   const { findBinary } = options;
   const withWorkspace = async <T>(operation: (cwd: string) => Promise<T>): Promise<T> => {
     // An empty private directory: no project instructions or files are in reach.
-    const cwd = await mkdtemp(join(tmpdir(), 'email-writer-claude-'));
+    const cwd = await mkdtemp(join(tmpdir(), 'writehand-claude-'));
     try {
       return await operation(cwd);
     } finally {

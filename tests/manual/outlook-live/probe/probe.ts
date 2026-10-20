@@ -1,11 +1,11 @@
 /**
- * Gerçek Outlook sayfasında, WebDriver BiDi'nin yalıtılmış "sandbox"
- * ortamında çalışan inceleme girişi. Sandbox, content script gibi sayfanın
- * DOM'unu görür ama sayfanın JavaScript nesnelerine karışmaz.
+ * Inspection entry point that runs on the real Outlook page in WebDriver BiDi's
+ * isolated "sandbox" realm. Like a content script, the sandbox sees the page's
+ * DOM but does not touch the page's JavaScript objects.
  *
- * Bütün çıktılar maskelidir: gerçek e-posta metni, ad veya adres döndürülmez.
+ * All output is masked: no real email text, name or address is returned.
  */
-import { createOutlookWebConnector, OUTLOOK_SELECTORS } from '@email-writer/outlook-web';
+import { createOutlookWebConnector, OUTLOOK_SELECTORS } from '@writehand/outlook-web';
 
 import { OWN_UI_SELECTOR } from '../../../../apps/browser-extension/src/bootstrap/mail-provider';
 
@@ -15,7 +15,7 @@ import { readThreadReport } from './read-thread-report';
 
 const messageBodySelector = OUTLOOK_SELECTORS.messageBody.selectors.join(', ');
 
-/** Hedef, bir seçici anahtarı (ör. `readingPane`) veya doğrudan CSS seçicisidir. */
+/** The target is a selector key (e.g. `readingPane`) or a CSS selector. */
 function resolveRoot(target: string): Element | null {
   const selector = Object.hasOwn(OUTLOOK_SELECTORS, target)
     ? OUTLOOK_SELECTORS[target as keyof typeof OUTLOOK_SELECTORS].selectors.join(', ')
@@ -33,13 +33,13 @@ export function structure(target = 'readingPane', maxDepth = 40, maxLines = 400,
     lines: describeStructure(root, {
       maxDepth,
       maxLines,
-      // E-posta gövdesinin içi yapısal olarak gerekmedikçe dökülmez.
+      // The email body is not expanded unless its structure is needed.
       collapse: showBodies ? ':not(*)' : messageBodySelector,
     }),
   };
 }
 
-/** Seçici anahtarlarındaki her seçicinin ayrı eşleşme sayısı; içerik taşımaz. */
+/** Match count of each selector under the selector keys, separately; carries no content. */
 export function selectorMatches(key?: string) {
   const keys = (
     key === undefined ? Object.keys(OUTLOOK_SELECTORS) : [key]
@@ -60,16 +60,16 @@ export function rows(selector?: string) {
   return describeRows(document, selector);
 }
 
-/** Satırdaki eylem düğmeleri (sil, arşivle, bayrak, seçim kutusu) tıklanmamalıdır. */
+/** Action buttons in a row (delete, archive, flag, checkbox) must not be clicked. */
 const ROW_ACTION_SELECTOR = 'button, [role="button"], [role="checkbox"], input, a[href]';
 
-/** Kaydırmadan sonra sanal listenin yeniden çizilmesi için beklenen süre. */
+/** How long to wait for the virtual list to redraw after scrolling. */
 const SCROLL_SETTLE_MS = 400;
 
 /**
- * Tıklanacak satırın konuşma kimliği. Sanal liste kaydırıldığında satırların
- * DOM sırası değişir; hedef bu yüzden sırayla değil kimlikle izlenir. Kimlik
- * yalnızca sandbox içinde kalır, çıktıya yazılmaz.
+ * Conversation ID of the row to click. Scrolling the virtual list changes the DOM
+ * order of the rows, so the target is tracked by ID, not by position. The ID stays
+ * inside the sandbox and is never written to the output.
  */
 let targetConversation: string | null = null;
 
@@ -77,7 +77,7 @@ function rowByConversation(conversationId: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[role="option"][data-convid="${CSS.escape(conversationId)}"]`);
 }
 
-/** Satırın içinde, hiçbir eylem düğmesine denk gelmeyen bir tıklama noktası (görünüm koordinatı). */
+/** A click point inside the row that hits no action button (viewport coordinates). */
 function safePointIn(row: HTMLElement): { x: number; y: number } | null {
   const rect = row.getBoundingClientRect();
   const y = Math.round(rect.top + rect.height / 2);
@@ -92,9 +92,9 @@ function safePointIn(row: HTMLElement): { x: number; y: number } | null {
 }
 
 /**
- * Satırı görünür alana kaydırır, liste yeniden çizildikten sonra satırı
- * kimliğiyle yeniden bulur ve güvenli tıklama noktasını verir. Gerçek fare
- * olayı BiDi ile bu noktaya hemen ardından gönderilir.
+ * Scrolls the row into view, finds it again by ID once the list has redrawn, and
+ * returns a safe click point. The real mouse event is sent to this point over
+ * BiDi right after.
  */
 export async function rowClickPoint(
   index: number,
@@ -112,16 +112,16 @@ export async function rowClickPoint(
   return settled === null ? null : safePointIn(settled);
 }
 
-/** Son hedeflenen satır seçili mi? Seçilmediyse açılan konuşma okunmaz. */
+/** Is the last targeted row selected? If not, the opened conversation is not read. */
 export function targetRowSelected(): boolean {
   const row = targetConversation === null ? null : rowByConversation(targetConversation);
   return row?.getAttribute('aria-selected') === 'true';
 }
 
 /**
- * Okuma bölmesinde gösterilen iletinin parmak izi: konu ve gönderen başlığının
- * kimlikleri. Yalnızca bölme çizimi tamamlandığında (konu, gönderen ve gövde
- * birlikte varken) değer üretir. Kimlikler sandbox dışına verilmez.
+ * Fingerprint of the message shown in the reading pane: the IDs of the subject and
+ * sender headings. It has a value only once the pane has finished rendering (subject,
+ * sender and body all present). The IDs never leave the sandbox.
  */
 function readingPaneFingerprint(): string | null {
   const pane = document.querySelector(OUTLOOK_SELECTORS.readingPane.selectors.join(', '));
@@ -133,12 +133,12 @@ function readingPaneFingerprint(): string | null {
 
 let markedFingerprint: string | null = null;
 
-/** Tıklamadan önce okuma bölmesinin durumunu işaretler. */
+/** Marks the state of the reading pane before the click. */
 export function markReadingPane(): void {
   markedFingerprint = readingPaneFingerprint();
 }
 
-/** Okuma bölmesi işaretten sonra yeni bir iletiyi tamamen çizdi mi? */
+/** Has the reading pane fully rendered a new message since the mark? */
 export function readingPaneChanged(): boolean {
   const current = readingPaneFingerprint();
   return current !== null && current !== markedFingerprint;
@@ -148,7 +148,7 @@ export function readThread() {
   return readThreadReport(document);
 }
 
-/** Outlook'un tema renkleri (eklentinin kullandığı okuyucuyla); içerik taşımaz. */
+/** Outlook's theme colors (read with the extension's own reader); carries no content. */
 export function theme() {
   const { connector, readTheme } = createOutlookWebConnector({ document, ownUiSelector: OWN_UI_SELECTOR });
   try {
@@ -159,11 +159,11 @@ export function theme() {
 }
 
 /**
- * Eklentinin sayfadaki düğmelerinin konumu ve altında kalan Outlook düğmeleri.
- * Çakışmayı içerik okumadan denetlemek içindir: yalnızca rol ve konum verilir.
+ * Position of the extension's buttons on the page and the Outlook buttons beneath them.
+ * For checking overlap without reading content: only roles and positions are returned.
  */
 export function launcherLayout() {
-  const hosts = Array.from(document.querySelectorAll('email-writer-launcher'));
+  const hosts = Array.from(document.querySelectorAll('writehand-launcher'));
   return hosts.map((host) => {
     const container = host.shadowRoot?.querySelector<HTMLElement>('.ew-root')?.parentElement ?? null;
     const box = container?.getBoundingClientRect();
@@ -174,7 +174,7 @@ export function launcherLayout() {
     const overlaps = Array.from(
       document.querySelectorAll<HTMLElement>('button, [role="button"], [role="menuitem"]'),
     )
-      .filter((element) => !element.closest('email-writer-launcher'))
+      .filter((element) => !element.closest('writehand-launcher'))
       .filter((element) => {
         const rect = element.getBoundingClientRect();
         return (
@@ -201,7 +201,7 @@ export function launcherLayout() {
   });
 }
 
-/** Kimliği göstermeden karşılaştırmak için kısa özet (FNV-1a). */
+/** Short hash (FNV-1a) for comparing an ID without showing it. */
 function shortHash(value: string | null): string | null {
   if (value === null) {
     return null;
@@ -219,7 +219,7 @@ let watched: {
   events: string[];
 } | null = null;
 
-/** Bağlantının ve okuma bölmesinin içeriksiz durumu (tanı için). */
+/** Content-free state of the connector and the reading pane (for diagnosis). */
 function watchedState() {
   const state = watched?.connector.getPageState();
   const pane = document.querySelector('#ReadingPaneContainerId');
@@ -228,7 +228,7 @@ function watchedState() {
   const row = document.querySelector('[role="option"][aria-selected="true"][data-convid]');
   return {
     thread: state?.activeThread?.threadKey ?? null,
-    composers: state?.composers.map((composer) => composer.threadKey ?? 'yeni') ?? [],
+    composers: state?.composers.map((composer) => composer.threadKey ?? 'new') ?? [],
     bodies: pane?.querySelectorAll(messageBodySelector).length ?? 0,
     editor: editor !== null,
     quote: editor?.querySelector('[id$="divRplyFwdMsg"], [id$="appendonsend"]') !== null && editor !== null,
@@ -237,8 +237,8 @@ function watchedState() {
 }
 
 /**
- * Tanı: eklentinin kullandığı bağlantıyı sayfada başlatır ve olaylarını kaydeder.
- * `watchState` ile durum ve olaylar okunur, `watchStop` ile temizlenir.
+ * Diagnosis: starts the connector the extension uses on the page and records its events.
+ * `watchState` reads the state and events; `watchStop` cleans up.
  */
 export function watchStart() {
   watched?.connector.dispose();
@@ -249,7 +249,7 @@ export function watchStart() {
       event.type === 'active-thread-changed'
         ? `${event.type}(${event.current?.threadKey ?? 'null'})`
         : 'ref' in event
-          ? `${event.type}(${event.ref.threadKey ?? 'yeni'})`
+          ? `${event.type}(${event.ref.threadKey ?? 'new'})`
           : event.type,
     );
   });
@@ -268,7 +268,7 @@ export function watchStop(): void {
   watched = null;
 }
 
-/** Okuma bölmesindeki "Reply" düğmesinin güvenli tıklama noktası; yoksa `null`. */
+/** Safe click point of the "Reply" button in the reading pane, or `null` if there is none. */
 export function replyClickPoint(): { x: number; y: number } | null {
   const pane = document.querySelector('#ReadingPaneContainerId');
   const target = Array.from(pane?.querySelectorAll<HTMLElement>('button, [role="menuitem"]') ?? []).find(

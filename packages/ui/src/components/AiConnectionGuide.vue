@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AI_MODES, CLAUDE_CODE_SETUP_URL, OPENAI_API_KEYS_URL, type AiMode } from '@email-writer/contracts';
+import { AI_MODES, CLAUDE_CODE_SETUP_URL, OPENAI_API_KEYS_URL, type AiMode } from '@writehand/contracts';
 import { useId } from 'vue';
 
 import type { AiGuideItem, AiText } from '../ai-text';
@@ -14,10 +14,10 @@ const LINKS: Partial<Record<AiMode, string>> = {
   'api-key': OPENAI_API_KEYS_URL,
   'claude-code': CLAUDE_CODE_SETUP_URL,
 };
-// Sayfa açıldığında seçili yöntemin bölümü açık gelir; sonrasında kullanıcı karar verir.
+// The selected method's section starts open; after that the user decides.
 const initiallyOpen = props.mode;
 
-/** `...` arasındaki parçalar komut olarak gösterilir. */
+/** Parts wrapped in `...` are shown as commands. */
 function parts(line: string): { code: boolean; text: string }[] {
   return line.split('`').map((text, index) => ({ code: index % 2 === 1, text }));
 }

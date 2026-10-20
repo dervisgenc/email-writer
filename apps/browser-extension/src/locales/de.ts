@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from '@email-writer/contracts';
+import { PRODUCT_NAME } from '@writehand/contracts';
 
 import { aiDe } from './ai-de';
 import type { ExtensionText } from './extension-text';

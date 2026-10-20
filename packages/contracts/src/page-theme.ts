@@ -1,6 +1,6 @@
 /**
- * E-posta uygulamasının o anki renkleri. Eklenti arayüzü sayfayla uyumlu
- * görünsün diye okunur; içerik taşımaz. Renkler CSS renk değeridir.
+ * The email app's current colors. Read so the extension UI matches the page; carries no
+ * content. Colors are CSS color values.
  */
 export const PAGE_COLOR_ROLES = [
   'background',
@@ -20,6 +20,6 @@ export type PageColorRole = (typeof PAGE_COLOR_ROLES)[number];
 
 export interface PageTheme {
   readonly scheme: 'light' | 'dark';
-  /** Sayfada bulunamayan roller eklentinin kendi renkleriyle tamamlanır. */
+  /** Roles missing from the page are filled in with the extension's own colors. */
   readonly colors: Readonly<Partial<Record<PageColorRole, string>>>;
 }

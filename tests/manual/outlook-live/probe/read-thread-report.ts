@@ -1,9 +1,9 @@
-import type { ContextCoverage, PageSupport, TextBlock, ThreadSnapshot } from '@email-writer/contracts';
+import type { ContextCoverage, PageSupport, TextBlock, ThreadSnapshot } from '@writehand/contracts';
 import {
   createOutlookWebConnector,
   OUTLOOK_SELECTORS,
   type SelectorReportEntry,
-} from '@email-writer/outlook-web';
+} from '@writehand/outlook-web';
 
 import { OWN_UI_SELECTOR } from '../../../../apps/browser-extension/src/bootstrap/mail-provider';
 import { maskText } from './mask-text';
@@ -23,7 +23,7 @@ export interface MessageReport {
   readonly blocks: readonly BlockReport[];
 }
 
-/** Okunan metin ile tarayıcının gösterdiği metnin boşluksuz karakter sayıları. */
+/** Non-whitespace character counts of the extracted text and of the text the browser shows. */
 export interface TextCoverage {
   readonly extracted: number;
   readonly rendered: number;
@@ -31,7 +31,7 @@ export interface TextCoverage {
 
 export interface ThreadReport {
   readonly support: PageSupport;
-  /** Bağlantının konuşma anahtarı (opak özet); kaynağı ön ekinden anlaşılır (conv/url/thread-local). */
+  /** The connector's conversation key (opaque hash); its prefix shows the source (conv/url/thread-local). */
   readonly threadKey: string | null;
   readonly selectors: readonly SelectorReportEntry[];
   readonly thread:
@@ -48,7 +48,7 @@ export interface ThreadReport {
 
 const countVisibleCharacters = (text: string) => text.replace(/\s+/g, '').length;
 
-/** Okuma bölmesindeki en içteki mesaj gövdeleri; bağlantının kullandığı seçicilerle. */
+/** Innermost message bodies in the reading pane, found with the connector's selectors. */
 function renderedBodyText(document: Document): number {
   const selector = OUTLOOK_SELECTORS.messageBody.selectors.join(', ');
   const all = Array.from(document.querySelectorAll<HTMLElement>(selector));
@@ -86,9 +86,9 @@ function describeThread(snapshot: ThreadSnapshot, rendered: number): NonNullable
 }
 
 /**
- * Eklentinin kullandığı Outlook bağlantısını sayfada çalıştırır, açık
- * konuşmayı okur ve sonucu maskeli rapora çevirir. Bağlantı her çağrıda
- * yeniden kurulur ve sonunda temizlenir; sayfada iz bırakmaz.
+ * Runs the extension's Outlook connector on the page, reads the open conversation
+ * and turns the result into a masked report. The connector is created on every call
+ * and disposed at the end; it leaves no trace on the page.
  */
 export async function readThreadReport(document: Document): Promise<ThreadReport> {
   const { connector, selectorReport } = createOutlookWebConnector({

@@ -2,14 +2,14 @@ import {
   DEFAULT_CLAUDE_CODE_MODEL,
   type ClaudeCodeProvider,
   type ClaudeCodeStatus,
-} from '@email-writer/ai-claude-code';
+} from '@writehand/ai-claude-code';
 import {
   AiFailure,
   failureCode,
   PLAN_SCOPE,
   type createOpenAiOAuth,
   type createOpenAiProvider,
-} from '@email-writer/ai-openai';
+} from '@writehand/ai-openai';
 import {
   aiAccountLabelSchema,
   type AiCommand,
@@ -17,7 +17,7 @@ import {
   type AiModel,
   type AiStatus,
   type ErrorCode,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import type { CredentialState, CredentialStore } from './credential-store';
 import { sameAccountLabel } from './account-label';

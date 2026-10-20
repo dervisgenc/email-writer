@@ -1,6 +1,6 @@
 /*
- * Eklenti arayüzünün stil girişi. Content script bu dosyayı gölge köklere
- * yükler; bütün kurallar `.ew-root` altındadır ve sayfaya sızmaz.
+ * Stylesheet entry point for the extension UI. The content script loads this file
+ * into shadow roots; every rule lives under `.ew-root` and never leaks into the page.
  */
 @import './tokens.css';
 @import './base.css';

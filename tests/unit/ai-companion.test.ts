@@ -2,14 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ClaudeCodeProvider, ClaudeCodeStatus } from '@email-writer/ai-claude-code';
+import type { ClaudeCodeProvider, ClaudeCodeStatus } from '@writehand/ai-claude-code';
 import {
   AiFailure,
   PLAN_SCOPE,
   type createOpenAiOAuth,
   type createOpenAiProvider,
-} from '@email-writer/ai-openai';
-import { appError, err, ok, type AiInput } from '@email-writer/contracts';
+} from '@writehand/ai-openai';
+import { appError, err, ok, type AiInput } from '@writehand/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAiService } from '../../apps/ai-companion/src/ai-service';
@@ -306,7 +306,7 @@ describe('AI service and protected storage', () => {
   });
 
   it('serializes token refresh across native processes and replaces the file in one step', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(directory);
     const store = createCredentialStore(directory);
     await store.update((state) => Object.assign(state, initial()));
@@ -329,10 +329,11 @@ describe('AI service and protected storage', () => {
     expect((await readdir(directory)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
   });
 
+  // On Windows this starts several PowerShell processes, which can outlast the default 5 s timeout on CI runners.
   it('keeps the credential directory and file private to the owner on this system', async () => {
-    const parent = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    const parent = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(parent);
-    const directory = join(parent, 'email-writer');
+    const directory = join(parent, 'writehand');
     const store = createCredentialStore(directory, { restrictDirectory: hostPlatform().restrictDirectory });
     await store.update((state) => Object.assign(state, initial()));
     const file = join(directory, 'credentials.json');
@@ -369,12 +370,12 @@ describe('AI service and protected storage', () => {
       expect((await stat(directory)).mode & 0o777).toBe(0o700);
       expect((await stat(file)).mode & 0o777).toBe(0o600);
     }
-  });
+  }, 30_000);
 
   it('does not keep a new directory whose access could not be restricted', async () => {
-    const parent = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    const parent = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(parent);
-    const directory = join(parent, 'email-writer');
+    const directory = join(parent, 'writehand');
     const restrictDirectory = vi.fn().mockRejectedValueOnce(new Error('denied')).mockResolvedValue(undefined);
     const store = createCredentialStore(directory, { restrictDirectory });
 
@@ -809,7 +810,7 @@ describe('Claude Code method', () => {
   });
 
   it('reads credential files written before Claude Code support', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'email-writer-store-'));
+    const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(directory);
     const legacy: Record<string, unknown> = { ...initial() };
     delete legacy.claudeModel;

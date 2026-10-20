@@ -1,5 +1,5 @@
 import { isSea } from 'node:sea';
-import { AiFailure } from '@email-writer/ai-openai';
+import { AiFailure } from '@writehand/ai-openai';
 
 import { runHost } from './host';
 import { configuredPlatform, install, removeLeftovers, status, uninstall } from './install';

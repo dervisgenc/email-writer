@@ -14,16 +14,16 @@ const RICH_CONTENT_TAGS = new Set([
 ]);
 
 /**
- * Bir taslak editörünün yapısı: kullanıcının yazdığı düzenlenebilir bölge ile
- * imza veya önceki yazışma gibi korunan bölge arasındaki sınır.
+ * The structure of a draft editor: the boundary between the editable region the
+ * user writes in and the protected region, such as the signature or earlier mail.
  */
 export interface ComposerAnatomy {
   readonly editor: HTMLElement;
-  /** Korunan bölgenin ilk elemanı (imza veya alıntı başlangıcı). */
+  /** First element of the protected region (signature or start of the quote). */
   readonly boundary: Element | null;
   readonly editableText: string;
   readonly editableSegments: readonly TextSegment[];
-  /** Korunan bölgenin metni; yazmadan sonra değişmediği doğrulanır. */
+  /** Text of the protected region; checked to be unchanged after a write. */
   readonly protectedText: string;
   readonly containsRichContent: boolean;
   readonly canReplaceBody: boolean;
@@ -33,8 +33,8 @@ export interface ComposerAnatomy {
 export interface AnatomyOptions {
   readonly classify: (element: Element) => ElementRole;
   /**
-   * Yanıt taslaklarında önceki yazışma editörün içinde olabilir. Sınır
-   * işareti bulunamazsa gövdenin tamamı güvenle ayrılmış sayılmaz.
+   * In reply drafts, earlier mail may sit inside the editor. Without a boundary
+   * marker, the body as a whole does not count as safely separated.
    */
   readonly isReply: boolean;
 }
@@ -83,7 +83,7 @@ export function readComposerAnatomy(editor: HTMLElement, options: AnatomyOptions
   const containsRichContent = hasRichContentBefore(editor, boundary);
   const protectedText = protectedTextAfter(editor, boundary);
   const isBlank = editableText.trim().length === 0;
-  // Sınır bir işaretle kanıtlandıysa veya yeni bir e-postadaysak gövde ayrılmış sayılır.
+  // The body counts as separated if a marker proves the boundary or this is a new email.
   const boundaryIsCertain = boundary !== null || !options.isReply;
 
   return {
@@ -98,11 +98,10 @@ export function readComposerAnatomy(editor: HTMLElement, options: AnatomyOptions
   };
 }
 
-/** Düzenlenebilir bölgenin tamamını kapsayan aralık (sınır elemanının öncesine kadar). */
 const isBlankText = (node: Node) =>
   node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() === '';
 
-/** Boşluk metinlerini atlayarak komşu düğümü bulur. */
+/** Finds the neighboring node, skipping whitespace-only text. */
 function sibling(node: Node | null, direction: 'previous' | 'next'): Node | null {
   let current = node;
   while (current !== null && isBlankText(current)) {
@@ -112,9 +111,11 @@ function sibling(node: Node | null, direction: 'previous' | 'next'): Node | null
 }
 
 /**
- * Kullanıcının yazdığı bölümün tamamı. Uçlar blokların arasına değil, ilk ve son
- * bloğun içine konur: tarayıcı silip yazarken son satırı sonraki bloğa (ör. imzanın
- * ilk satırına) birleştirmez; içerik gövde paragrafının içinde kalır.
+ * Range covering the whole editable region, up to just before the boundary element:
+ * the whole part the user wrote. The ends are placed inside the first and last
+ * blocks rather than between blocks, so when the browser deletes and types it
+ * does not merge the last line into the next block (e.g. the signature's first
+ * line); the content stays inside the body paragraph.
  */
 export function editableRegionRange(anatomy: ComposerAnatomy): Range {
   const { editor, boundary } = anatomy;
@@ -142,13 +143,13 @@ export function editableRegionRange(anatomy: ComposerAnatomy): Range {
     range.setEndBefore(boundary);
   }
   if (range.collapsed && !range.toString()) {
-    // Boş gövde: bloklar arası konuma geri dönülür.
+    // Empty body: fall back to a position between blocks.
     range.setStart(editor, 0);
   }
   return range;
 }
 
-/** Boş taslakta metnin ekleneceği nokta: ilk boş satırın içi veya editörün başı. */
+/** Where text goes in an empty draft: inside the first empty line or at the start of the editor. */
 export function emptyInsertionRange(anatomy: ComposerAnatomy): Range {
   const range = anatomy.editor.ownerDocument.createRange();
   const first = anatomy.editor.firstElementChild;
@@ -163,12 +164,13 @@ export function emptyInsertionRange(anatomy: ComposerAnatomy): Range {
 }
 
 /**
- * Kullanıcının yazdığı bölgenin parmak izi: boşlukları sadeleştirilmiş metni ve
- * tablo, resim gibi öğelerin sayısı. Yalnızca bunlar değişince sürüm artar.
- * İmza ve önceki yazışma dahil edilmez; Outlook alıntıyı editörü açtıktan sonra
- * doldurduğunda veya yazılan içeriği kendi yapısına göre yeniden düzenlediğinde
- * (metin aynıyken) hazır sonuç ve seçim geçerli kalır. Yazma anında seçim metni,
- * gövde ve korunan bölge ayrıca doğrulanır.
+ * Fingerprint of the region the user wrote: its whitespace-normalized text and
+ * the number of elements such as tables and images. The revision goes up only
+ * when these change. The signature and earlier mail are left out, so a ready
+ * result and the selection stay valid when Outlook fills in the quote after
+ * opening the editor or restructures the written content (with the same text).
+ * At write time, the selection text, the body and the protected region are
+ * checked separately.
  */
 export function composerFingerprint(editor: HTMLElement, classify: AnatomyOptions['classify']): string {
   const boundary = findBoundary(editor, classify);

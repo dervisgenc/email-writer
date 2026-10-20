@@ -1,9 +1,9 @@
 {
-  "name": "@email-writer/core",
+  "name": "@writehand/core",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Ortam bağımsız iş kuralları: bağlam, işlem hazırlığı, oturum ve yazma ön koşulları",
+  "description": "Environment-independent business rules: context, action preparation, session and write preconditions",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -11,6 +11,6 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@email-writer/contracts": "workspace:*"
+    "@writehand/contracts": "workspace:*"
   }
 }

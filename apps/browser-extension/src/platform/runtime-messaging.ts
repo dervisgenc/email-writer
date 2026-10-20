@@ -13,12 +13,12 @@ import {
   type RuntimeRequestType,
   type RuntimeResponseEnvelope,
   type RuntimeResponsePayload,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 type RequestOf<T extends RuntimeRequestType> = Extract<RuntimeRequest, { type: T }>;
 export type RequestPayload<T extends RuntimeRequestType> = RequestOf<T>['payload'];
 
-/** Tarayıcının verdiği gönderici bilgisi; mesajın iddia ettiği değerler kullanılmaz. */
+/** Sender info supplied by the browser; values claimed by the message itself are never used. */
 export interface MessageSender {
   readonly id?: string;
   readonly url?: string;
@@ -33,13 +33,13 @@ export function createRequest<T extends RuntimeRequestType>(
   requestId: string,
 ): RequestOf<T> {
   const request = { protocolVersion: PROTOCOL_VERSION, requestId, type, payload };
-  // Şema doğrulandıktan sonra tür, girdinin `type` alanıyla zaten belirlenmiştir.
+  // Once the schema validates, the type is already determined by the input's `type` field.
   return runtimeRequestSchema.parse(request) as RequestOf<T>;
 }
 
 /**
- * Bir isteği gönderir ve yanıtın şemasını doğrular. Tarayıcı mesaj kanalı
- * `transport` olarak verilir (runtime veya belirli bir sekme).
+ * Sends a request and validates the response schema. The browser message channel
+ * is passed as `transport` (runtime or a specific tab).
  */
 export async function sendRequest<T extends RuntimeRequestType>(
   transport: (message: unknown) => Promise<unknown>,
@@ -63,7 +63,7 @@ export async function sendRequest<T extends RuntimeRequestType>(
   if (!payload.success) {
     return err(appError('MESSAGE_REJECTED'));
   }
-  // Yanıt, isteğin türüne ait şemayla doğrulandı.
+  // The response was validated against the schema for the request's type.
   return ok(payload.data as RuntimeResponsePayload<T>);
 }
 
@@ -76,14 +76,14 @@ export type RuntimeHandlers = {
 
 export interface HandlerPolicy {
   readonly context: RuntimeContext;
-  /** Gönderenin bu eklentiye ve izin verilen bir ekrana ait olup olmadığı. */
+  /** Whether the sender belongs to this extension and to an allowed screen. */
   readonly isAllowedSender: (sender: MessageSender, type: RuntimeRequestType) => boolean;
 }
 
 /**
- * Gelen mesajı doğrular, yönlendirme tablosuna ve göndericiye göre süzer.
- * Bu ortama ait olmayan mesajlar için `null` döner; başka dinleyiciler
- * yanıtlayabilir. Bilinmeyen türler ve alanlar reddedilir.
+ * Validates an incoming message and filters it by the routing table and sender.
+ * Returns `null` for messages that do not belong to this context so other listeners
+ * can respond. Unknown types and fields are rejected.
  */
 export function createRuntimeHandler(handlers: RuntimeHandlers, policy: HandlerPolicy) {
   return (message: unknown, sender: MessageSender): Promise<RuntimeResponseEnvelope> | null => {
@@ -99,7 +99,7 @@ export function createRuntimeHandler(handlers: RuntimeHandlers, policy: HandlerP
     if (!policy.isAllowedSender(sender, request.type)) {
       return Promise.resolve({ ...base, ok: false, error: { code: 'MESSAGE_REJECTED' } });
     }
-    // TypeScript ayrımlı birleşimi tablo erişiminde ilişkilendiremez; yük şemayla doğrulandı.
+    // TypeScript cannot correlate the union through the table lookup; the payload is schema-validated.
     const handler = handlers[request.type] as
       ((payload: unknown, sender: MessageSender) => Promise<Result<unknown, AppError>>) | undefined;
     if (handler === undefined) {
@@ -115,7 +115,7 @@ export function createRuntimeHandler(handlers: RuntimeHandlers, policy: HandlerP
   };
 }
 
-/** Chrome ve Firefox'ta çalışan `sendResponse` + `return true` köprüsü. */
+/** `sendResponse` + `return true` bridge that works in both Chrome and Firefox. */
 export function toMessageListener(handle: ReturnType<typeof createRuntimeHandler>) {
   return (message: unknown, sender: MessageSender, sendResponse: (response: unknown) => void): boolean => {
     const response = handle(message, sender);

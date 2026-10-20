@@ -1,11 +1,11 @@
-import { appError, DEFAULT_CONTEXT_SELECTION } from '@email-writer/contracts';
+import { appError, DEFAULT_CONTEXT_SELECTION } from '@writehand/contracts';
 import {
   buildContext,
   deriveCapabilities,
   reduceSession,
   validateApply,
   type SessionState,
-} from '@email-writer/core';
+} from '@writehand/core';
 import { describe, expect, it } from 'vitest';
 
 import { meetingThread, threadA, threadB } from '../../fixtures/synthetic-mail/threads';
@@ -22,8 +22,8 @@ import {
 const capabilities = (state: Parameters<typeof deriveCapabilities>[0]) =>
   deriveCapabilities(state, { processingAvailable: true });
 
-describe('reduceSession — sürüm ve geç gelen sonuç', () => {
-  it('ikinci işlem başladıktan sonra gelen birinci sonuç gösterilmez', () => {
+describe('reduceSession — revisions and late results', () => {
+  it('does not show the first result when it arrives after the second action has started', () => {
     const loaded = reduceAll(newSession(), [{ type: 'form-changed', changes: { sourceText: 'ilk metin' } }]);
     const first = prepareFrom(loaded);
     const afterFirst = reduceSession(loaded, { type: 'action-prepared', action: first });
@@ -49,7 +49,7 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(late.preview).toBeNull();
   });
 
-  it('kaynak aynı metinle yeniden alınınca önizleme eskimez ve taslağın yeni sürümüne uygulanır', () => {
+  it("keeps the preview fresh when the source is reloaded with the same text, and applies it to the draft's new revision", () => {
     const preview = sessionWithPreview();
     const reloaded = reduceSession(preview, {
       type: 'source-loaded',
@@ -64,7 +64,7 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(request.ok && request.value.target.expectedRevision).toBe(6);
   });
 
-  it('kaynak metni değişince önizleme eskir ve taslağa uygulanamaz', () => {
+  it('marks the preview stale when the source text changes, so it cannot be applied to the draft', () => {
     const changed = reduceSession(sessionWithPreview(), {
       type: 'source-loaded',
       operationId: null,
@@ -76,7 +76,7 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(validateApply(changed)).toMatchObject({ ok: false, error: { code: 'PREVIEW_STALE' } });
   });
 
-  it('iptal edilen işlemin sonucu sonradan gelse de etkinleşmez', () => {
+  it('does not activate the result of a cancelled action even if it arrives later', () => {
     const loaded = reduceAll(newSession(), [{ type: 'form-changed', changes: { sourceText: 'metin' } }]);
     const action = prepareFrom(loaded);
     const prepared = reduceSession(loaded, { type: 'action-prepared', action });
@@ -97,7 +97,7 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(late.phase.status).toBe('editing');
   });
 
-  it('önizlemeyi elle düzenlemek kaynağı korur, yalnızca önizleme sürümünü artırır', () => {
+  it('keeps the source when the preview is edited by hand, and only bumps the preview revision', () => {
     const state = sessionWithPreview();
     const edited = reduceSession(state, { type: 'preview-edited', text: 'Toplantıyı yarın yapalım.' });
 
@@ -106,7 +106,7 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
     expect(edited.formRevision).toBe(state.formRevision);
   });
 
-  it('kaynak değişince önizleme eskir: kopyalanabilir ama uygulanamaz', () => {
+  it('marks the preview stale when the source changes: it can be copied but not applied', () => {
     const state = reduceSession(sessionWithPreview(), {
       type: 'form-changed',
       changes: { sourceText: 'yeni kaynak' },
@@ -119,8 +119,8 @@ describe('reduceSession — sürüm ve geç gelen sonuç', () => {
   });
 });
 
-describe('reduceSession — dış değişiklikler', () => {
-  it('kullanıcı taslağı değiştirirse hedef geçersiz olur', () => {
+describe('reduceSession — external changes', () => {
+  it('invalidates the target when the user changes the draft', () => {
     const state = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
       event: { type: 'composer-changed', ref: composerRef, revision: 6 },
@@ -130,7 +130,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(capabilities(state).applyBlocker?.code).toBe('TARGET_CHANGED');
   });
 
-  it('aktif konuşma değişince eski çalışmanın yazma düğmesi kapanır, metin korunur', () => {
+  it("disables the previous work's apply button when the active conversation changes, keeping the text", () => {
     const state = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
       event: { type: 'active-thread-changed', previous: threadA, current: threadB },
@@ -140,7 +140,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(state.preview?.text).toBe('Toplantıyı yarın yapabiliriz.');
   });
 
-  it('taslak kapanınca hedef kaybolur', () => {
+  it('loses the target when the draft closes', () => {
     const state = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
       event: { type: 'composer-removed', ref: composerRef },
@@ -149,7 +149,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(capabilities(state).applyBlocker?.code).toBe('TARGET_MISSING');
   });
 
-  it('aynı taslak konuşmaya sonradan bağlanınca çalışma geçerli kalır ve yeni kimlikle uygulanır', () => {
+  it('keeps the work valid and applies it with the new ref when the same draft is later bound to a conversation', () => {
     const rebound = { ...composerRef, threadKey: 'thread-late' };
     const state = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
@@ -161,7 +161,7 @@ describe('reduceSession — dış değişiklikler', () => {
     const request = validateApply(state);
     expect(request.ok && request.value.target.composerRef).toEqual(rebound);
 
-    // Başka bir taslağın yeniden bağlanması bu çalışmayı etkilemez.
+    // Rebinding another draft does not affect this work.
     const other = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
       event: {
@@ -174,7 +174,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(otherRequest.ok && otherRequest.value.target.composerRef).toEqual(composerRef);
   });
 
-  it('hesap değişince içerik temizlenir', () => {
+  it('clears the content when the account changes', () => {
     const state = reduceSession(sessionWithPreview(), {
       type: 'mail-event',
       event: { type: 'account-changed' },
@@ -186,7 +186,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(state.staleReason).toBe('account-changed');
   });
 
-  it('konuşmaya yeni içerik gelirse bağlam yeniden okunmadan işlem hazırlanmaz', () => {
+  it('prepares no action after new content arrives in the conversation until the context is read again', () => {
     const snapshot = meetingThread();
     const context = buildContext(
       { expectedThread: threadA, snapshot, selection: DEFAULT_CONTEXT_SELECTION, includedBlocks: [] },
@@ -203,7 +203,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(capabilities(state).prepareBlocker?.code).toBe('CONTEXT_STALE');
   });
 
-  it('arka planda okunan yeni içerik, kullanıcı bir sonuç üzerinde çalışmıyorsa bağlamı yeniler', () => {
+  it('refreshes the context with new content read in the background unless the user is working on a result', () => {
     const snapshot = meetingThread();
     const context = buildContext(
       { expectedThread: threadA, snapshot, selection: DEFAULT_CONTEXT_SELECTION, includedBlocks: [] },
@@ -222,7 +222,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(editing.threadSnapshot?.revision).toBe(2);
     expect(capabilities(editing).prepareBlocker).toBeNull();
 
-    // Önizleme varken bağlam sessizce değişmez; önizleme geçerli kalır, "bağlam eskidi" uyarısı görünür.
+    // While a preview exists, the context does not change silently; the preview stays valid and a "context is stale" warning appears.
     const read = reduceAll(newSession(), [
       { type: 'read-started', operationId: 'r1', subject: 'thread' },
       { type: 'thread-read', operationId: 'r1', snapshot, context },
@@ -254,7 +254,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(withPreview.contextStale).toBe(true);
   });
 
-  it('kullanıcı çalışmanın konuşmasına geri dönünce "konuşma değişti" uyarısı kalkar', () => {
+  it('clears the "conversation changed" warning when the user returns to the conversation the work belongs to', () => {
     const away = reduceAll(newSession(), [
       { type: 'form-changed', changes: { instruction: 'Taslak talimat' } },
       { type: 'mail-event', event: { type: 'active-thread-changed', previous: threadA, current: null } },
@@ -268,7 +268,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(back.form.instruction).toBe('Taslak talimat');
   });
 
-  it('okuma sırasında konuşma değiştiyse yarım bağlam atılır, kullanıcı girdisi korunur', () => {
+  it('discards a partial context when the conversation changed during the read, keeping the user input', () => {
     const snapshot = { ...meetingThread(), ref: threadB };
     const state = reduceAll(newSession(), [
       { type: 'form-changed', changes: { instruction: 'Taslak talimat' } },
@@ -289,7 +289,7 @@ describe('reduceSession — dış değişiklikler', () => {
     expect(state.form.instruction).toBe('Taslak talimat');
   });
 
-  it('iptal edilen okumanın sonucu geri dönmez', () => {
+  it('does not bring back the result of a cancelled read', () => {
     const state = reduceAll(newSession(), [
       { type: 'read-started', operationId: 'r1', subject: 'thread' },
       { type: 'read-cancelled', operationId: 'r1' },
@@ -305,11 +305,11 @@ describe('reduceSession — dış değişiklikler', () => {
   });
 });
 
-describe('reduceSession — taslağa uygulama ve geri alma', () => {
+describe('reduceSession — applying to the draft and undoing', () => {
   function applyOnce() {
     const state = sessionWithPreview();
     const request = validateApply(state);
-    if (!request.ok) throw new Error(`uygulanamaz: ${request.error.code}`);
+    if (!request.ok) throw new Error(`cannot apply: ${request.error.code}`);
     const applying = reduceSession(state, {
       type: 'apply-started',
       operationId: 'w1',
@@ -318,7 +318,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     return { state, request: request.value, applying };
   }
 
-  it('seçim değişimi için hedef doğrulanır ve tek bir uygulama isteği oluşur', () => {
+  it('validates the target for a selection replacement and creates a single apply request', () => {
     const { request } = applyOnce();
 
     expect(request.target).toEqual({
@@ -330,7 +330,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     expect(request.text).toBe('Toplantıyı yarın yapabiliriz.');
   });
 
-  it('uygulama sürerken ikinci uygulama başlatılmaz', () => {
+  it('does not start a second apply while one is in progress', () => {
     const { applying, request } = applyOnce();
     const again = reduceSession(applying, {
       type: 'apply-started',
@@ -342,7 +342,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     expect(capabilities(applying).isBusy).toBe(true);
   });
 
-  it('başarılı yazmadan sonra geri alma açılır; kullanıcı yeni yazı yazarsa kapanır', () => {
+  it('enables undo after a successful write and disables it once the user types again', () => {
     const { applying, request } = applyOnce();
     const applied = reduceAll(applying, [
       { type: 'mail-event', event: { type: 'composer-changed', ref: composerRef, revision: 6 } },
@@ -357,7 +357,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     expect(applied.phase.status).toBe('applied');
     expect(applied.staleReason).toBeNull();
     expect(capabilities(applied).canUndo).toBe(true);
-    // Aynı önizleme aynı hedefe ikinci kez yazılamaz.
+    // The same preview cannot be written to the same target twice.
     expect(capabilities(applied).applyBlocker).not.toBeNull();
 
     const typed = reduceSession(applied, {
@@ -367,7 +367,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     expect(capabilities(typed).canUndo).toBe(false);
   });
 
-  it('geri almadan sonra seçim hedefi yeniden seçim ister; gövde hedefine aynı sonuç yeniden uygulanabilir', () => {
+  it('requires a new selection for a selection target after undo, while the same result can be reapplied to a body target', () => {
     const undo = (state: SessionState) => {
       const request = validateApply(state);
       if (!request.ok) throw new Error(request.error.code);
@@ -410,7 +410,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     });
   });
 
-  it('belirsiz yazmada aynı işlem otomatik tekrarlanmaz', () => {
+  it('does not retry the same action automatically after an uncertain write', () => {
     const { applying, request } = applyOnce();
     const uncertain = reduceSession(applying, {
       type: 'apply-finished',
@@ -431,7 +431,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     });
   });
 
-  it('önizleme kaynağın aynısıysa gereksiz yazma yapılmaz', () => {
+  it('skips a needless write when the preview equals the source', () => {
     const state = sessionWithPreview(selectionBinding.loadedText);
 
     expect(validateApply(state)).toEqual({
@@ -440,7 +440,7 @@ describe('reduceSession — taslağa uygulama ve geri alma', () => {
     });
   });
 
-  it('panelde yazılan metin açık taslağa otomatik yazma yetkisi vermez', () => {
+  it('does not let text typed in the panel be written to the open draft automatically', () => {
     const loaded = reduceAll(newSession(), [
       { type: 'form-changed', changes: { sourceText: 'panel metni' } },
     ]);

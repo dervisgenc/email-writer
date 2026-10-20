@@ -1,6 +1,6 @@
 /**
- * Kararlı hata kodları. Kod, hatanın kaynağını programatik olarak ayırır;
- * kullanıcıya gösterilen açıklama eklentinin `locales/` dosyalarından gelir.
+ * Stable error codes. The code identifies the error source programmatically; the
+ * user-facing description comes from the extension's `locales/` files.
  */
 export const ERROR_CODES = [
   'PAGE_UNSUPPORTED',
@@ -51,15 +51,15 @@ export const ERROR_CODES = [
   'AI_BUSY',
   'AI_CLAUDE_NOT_INSTALLED',
   'AI_CLAUDE_NOT_LOGGED_IN',
-  /** Claude Code yalnızca kabuk olmadan güvenle başlatılamayan bir komut betiği (claude.cmd) olarak bulundu. */
+  /** Claude Code exists only as a command script (claude.cmd) that cannot start safely without a shell. */
   'AI_CLAUDE_UNSUPPORTED_INSTALL',
-  /** Eklenti ve yerel yardımcı uygulama farklı sürümlerden; istek tanınmadı. */
+  /** The extension and the local helper app are from different versions; the request was not recognized. */
   'AI_VERSION_MISMATCH',
-  /** Yardımcı uygulamanın en son sürümü GitHub'dan öğrenilemedi. */
+  /** The helper app's latest version could not be fetched from GitHub. */
   'HOST_UPDATE_CHECK_FAILED',
-  /** Güncelleme indirilemedi veya kurulamadı; kurulu sürüm değişmedi. */
+  /** The update could not be downloaded or installed; the installed version is unchanged. */
   'HOST_UPDATE_FAILED',
-  /** İndirilen sürümün imzası veya sağlaması doğrulanamadı; hiçbir şey kurulmadı. */
+  /** The downloaded release's signature or checksum could not be verified; nothing was installed. */
   'HOST_UPDATE_UNVERIFIED',
   'CONTENT_SCRIPT_UNREACHABLE',
   'MESSAGE_REJECTED',
@@ -68,15 +68,15 @@ export const ERROR_CODES = [
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
-/** Hatanın panelde ilişkilendirileceği alan. */
+/** The panel field the error is attached to. */
 export type ErrorField = 'source' | 'instruction' | 'targetLanguage' | 'context' | 'target' | 'preview';
 
 export interface AppError {
   readonly code: ErrorCode;
   readonly field?: ErrorField;
   /**
-   * Yalnızca içerik taşımayan sayısal tanı bilgisi (sınır, uzunluk, sayı).
-   * E-posta metni, adres veya URL buraya asla yazılmaz.
+   * Numeric diagnostics only, with no content (limit, length, count).
+   * Email text, addresses or URLs are never written here.
    */
   readonly details?: Readonly<Record<string, number>>;
 }

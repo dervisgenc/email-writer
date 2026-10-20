@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, PROTOCOL_VERSION } from '@email-writer/contracts';
+import { DEFAULT_SETTINGS, PROTOCOL_VERSION } from '@writehand/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -27,8 +27,8 @@ function memoryArea(
   };
 }
 
-describe('Ayar deposu', () => {
-  it('eksik kaydı varsayılanlarla tamamlar', () => {
+describe('Settings store', () => {
+  it('fills a missing record with defaults', () => {
     expect(parseStoredSettings(undefined)).toEqual({
       settings: DEFAULT_SETTINGS,
       issue: 'missing',
@@ -36,7 +36,7 @@ describe('Ayar deposu', () => {
     });
   });
 
-  it('geçersiz kayıttan geçerli alanları kurtarır; içerik içermeyen sorun kodu döner', () => {
+  it('recovers the valid fields from an invalid record and returns an issue code without content', () => {
     const result = parseStoredSettings({
       schemaVersion: 1,
       revision: 4,
@@ -48,7 +48,7 @@ describe('Ayar deposu', () => {
     expect(result.settings).toMatchObject({ uiLanguage: 'en', tone: 'neutral', revision: 4 });
   });
 
-  it('ilk sürüm kaydını güncel sürüme taşır; seçimleri korur, yeni alanları varsayılanla doldurur', async () => {
+  it('migrates a version 1 record to the current version, keeping choices and filling new fields with defaults', async () => {
     const v1 = {
       schemaVersion: 1,
       revision: 7,
@@ -73,7 +73,7 @@ describe('Ayar deposu', () => {
     expect(area.data[SETTINGS_STORAGE_KEY]).toEqual(stored.settings);
   });
 
-  it('ikinci sürüm kaydına güncelleme denetimi tercihini açık olarak ekler', async () => {
+  it('adds the update check preference, turned on, to a version 2 record', async () => {
     const { checkHelperUpdates: _added, ...v2 } = {
       ...DEFAULT_SETTINGS,
       schemaVersion: 2,
@@ -87,7 +87,7 @@ describe('Ayar deposu', () => {
     expect(stored.settings).toEqual({ ...v2, schemaVersion: 3, checkHelperUpdates: true });
   });
 
-  it('kalıcı talimat ve favori diller sınırları aşamaz; elle yazılan dil adı kabul edilir', () => {
+  it('keeps standing instructions and favorite languages within their limits, and accepts a hand-typed language name', () => {
     const current = { ...DEFAULT_SETTINGS, revision: 2 };
     expect(
       applySettingsChanges(current, 2, { favoriteLanguages: ['en', 'Kurmancî'] }).settings.favoriteLanguages,
@@ -97,7 +97,7 @@ describe('Ayar deposu', () => {
     expect(() => applySettingsChanges(current, 2, { targetLanguage: 'line\nbreak' })).toThrow();
   });
 
-  it('daha yeni şemayla yazılmış kaydı bozmadan korur', async () => {
+  it('leaves a record written with a newer schema intact', async () => {
     const future = { schemaVersion: 4, revision: 9, somethingNew: true };
     const area = memoryArea({ [SETTINGS_STORAGE_KEY]: future });
     const store = createSettingsStore(area);
@@ -106,7 +106,7 @@ describe('Ayar deposu', () => {
     expect(area.data[SETTINGS_STORAGE_KEY]).toBe(future);
   });
 
-  it('eski sürümle gelen değişiklik eski bütün nesneyle üzerine yazmaz', () => {
+  it('does not overwrite with the whole stale object when a change arrives for an old revision', () => {
     const current = { ...DEFAULT_SETTINGS, revision: 5, theme: 'dark' as const };
     const result = applySettingsChanges(current, 3, { tone: 'formal' });
 
@@ -114,7 +114,7 @@ describe('Ayar deposu', () => {
     expect(result.settings).toMatchObject({ theme: 'dark', tone: 'formal', revision: 6 });
   });
 
-  it('yazma isteklerini sırayla işler', async () => {
+  it('processes write requests in order', async () => {
     const area = memoryArea();
     const store = createSettingsStore(area);
     const [first, second] = await Promise.all([
@@ -128,7 +128,7 @@ describe('Ayar deposu', () => {
   });
 });
 
-describe('Çalışma ortamları arası mesajlar', () => {
+describe('Messages between runtime contexts', () => {
   const pageStatus = {
     providerId: 'outlook-web',
     support: 'ready',
@@ -143,7 +143,7 @@ describe('Çalışma ortamları arası mesajlar', () => {
     },
   );
 
-  it('bilinmeyen tür veya fazladan alan içeren mesajı reddeder', () => {
+  it('rejects a message with an unknown type or extra fields', () => {
     expect(
       handler(
         { protocolVersion: PROTOCOL_VERSION, requestId: 'r', type: 'WRITE_TEXT', payload: {} },
@@ -158,11 +158,11 @@ describe('Çalışma ortamları arası mesajlar', () => {
     ).toBeNull();
   });
 
-  it('başka bir ortama ait mesajı yanıtlamaz', () => {
+  it('does not answer a message meant for another context', () => {
     expect(handler(createRequest('GET_SETTINGS', {}, 'r1'), { id: 'self' })).toBeNull();
   });
 
-  it('izin verilmeyen göndericiyi reddeder', async () => {
+  it('rejects a sender that is not allowed', async () => {
     const response = await handler(createRequest('GET_PAGE_STATUS', {}, 'r2'), {
       id: 'self',
       tab: { id: 4 },
@@ -175,7 +175,7 @@ describe('Çalışma ortamları arası mesajlar', () => {
     });
   });
 
-  it('yanıtın şemasını ve istek kimliğini doğrular', async () => {
+  it('validates the response schema and request ID', async () => {
     const request = createRequest('GET_PAGE_STATUS', {}, 'r3');
     const ok = await sendRequest((message) => handler(message, { id: 'self' })!, request);
     expect(ok).toEqual({ ok: true, value: pageStatus });

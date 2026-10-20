@@ -4,20 +4,20 @@ import {
   type AppError,
   type PreparedAction,
   type PreviewCandidate,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { ACTION_LIMITS } from './action-limits';
 
 export type PreviewDecision =
   | { readonly status: 'accepted'; readonly candidate: PreviewCandidate }
-  /** Başka veya eski bir işleme ait; sessizce yok sayılır. */
+  /** Belongs to another or an older action; silently ignored. */
   | { readonly status: 'ignored' }
   | { readonly status: 'rejected'; readonly error: AppError };
 
 /**
- * Gelen sonucun güncel işleme ait olduğunu ve boyutunun uygun olduğunu
- * doğrular. Kimlikleri tutmayan sonuç önizlemeye alınmaz; HTML olarak
- * yorumlanmaz, yalnızca düz metin kabul edilir.
+ * Verifies that an incoming result belongs to the current action and has an acceptable
+ * size. A result whose IDs do not match never reaches the preview; it is never interpreted
+ * as HTML, only plain text is accepted.
  */
 export function validatePreviewCandidate(
   input: unknown,

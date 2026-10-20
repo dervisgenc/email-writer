@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { AiCommand, AiStatus, ErrorCode } from '@email-writer/contracts';
-import { AiConnectionGuide, AiConnectionSettings, type UiText } from '@email-writer/ui';
+import type { AiCommand, AiStatus, ErrorCode } from '@writehand/contracts';
+import { AiConnectionGuide, AiConnectionSettings, type UiText } from '@writehand/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { fetchAiStatus, runAiCommand } from '../platform/extension-client';
 
-/** AI bağlantısı kartı ve bağlantı rehberi: ayarlar sayfası ve karşılama sihirbazı kullanır. */
+/** AI connection card and connection guide, used by the settings page and the welcome wizard. */
 const props = withDefaults(defineProps<{ text: UiText; guide?: boolean }>(), { guide: true });
 const emit = defineEmits<{ ready: [ready: boolean] }>();
 const status = shallowRef<AiStatus | null>(null);

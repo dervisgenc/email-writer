@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  HOST_BROWSER_NAMES,
-  HOST_OPERATING_SYSTEM_NAMES,
-  type HostUpdateCheck,
-} from '@email-writer/contracts';
+import { HOST_BROWSER_NAMES, HOST_OPERATING_SYSTEM_NAMES, type HostUpdateCheck } from '@writehand/contracts';
 import { computed, useId } from 'vue';
 
 import type { HelperText, HelperView } from '../helper';
@@ -11,13 +7,13 @@ import AppIcon from './AppIcon.vue';
 import CommandBox from './CommandBox.vue';
 
 /**
- * Ayarlardaki yardımcı uygulama kartı: bağlantı durumu, sürüm, güncelleme ve kaldırma.
- * Durum ve sonuçlar sayfadan gelir; kart yalnızca olay yayar.
+ * The helper app card in settings: connection status, version, updates and uninstall.
+ * State and results come from the page; the card only emits events.
  */
 const props = defineProps<{
   view: HelperView;
   text: HelperText;
-  /** Son güncelleme denetimi; denetim kapalıysa veya henüz yapılmadıysa null. */
+  /** The latest update check; null when checks are off or none has run yet. */
   update: HostUpdateCheck | null;
   updating: boolean;
   updatedTo: string | null;
@@ -46,7 +42,7 @@ const system = computed(() =>
 const browserNames = computed(
   () => info.value?.browsers.map((name) => HOST_BROWSER_NAMES[name]).join(', ') ?? '',
 );
-/** Sürümünü bildiren eski bir yardımcı uygulama kendini güncelleyebilir. */
+/** An outdated helper app that reports its version can update itself. */
 const canUpdate = computed(
   () =>
     (props.view.kind === 'outdated' && props.view.version !== null) ||

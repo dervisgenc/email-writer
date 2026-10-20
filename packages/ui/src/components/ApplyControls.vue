@@ -74,7 +74,7 @@ const scope = computed(() =>
       </button>
     </div>
     <p v-if="apply.mode !== null" class="ew-muted">{{ text.apply.formattingNote }}</p>
-    <!-- Düğmenin kapalı olma nedeni yalnızca renkle anlatılmaz. -->
+    <!-- Why the button is disabled is not conveyed by color alone. -->
     <p v-if="apply.blocker !== null && apply.canCopy" :id="blockerId" class="ew-muted">
       {{ text.errors[apply.blocker] }}
     </p>

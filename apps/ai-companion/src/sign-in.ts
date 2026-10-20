@@ -7,8 +7,8 @@ import {
   validateCallback,
   type createOpenAiOAuth,
   type TokenResponse,
-} from '@email-writer/ai-openai';
-import { PRODUCT_NAME, type ErrorCode } from '@email-writer/contracts';
+} from '@writehand/ai-openai';
+import { PRODUCT_NAME, type ErrorCode } from '@writehand/contracts';
 
 import type { Credentials, CredentialStore } from './credential-store';
 import { defaultAccountLabel } from './account-label';

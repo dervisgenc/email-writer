@@ -3,8 +3,8 @@ import {
   MIN_HOST_VERSION,
   type ErrorCode,
   type HostUpdateCheck,
-} from '@email-writer/contracts';
-import type { HelperView } from '@email-writer/ui';
+} from '@writehand/contracts';
+import type { HelperView } from '@writehand/ui';
 import { onUnmounted, ref, shallowRef } from 'vue';
 
 import {
@@ -16,9 +16,10 @@ import { checkHostUpdate, fetchHostInfo, updateHost } from '../platform/extensio
 const POLL_MS = 3_000;
 
 /**
- * Yardımcı uygulamanın durumu: bağlantı izni, kurulu olup olmadığı, sürümü ve güncellemesi.
- * Ayarlar sayfasındaki kart ve karşılama sihirbazı aynı durumu kullanır. Bağlantı yokken
- * birkaç saniyede bir yeniden denenir; kullanıcı komutu terminalde çalıştırınca kendiliğinden görünür.
+ * Helper app state: connection permission, whether it is installed, its version and updates.
+ * The settings page card and the welcome wizard share this state. Without a connection it
+ * retries every few seconds, so the helper shows up on its own once the user runs the
+ * command in a terminal.
  */
 export function useHelper() {
   const view = shallowRef<HelperView>({ kind: 'checking' });
@@ -40,7 +41,7 @@ export function useHelper() {
           compareVersions(result.value.version, MIN_HOST_VERSION) < 0
             ? { kind: 'outdated', version: result.value.version }
             : { kind: 'connected', info: result.value };
-      // Bu isteği tanımayan yardımcı uygulama, sürüm uyumundan önceki bir sürümdür.
+      // A helper app that does not recognize this request predates version compatibility checks.
       else
         view.value =
           result.error.code === 'AI_VERSION_MISMATCH'
@@ -50,12 +51,12 @@ export function useHelper() {
     if (!disposed && view.value.kind !== 'connected') timer = setTimeout(() => void refresh(), POLL_MS);
   }
 
-  /** Kullanıcının tıklamasıyla çağrılır: tarayıcının izin penceresi yalnızca o anda açılabilir. */
+  /** Called from a user click: the browser's permission prompt can only open at that moment. */
   async function grant(): Promise<void> {
     if (await requestNativeMessagingPermission()) await refresh();
   }
 
-  /** Yardımcı uygulama günde en fazla bir kez GitHub'a sorar; sonuç onda saklanır. */
+  /** The helper app asks GitHub at most once a day and caches the result. */
   async function checkForUpdate(): Promise<void> {
     if (view.value.kind !== 'connected' || view.value.info.development) return;
     const result = await checkHostUpdate();
@@ -75,7 +76,7 @@ export function useHelper() {
     }
     updatedTo.value = result.value.version;
     update.value = null;
-    // Güncellenen yardımcı uygulama yanıtladıktan sonra kapanır; sonraki istek yenisini başlatır.
+    // The updated helper app exits after replying; the next request starts the new one.
     await refresh();
   }
 

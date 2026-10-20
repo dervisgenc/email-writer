@@ -1,18 +1,18 @@
-import type { ComposerRef, MailConnector, MailEvent, ThreadRef } from '@email-writer/contracts';
+import type { ComposerRef, MailConnector, MailEvent, ThreadRef } from '@writehand/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
- * Her e-posta bağlantısının geçmesi gereken ortak sözleşme testleri. Yeni bir
- * bağlantı (ör. Gmail Web) eklendiğinde aynı testler o bağlantı için de
- * çalıştırılır; mevcut bağlantıların testleri de geçmeye devam etmelidir.
+ * Shared contract tests every mail connector must pass. When a new connector
+ * (e.g. Gmail Web) is added, the same tests run against it as well, and the
+ * tests of the existing connectors must keep passing.
  */
 export interface ContractHarness {
   readonly connector: MailConnector;
-  /** Taslağın kullanıcıya ait bölgesinde bir ifadeyi seçer. */
+  /** Selects a phrase in the user-owned part of the draft. */
   selectInComposer(ref: ComposerRef, phrase: string): void;
-  /** Kullanıcının taslakta yazmasını taklit eder. */
+  /** Simulates the user typing in the draft. */
   typeInComposer(ref: ComposerRef, text: string): void;
-  /** Taslakta bulunan ve seçilebilecek bir ifade. */
+  /** A phrase present in the draft that can be selected. */
   readonly selectablePhrase: string;
   cleanup(): void;
 }
@@ -20,21 +20,21 @@ export interface ContractHarness {
 const notAborted = { aborted: false };
 
 export function describeMailConnectorContract(name: string, setup: () => ContractHarness): void {
-  describe(`MailConnector sözleşmesi: ${name}`, () => {
+  describe(`MailConnector contract: ${name}`, () => {
     let harness: ContractHarness;
     let connector: MailConnector;
 
     const firstComposer = (): ComposerRef => {
       const composer = connector.getPageState().composers[0];
       if (composer === undefined) {
-        throw new Error('Sözleşme testi için açık bir taslak gerekir.');
+        throw new Error('The contract test needs an open draft.');
       }
       return composer;
     };
     const activeThread = (): ThreadRef => {
       const thread = connector.getPageState().activeThread;
       if (thread === null) {
-        throw new Error('Sözleşme testi için açık bir konuşma gerekir.');
+        throw new Error('The contract test needs an open conversation.');
       }
       return thread;
     };
@@ -44,7 +44,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       harness.selectInComposer(composer, harness.selectablePhrase);
       const selection = await connector.captureDraftSelection(composer);
       if (!selection.ok || selection.value === null) {
-        throw new Error('Seçim yakalanamadı.');
+        throw new Error('Could not capture the selection.');
       }
       const request = {
         applyOperationId,
@@ -68,7 +68,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       harness.cleanup();
     });
 
-    it('sayfa durumu tek bir kapsamdaki konuşma ve taslak referanslarını verir', () => {
+    it('reports page state with conversation and draft references from a single scope', () => {
       const state = connector.getPageState();
       expect(state.support).toBe('ready');
       expect(state.scope).not.toBeNull();
@@ -78,7 +78,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       ).toBe(true);
     });
 
-    it('başka kapsamdaki konuşmayı okumaz; kapsamı asla "tamamı" olarak bildirmez', async () => {
+    it('does not read a conversation from another scope and never reports coverage as "complete"', async () => {
       const thread = activeThread();
       const foreign = { ...thread, scope: { ...thread.scope, accountScopeId: 'baska-hesap' } };
       const rejected = await connector.readThread(foreign, notAborted);
@@ -91,7 +91,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       expect(['partial', 'unknown']).toContain(snapshot.value.coverage.status);
     });
 
-    it('bilinmeyen taslak için TARGET_MISSING döner', async () => {
+    it('returns TARGET_MISSING for an unknown draft', async () => {
       const composer = { ...firstComposer(), composerKey: 'olmayan-taslak' };
       expect(await connector.readComposer(composer)).toEqual({
         ok: false,
@@ -99,12 +99,12 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       });
     });
 
-    it('yakalanan seçim, taslağın yazılabilir metnindeki aralıkla aynıdır', async () => {
+    it("matches the captured selection to the range in the draft's editable text", async () => {
       const composer = firstComposer();
       harness.selectInComposer(composer, harness.selectablePhrase);
       const selection = await connector.captureDraftSelection(composer);
       const snapshot = await connector.readComposer(composer);
-      if (!selection.ok || selection.value === null || !snapshot.ok) throw new Error('beklenmeyen hata');
+      if (!selection.ok || selection.value === null || !snapshot.ok) throw new Error('unexpected error');
 
       expect(selection.value.text).toBe(harness.selectablePhrase);
       expect(snapshot.value.editableText.slice(selection.value.start, selection.value.end)).toBe(
@@ -112,18 +112,18 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       );
     });
 
-    it('aynı uygulama kimliğiyle ikinci kez yazmaz', async () => {
+    it('does not write twice with the same apply operation ID', async () => {
       const { request, outcome } = await selectAndApply('YENİ METİN');
       expect(outcome.status).toBe('applied');
       const again = await connector.applyText(request);
       expect(again.status).toBe('rejected');
     });
 
-    it('taslak sonradan değiştiyse eski hedefe yazmaz', async () => {
+    it('does not write to a stale target after the draft has changed', async () => {
       const composer = firstComposer();
       harness.selectInComposer(composer, harness.selectablePhrase);
       const selection = await connector.captureDraftSelection(composer);
-      if (!selection.ok || selection.value === null) throw new Error('seçim yok');
+      if (!selection.ok || selection.value === null) throw new Error('no selection');
       harness.typeInComposer(composer, ' sonradan yazdım');
 
       const outcome = await connector.applyText({
@@ -145,10 +145,10 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       expect(after.ok && after.value.editableText.includes('sonradan yazdım')).toBe(true);
     });
 
-    it('son uygulamayı geri alır; araya yazı girdiyse geri almaz', async () => {
+    it('undoes the last apply, but not after the user has typed in between', async () => {
       const before = await connector.readComposer(firstComposer());
       const { composer, outcome } = await selectAndApply('YENİ METİN');
-      if (outcome.status !== 'applied' || outcome.undoId === null) throw new Error('uygulanmadı');
+      if (outcome.status !== 'applied' || outcome.undoId === null) throw new Error('not applied');
 
       const undone = await connector.undoChange(outcome.undoId);
       const restored = await connector.readComposer(composer);
@@ -159,7 +159,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
 
       const second = await selectAndApply('İKİNCİ', 'apply-2');
       if (second.outcome.status !== 'applied' || second.outcome.undoId === null)
-        throw new Error('uygulanmadı');
+        throw new Error('not applied');
       harness.typeInComposer(composer, ' yeni yazı');
       expect(await connector.undoChange(second.outcome.undoId)).toEqual({
         status: 'rejected',
@@ -167,7 +167,7 @@ export function describeMailConnectorContract(name: string, setup: () => Contrac
       });
     });
 
-    it('abonelikten çıkılabilir', () => {
+    it('can unsubscribe', () => {
       const events: MailEvent[] = [];
       const unsubscribe = connector.subscribe((event) => events.push(event));
       unsubscribe();

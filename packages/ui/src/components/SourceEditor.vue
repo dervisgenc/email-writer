@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isInstructionOperation, type ErrorCode, type Operation } from '@email-writer/contracts';
+import { isInstructionOperation, type ErrorCode, type Operation } from '@writehand/contracts';
 import { computed, useId } from 'vue';
 
 import { useUiText } from '../i18n';

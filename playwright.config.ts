@@ -1,9 +1,9 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * Eklenti akışları Playwright ile yalnızca Chromium'da test edilebilir.
- * Firefox ayrıca `tests/e2e/extension-firefox/run-smoke.mjs` ve gerçek
- * kurulumla denenir; Chromium testinin geçmesi Firefox için yeterli sayılmaz.
+ * Playwright can only drive extension flows in Chromium. Firefox is covered
+ * separately by `tests/e2e/extension-firefox/run-smoke.mjs` and a real install;
+ * a passing Chromium run does not count for Firefox.
  */
 export default defineConfig({
   testDir: 'tests/e2e/extension-chromium',

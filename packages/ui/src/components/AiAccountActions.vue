@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { aiAccountLabelSchema, type AiCommand, type AiStatus } from '@email-writer/contracts';
+import { aiAccountLabelSchema, type AiCommand, type AiStatus } from '@writehand/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 import type { AiText } from '../ai-text';
 

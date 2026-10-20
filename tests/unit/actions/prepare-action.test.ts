@@ -1,5 +1,5 @@
-import { DEFAULT_CONTEXT_SELECTION, type ApplyTarget } from '@email-writer/contracts';
-import { buildContext, prepareAction, validatePreviewCandidate, type ActionDraft } from '@email-writer/core';
+import { DEFAULT_CONTEXT_SELECTION, type ApplyTarget } from '@writehand/contracts';
+import { buildContext, prepareAction, validatePreviewCandidate, type ActionDraft } from '@writehand/core';
 import { describe, expect, it } from 'vitest';
 
 import { meetingThread, scopeA, threadA } from '../../fixtures/synthetic-mail/threads';
@@ -40,12 +40,12 @@ function replyContext() {
     },
     testDependencies(),
   );
-  if (!result.ok) throw new Error('beklenmeyen hata');
+  if (!result.ok) throw new Error('unexpected error');
   return result.value;
 }
 
 describe('prepareAction', () => {
-  it('yalnızca boşluk içeren düzeltme girdisinde işlem kaydı oluşturmaz', () => {
+  it('creates no action record for revise input that contains only whitespace', () => {
     const result = prepare({ source: { origin: 'panel', text: '  \n\t ' } });
 
     expect(result).toEqual({
@@ -54,7 +54,7 @@ describe('prepareAction', () => {
     });
   });
 
-  it('çeviride hedef dil yoksa LANGUAGE_REQUIRED döner', () => {
+  it('returns LANGUAGE_REQUIRED for a translation without a target language', () => {
     const result = prepare({ operation: 'translate', targetLanguage: null });
 
     expect(result).toEqual({
@@ -63,7 +63,7 @@ describe('prepareAction', () => {
     });
   });
 
-  it('sınırı aşan kaynakta sayısal tanı bilgisiyle hata verir', () => {
+  it('fails with numeric diagnostics when the source exceeds the limit', () => {
     const result = prepare({ source: { origin: 'panel', text: 'a'.repeat(20_001) } });
 
     expect(result).toEqual({
@@ -77,9 +77,9 @@ describe('prepareAction', () => {
     });
   });
 
-  it('yeni e-postada düzeltme bağlam zorunlu olmadan hazırlanır; kullanılmayan alanlar kayda girmez', () => {
+  it('prepares a revise in a new email without requiring context, leaving unused fields out of the record', () => {
     const result = prepare({ instruction: 'yok sayılmalı' });
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value).toMatchObject({
       requestId: 'id-1',
@@ -92,31 +92,31 @@ describe('prepareAction', () => {
       context: null,
       target: selectionTarget,
     });
-    // Kaynak metin kırpılmaz.
+    // The source text is not trimmed.
     expect(result.value.source.text).toBe('Toplantıyı yarın yapabiliriz.');
     expect(Object.isFrozen(result.value)).toBe(true);
   });
 
-  it('çeviride ton işlem kaydına etki etmez', () => {
+  it('ignores the tone in the action record for a translation', () => {
     const result = prepare({ operation: 'translate', tone: 'friendly' });
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.tone).toBe('neutral');
     expect(result.value.targetLanguage).toBe('en');
   });
 
-  it('gelen mesajın çevirisinde kaynak received-message, hedef null olur', () => {
+  it('uses a received-message source and a null target when translating a received message', () => {
     const result = prepare({
       operation: 'translate',
       source: { origin: 'received-message', text: 'Hello there' },
     });
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.source.origin).toBe('received-message');
     expect(result.value.target).toBeNull();
   });
 
-  it('yanıt için okunabilir mesaj yoksa işlem hazırlanmaz', () => {
+  it('prepares no reply without a readable message', () => {
     const result = prepare({ operation: 'reply', instruction: 'Kibarca teşekkür et', context: null });
 
     expect(result).toEqual({
@@ -125,7 +125,7 @@ describe('prepareAction', () => {
     });
   });
 
-  it('yanıtta talimat mesaj geçmişinden ayrı tutulur', () => {
+  it('keeps the reply instruction separate from the message history', () => {
     const context = replyContext();
     const result = prepare({
       operation: 'reply',
@@ -134,7 +134,7 @@ describe('prepareAction', () => {
       context,
       target: null,
     });
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
 
     expect(result.value.instruction).toBe('Perşembe uygun, faturayı sonra konuşalım de.');
     expect(result.value.context?.threadRef).toEqual(threadA);
@@ -145,7 +145,7 @@ describe('prepareAction', () => {
 describe('validatePreviewCandidate', () => {
   const action = (() => {
     const result = prepare();
-    if (!result.ok) throw new Error('beklenmeyen hata');
+    if (!result.ok) throw new Error('unexpected error');
     return result.value;
   })();
 
@@ -157,11 +157,11 @@ describe('validatePreviewCandidate', () => {
     sample: true,
   };
 
-  it('aynı işleme ait sonucu kabul eder', () => {
+  it('accepts a result for the same action', () => {
     expect(validatePreviewCandidate(candidate, action)).toEqual({ status: 'accepted', candidate });
   });
 
-  it('eski işleme ait sonucu sessizce yok sayar', () => {
+  it('silently ignores a result for an earlier action', () => {
     expect(validatePreviewCandidate({ ...candidate, requestId: 'eski' }, action)).toEqual({
       status: 'ignored',
     });
@@ -170,7 +170,7 @@ describe('validatePreviewCandidate', () => {
     });
   });
 
-  it('boş, çok uzun veya şemaya uymayan sonucu reddeder', () => {
+  it('rejects an empty, overlong or schema-violating result', () => {
     expect(validatePreviewCandidate({ ...candidate, text: '   ' }, action).status).toBe('rejected');
     expect(validatePreviewCandidate({ ...candidate, text: 'a'.repeat(30_001) }, action).status).toBe(
       'rejected',

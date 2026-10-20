@@ -1,9 +1,9 @@
-// Gerçek Outlook incelemesi için kalıcı profilli Firefox'u BiDi açık başlatır.
-// Outlook'a bu pencerede bir kez giriş yapılır; oturum profilde kalır.
-// Eklentiyi de bu pencerede çalıştırmak için: pnpm outlook:dev
-// Kullanım: pnpm outlook:firefox [--restart]
-//   --restart  açık olan inceleme Firefox'unu kapatıp yeniden başlatır (ör. pencere
-//              kapandıysa veya yarım kalmış bir otomasyon oturumu yeni bağlantıyı engelliyorsa)
+// Starts Firefox with a persistent profile and BiDi enabled for real Outlook inspection.
+// Sign in to Outlook once in this window; the session stays in the profile.
+// To run the extension in this window as well: pnpm outlook:dev
+// Usage: pnpm outlook:firefox [--restart]
+//   --restart  closes the running inspection Firefox and starts it again (e.g. if the
+//              window was closed or an unfinished automation session blocks new connections)
 import { parseArgs } from 'node:util';
 
 import { LIVE_BIDI_PORT, LIVE_PROFILE } from './live-config.mjs';
@@ -13,11 +13,11 @@ const { values } = parseArgs({ options: { restart: { type: 'boolean', default: f
 const { started, version } = await ensureLiveFirefox({ restart: values.restart });
 
 if (started) {
-  console.log(`${version} açıldı (BiDi ${LIVE_BIDI_PORT}).`);
-  console.log(`Profil: ${LIVE_PROFILE}`);
-  console.log('Outlook oturumu bu profilde kalır. Pencereyi kapatmak oturumu silmez.');
+  console.log(`${version} started (BiDi ${LIVE_BIDI_PORT}).`);
+  console.log(`Profile: ${LIVE_PROFILE}`);
+  console.log('The Outlook session stays in this profile. Closing the window does not delete it.');
 } else {
   console.log(
-    `Firefox zaten açık (BiDi ${LIVE_BIDI_PORT}). Yeniden başlatmak için: pnpm outlook:firefox --restart`,
+    `Firefox is already running (BiDi ${LIVE_BIDI_PORT}). To restart it: pnpm outlook:firefox --restart`,
   );
 }

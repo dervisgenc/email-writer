@@ -7,11 +7,11 @@ import {
   settingsV2Schema,
   type Settings,
   type SettingsChanges,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 export const SETTINGS_STORAGE_KEY = 'settings';
 
-/** Tarayıcı depolamasının ayar deposunun ihtiyaç duyduğu dar kısmı. */
+/** The narrow slice of browser storage the settings store needs. */
 export interface SettingsStorageArea {
   get(key: string): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
@@ -22,13 +22,13 @@ export type StoredSettingsIssue = 'missing' | 'invalid' | 'migrated' | 'newer-sc
 export interface StoredSettings {
   readonly settings: Settings;
   readonly issue: StoredSettingsIssue;
-  /** Daha yeni bir şemayla yazılmış kayıt bozulmadan korunur; üzerine yazılmaz. */
+  /** A record written with a newer schema is preserved intact and never overwritten. */
   readonly writable: boolean;
 }
 
 export type PatchSettingsResult =
   | { readonly status: 'saved'; readonly settings: Settings }
-  /** Kayıt bu sırada değişmişti: güncel kayda yalnızca istenen alanlar uygulandı. */
+  /** The record changed in the meantime: only the requested fields were applied to the current record. */
   | { readonly status: 'conflict'; readonly settings: Settings }
   | { readonly status: 'read-only'; readonly settings: Settings };
 
@@ -36,7 +36,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Geçersiz kayıttan geçerli alanları kurtarır, eksikleri varsayılanlarla tamamlar. */
+/** Recovers the valid fields from an invalid record and fills the rest with defaults. */
 function salvage(raw: Record<string, unknown>): Settings {
   const recovered: Record<string, unknown> = {};
   for (const [key, field] of Object.entries(settingsChangesSchema.shape)) {
@@ -53,8 +53,8 @@ function salvage(raw: Record<string, unknown>): Settings {
 }
 
 /**
- * Depodaki kaydı okur ve doğrular. Geçersiz kayıt güvenli varsayılanlarla ele
- * alınır; içerik taşımayan bir sorun kodu döner. Bütün depolama silinmez.
+ * Reads and validates the stored record. An invalid record is handled with safe
+ * defaults and a content-free issue code is returned. Storage is never wiped.
  */
 export function parseStoredSettings(raw: unknown): StoredSettings {
   if (raw === undefined) {
@@ -71,16 +71,16 @@ export function parseStoredSettings(raw: unknown): StoredSettings {
     return { settings: parsed.data, issue: null, writable: true };
   }
   if ([settingsV1Schema, settingsV2Schema].some((schema) => schema.safeParse(raw).success)) {
-    // Eski sürümlerin bütün alanları güncel sürümde de geçerlidir; yeni alanlar varsayılanla gelir.
+    // Every field of older versions is still valid in the current one; new fields get their defaults.
     return { settings: salvage(raw), issue: 'migrated', writable: true };
   }
   return { settings: salvage(raw), issue: 'invalid', writable: true };
 }
 
 /**
- * Değişiklikleri güncel kayda alan düzeyinde uygular. İstemcinin bildiği sürüm
- * eskiyse eski bütün nesneyle üzerine yazılmaz; yalnızca istenen alanlar
- * güncel kayda uygulanır ve durum `conflict` olarak bildirilir.
+ * Applies changes to the current record field by field. If the client's known revision
+ * is outdated, the record is not overwritten with the whole stale object; only the
+ * requested fields are applied to the current record and the status is reported as `conflict`.
  */
 export function applySettingsChanges(
   current: Settings,
@@ -97,9 +97,9 @@ export function applySettingsChanges(
 
 export interface SettingsStore {
   read(): Promise<StoredSettings>;
-  /** Yazma istekleri sıralı işlenir; başarı ancak depolama tamamlanınca döner. */
+  /** Writes are processed in order; success is returned only once storage completes. */
   patch(expectedRevision: number, changes: SettingsChanges): Promise<PatchSettingsResult>;
-  /** Kurulumda eksik veya bozuk kaydı varsayılanlarla onarır. */
+  /** On install, repairs a missing or corrupt record with defaults. */
   ensureInitialized(): Promise<StoredSettings>;
 }
 

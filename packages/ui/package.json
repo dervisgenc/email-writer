@@ -1,9 +1,9 @@
 {
-  "name": "@email-writer/ui",
+  "name": "@writehand/ui",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Vue panel, başlatıcı ve önizleme bileşenleri",
+  "description": "Vue components for the panel, launchers and previews",
   "exports": {
     ".": "./src/index.ts",
     "./styles/panel.css": "./src/styles/panel.css",
@@ -13,8 +13,8 @@
     "typecheck": "vue-tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@email-writer/contracts": "workspace:*",
-    "@email-writer/email-format": "workspace:*"
+    "@writehand/contracts": "workspace:*",
+    "@writehand/email-format": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

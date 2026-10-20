@@ -1,4 +1,4 @@
-/** Metin alanı olayından değeri tür dönüştürmeden okur. */
+/** Reads the value from an input event without a type cast. */
 export function inputValue(event: Event): string {
   const target = event.target;
   return target !== null && 'value' in target && typeof target.value === 'string' ? target.value : '';

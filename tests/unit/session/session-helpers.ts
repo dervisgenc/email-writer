@@ -1,4 +1,4 @@
-import type { ComposerRef, PreparedAction } from '@email-writer/contracts';
+import type { ComposerRef, PreparedAction } from '@writehand/contracts';
 import {
   createSession,
   prepareAction,
@@ -6,7 +6,7 @@ import {
   type SessionEvent,
   type SessionState,
   type SourceBinding,
-} from '@email-writer/core';
+} from '@writehand/core';
 
 import { scopeA, threadA } from '../../fixtures/synthetic-mail/threads';
 import { testDependencies } from '../test-dependencies';
@@ -50,11 +50,11 @@ export function prepareFrom(state: SessionState): PreparedAction {
     },
     testDependencies(),
   );
-  if (!result.ok) throw new Error('beklenmeyen doğrulama hatası');
+  if (!result.ok) throw new Error('unexpected validation error');
   return result.value;
 }
 
-/** Seçimden kaynak alınmış ve örnek sonucu önizlemeye gelmiş bir oturum. */
+/** A session whose source came from a selection and whose sample result has reached the preview. */
 export function sessionWithPreview(text = 'Toplantıyı yarın yapabiliriz.'): SessionState {
   const loaded = reduceAll(newSession(), [
     {

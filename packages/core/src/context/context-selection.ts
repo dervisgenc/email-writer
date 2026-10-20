@@ -1,9 +1,8 @@
-import type { ContextEdit, ContextSelection } from '@email-writer/contracts';
+import type { ContextEdit, ContextSelection } from '@writehand/contracts';
 
 /**
- * Bağlam denetleyicisinde bir mesajı ekler veya çıkarır. Seçim varsayılan
- * kurala göre istisna olarak tutulur; aynı mesaj hem eklenen hem çıkarılan
- * listesinde bulunmaz.
+ * Adds or removes a message in the context panel. The selection is stored as exceptions
+ * to the default rule; a message is never in both the included and the excluded list.
  */
 export function withMessageInclusion(
   selection: ContextSelection,
@@ -17,8 +16,8 @@ export function withMessageInclusion(
 }
 
 /**
- * Bir mesajın bağlamdaki metnini düzenler; `null` düzenlemeyi kaldırır ve
- * orijinal metne döner. Orijinal mesaj ve e-posta değişmez.
+ * Edits a message's text in the context; `null` removes the edit and restores the
+ * original text. The original message and email are unchanged.
  */
 export function withMessageEdit(
   edits: readonly ContextEdit[],

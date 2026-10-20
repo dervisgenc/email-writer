@@ -8,7 +8,7 @@ import {
   NATIVE_HOST_NAME,
   runtimeRequestSchema,
   versionSchema,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { hostPlatform, registryDefaultValue } from '../../apps/ai-companion/src/platform';
@@ -42,7 +42,7 @@ describe('Helper version compatibility', () => {
 
 describe('Install commands', () => {
   const id = 'abcdefghijklmnopabcdefghijklmnop';
-  const download = 'https://github.com/dervisgenc/email-writer/releases/latest/download';
+  const download = 'https://github.com/dervisgenc/writehand/releases/latest/download';
 
   it('install the latest release with one line on each system', () => {
     expect(helperInstallCommand('darwin', null)).toBe(`curl -fsSL ${download}/install.sh | sh`);

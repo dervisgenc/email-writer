@@ -3,8 +3,8 @@ import type { KeyObject } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
-import { AiFailure } from '@email-writer/ai-openai';
-import { HELPER_COMMAND, PRODUCT_NAME, type ErrorCode, type HostUpdateCheck } from '@email-writer/contracts';
+import { AiFailure } from '@writehand/ai-openai';
+import { HELPER_COMMAND, PRODUCT_NAME, type ErrorCode, type HostUpdateCheck } from '@writehand/contracts';
 
 import type { HostConfig } from './host-config';
 import type { HostPlatform } from './platform';

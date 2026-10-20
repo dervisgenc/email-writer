@@ -27,7 +27,7 @@ const showOthers = ref(false);
 const current = computed(() => props.context.messages.filter((m) => m.group === 'current'));
 const others = computed(() => props.context.messages.filter((m) => m.group === 'other'));
 const includedCount = computed(() => props.context.messages.filter((m) => m.included).length);
-// Mesaj sayısı başlıkta özetlendiği için açıklama listesinde tekrar edilmez.
+// The header already summarizes the message count, so the notice list skips it.
 const notices = computed(() =>
   props.context.notices
     .filter((notice) => notice.kind !== 'message-count')
@@ -115,7 +115,7 @@ const notices = computed(() =>
       </div>
     </template>
 
-    <!-- Eksik kapsam genel bir "hazır" mesajının arkasına saklanmaz. -->
+    <!-- Missing coverage is never hidden behind a generic "ready" message. -->
     <ul v-if="notices.length > 0" class="ew-context__notices">
       <li v-for="notice in notices" :key="notice">
         <AppIcon name="info" :size="14" />

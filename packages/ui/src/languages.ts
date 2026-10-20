@@ -4,9 +4,9 @@ import {
   normalizeTargetLanguage,
   type CatalogLanguage,
   type TargetLanguage,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
-/** Dil adları tarayıcının yerleşik verisinden gelir; arayüz dilinde gösterilir. */
+/** Language names come from the browser's built-in data and are shown in the UI language. */
 const displayNames = new Map<string, Intl.DisplayNames | null>();
 
 function namesFor(locale: string): Intl.DisplayNames | null {
@@ -24,7 +24,7 @@ function capitalize(text: string, locale: string): string {
   return text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
 }
 
-/** Katalog kodu için yerelleştirilmiş ad; kullanıcının yazdığı ad olduğu gibi. */
+/** Localized name for a catalog code; a name the user typed is returned as is. */
 export function languageLabel(language: TargetLanguage, locale: string): string {
   if (!isCatalogLanguage(language)) return language;
   const name = namesFor(locale)?.of(language);
@@ -36,7 +36,7 @@ export interface LanguageOption {
   readonly label: string;
 }
 
-/** Katalogdaki diller, arayüz dilindeki adlarına göre sıralı. */
+/** Catalog languages, sorted by their names in the UI language. */
 export function languageOptions(locale: string): LanguageOption[] {
   return LANGUAGE_CATALOG.map((value) => ({ value, label: languageLabel(value, locale) })).sort((a, b) =>
     a.label.localeCompare(b.label, locale),
@@ -44,9 +44,9 @@ export function languageOptions(locale: string): LanguageOption[] {
 }
 
 /**
- * Kullanıcının yazdığını hedef dile çevirir: kod (`de`), arayüz dilindeki ad
- * ("Almanca") veya İngilizce ad ("German") katalog koduna eşlenir; başka geçerli
- * bir ad olduğu gibi kalır. Kullanılamayan girdi için `null` döner.
+ * Turns user input into a target language: a code (`de`), the name in the UI language
+ * ("Allemand" in French) or the English name ("German") maps to the catalog code; any
+ * other valid name is kept as is. Returns `null` for unusable input.
  */
 export function matchLanguage(input: string, locale: string): TargetLanguage | null {
   const value = input.trim().replace(/\s+/g, ' ');

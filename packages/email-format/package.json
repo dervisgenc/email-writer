@@ -1,5 +1,5 @@
 {
-  "name": "@email-writer/email-format",
+  "name": "@writehand/email-format",
   "private": true,
   "license": "MIT",
   "type": "module",

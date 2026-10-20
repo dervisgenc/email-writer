@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { Operation, TargetLanguage } from '@email-writer/contracts';
-import { isSessionBusy } from '@email-writer/core';
+import type { Operation, TargetLanguage } from '@writehand/contracts';
+import { isSessionBusy } from '@writehand/core';
 import {
   ComposeToolbar,
   provideUiText,
   ThreadLauncher,
   type QuickActionRequest,
   type UiText,
-} from '@email-writer/ui';
+} from '@writehand/ui';
 import { computed, onScopeDispose, shallowRef, type Ref } from 'vue';
 
 import type { PanelSessionDependencies } from '../composables/use-panel-session';
@@ -20,7 +20,7 @@ import type { LauncherTarget } from './mount-launchers';
 const props = defineProps<{
   text: Readonly<Ref<UiText>>;
   appearance: Readonly<Ref<Appearance>>;
-  /** Yerinde güncellenir: taslak sonradan yanıta bağlanınca etiket değişir, düğme yeniden kurulmaz. */
+  /** Updated in place: when the draft later becomes a reply, the label changes but the button is kept. */
   target: Readonly<Ref<LauncherTarget>>;
   session: PanelSessionDependencies;
   surface: Readonly<Ref<PanelSurface>>;
@@ -42,7 +42,7 @@ const unsubscribe = props.session.store.subscribe((next) => {
 });
 onScopeDispose(unsubscribe);
 
-/** Kart yalnızca işlemin başlatıldığı taslağın araç çubuğunda açılır. */
+/** The card opens only on the toolbar of the draft where the operation started. */
 const cardOpen = computed(() => {
   const surface = props.surface.value;
   const target = props.target.value;

@@ -1,8 +1,13 @@
 # Writehand
 
+[![CI](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml/badge.svg)](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 Writehand helps you write better emails without leaving Outlook on the web. It revises, translates, replies and drafts new emails with your ChatGPT plan, your own OpenAI API key or Claude Code on your computer. Every result is shown as a preview first; nothing is written to your draft until you approve it, and Writehand never sends email.
 
 Writehand has two parts: a browser extension for Firefox, Edge, Chrome and Brave, and a small helper app on your computer that holds the AI connection.
+
+![Writehand drafting a reply next to an email draft](./store/screenshots/en/01-reply.png)
 
 ## Install
 
@@ -12,13 +17,13 @@ Writehand has two parts: a browser extension for Firefox, Edge, Chrome and Brave
    macOS and Linux (Terminal):
 
    ```sh
-   curl -fsSL https://github.com/dervisgenc/email-writer/releases/latest/download/install.sh | sh
+   curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/install.sh | sh
    ```
 
    Windows (PowerShell):
 
    ```powershell
-   irm https://github.com/dervisgenc/email-writer/releases/latest/download/install.ps1 | iex
+   irm https://github.com/dervisgenc/writehand/releases/latest/download/install.ps1 | iex
    ```
 
    The command downloads the helper app for your system from the latest release, checks its SHA-256 checksum, installs it in your user folder and registers it with Firefox, Chrome, Edge and Brave.
@@ -28,11 +33,11 @@ Writehand has two parts: a browser extension for Firefox, Edge, Chrome and Brave
 To uninstall the helper app (add `--delete-data` or `-DeleteData` to also sign out of ChatGPT and delete saved keys):
 
 ```sh
-curl -fsSL https://github.com/dervisgenc/email-writer/releases/latest/download/install.sh | sh -s -- uninstall
+curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/install.sh | sh -s -- uninstall
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://github.com/dervisgenc/email-writer/releases/latest/download/install.ps1))) -Uninstall
+& ([scriptblock]::Create((irm https://github.com/dervisgenc/writehand/releases/latest/download/install.ps1))) -Uninstall
 ```
 
 ## Features
@@ -66,11 +71,11 @@ The helper app is a single program (no Node.js needed) for macOS (Apple silicon 
 - Sign-in tokens and API keys are stored by the helper app in a file only your user account can read, never in browser storage.
 - While update checks are on (the default), the helper app asks GitHub for the latest version number at most once a day. You can turn this off in the settings.
 
-To report a security issue privately, see the [security policy](./SECURITY.md).
+Read the full [privacy policy](./PRIVACY.md). To report a security issue privately, see the [security policy](./SECURITY.md).
 
 ## Status
 
-Not yet published to browser stores. Reading, context, preview and controlled writing to the draft have been verified live in Outlook on the web (Firefox on macOS, with Claude Code), including rich tables, undo and re-apply; generation has also been verified with a ChatGPT Plus account. The helper app has been verified on macOS, Linux and Windows 11 (Chrome, Edge, Brave and Firefox). The single-file helper, its installers and the welcome wizard were verified on Linux; CI builds and installs the helper on every supported system.
+Writehand is in its first public release. Store listings for Firefox Add-ons and Microsoft Edge Add-ons are on their way, followed by the Chrome Web Store. See the [changelog](./CHANGELOG.md) for what is included.
 
 ## Development
 
@@ -86,9 +91,10 @@ pnpm test:firefox   # Firefox smoke test
 pnpm ai:build       # helper app as a Node.js script
 pnpm ai:install     # install that build for your browsers (add --extension-id=ID for an unpacked Chromium build)
 pnpm ai:sea         # single-file helper app and its release archive (Node.js 24)
+pnpm store:assets   # store icons, screenshots, promo images and demo video (store/)
 ```
 
-Releases are built by GitHub Actions from `vX.Y.Z` tags; see the [developer guide](./docs/GELISTIRICI_REHBERI.md#sürümleme-ve-yayın) and [building from source](./docs/BUILD.md).
+Releases are built by GitHub Actions from `vX.Y.Z` tags; see [releasing](./docs/RELEASING.md) and [building from source](./docs/BUILD.md). Contributions are welcome; please read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Project structure
 
@@ -104,20 +110,19 @@ packages/ui/                   Vue panel, toolbar, result card, settings and set
 packages/mail-connectors/
   outlook-web/                 Reads, observes and writes Outlook on the web pages in a controlled way
 tests/                         Unit, contract, integration and end-to-end tests with synthetic samples
+scripts/store-assets/          Demo mailbox and scripts that produce the store images and the demo video
+assets/brand/                  Logo sources (SVG)
 .github/workflows/             CI on Linux, macOS and Windows; signed draft releases
 ```
 
 ## Documentation
 
-The detailed documentation is written in Turkish.
-
-- [Developer guide](./docs/GELISTIRICI_REHBERI.md)
-- [AI connection and helper app](./docs/AI_BAGLANTISI.md)
-- [Building from source](./docs/BUILD.md) (English)
-- [Outlook on the web page verification](./docs/outlook-web-dogrulama.md)
-- [Project plan](./PROJE_PLANI.md) and [implementation details](./implementation_details.md)
-- [Browser and account matrix](./tests/manual/browser-matrix.md)
-- [Changelog](./CHANGELOG.md) and [work log](./YAPILAN_ISLER.md)
+- [Development guide](./docs/DEVELOPMENT.md): architecture, commands, Outlook selectors and tests
+- [Helper app](./docs/HELPER_APP.md): commands, connection methods, stored data and troubleshooting
+- [Releasing](./docs/RELEASING.md): versioning, signed releases, store submission and store assets
+- [Manual testing](./docs/MANUAL_TESTING.md): release checklist for clean machines
+- [Building from source](./docs/BUILD.md)
+- [Privacy policy](./PRIVACY.md), [security policy](./SECURITY.md) and [changelog](./CHANGELOG.md)
 
 ## License
 

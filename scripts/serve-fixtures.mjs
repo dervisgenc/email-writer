@@ -1,6 +1,6 @@
-// Sentetik Outlook örnek sayfalarını yalnızca yerel ağ arayüzünde sunar.
-// Eklentinin test derlemesi http://127.0.0.1/* adresini desteklenen origin kabul eder;
-// normal paketin manifestinde bu adres bulunmaz.
+// Serves the synthetic Outlook sample pages on the loopback interface only.
+// The extension's test build accepts http://127.0.0.1/* as a supported origin;
+// the regular package's manifest does not include that address.
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
@@ -21,7 +21,7 @@ const server = createServer(async (request, response) => {
   const body = await readFile(resolve(fixtures, file), 'utf8');
   response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   response.end(
-    `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Outlook örnek sayfası</title></head><body>${body}</body></html>`,
+    `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Outlook sample page</title></head><body>${body}</body></html>`,
   );
 });
 

@@ -6,7 +6,7 @@ import {
   NATIVE_HOST_NAME,
   PRODUCT_NAME,
   type HostBrowser,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { serializeHostConfig, type HostConfig } from './host-config';
 import type { HostPlatform } from './platform';

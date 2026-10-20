@@ -1,9 +1,9 @@
 {
-  "name": "@email-writer/contracts",
+  "name": "@writehand/contracts",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Modüllerin paylaştığı veri ve işlem tanımları, sınır şemaları",
+  "description": "Data and action definitions shared across modules, plus boundary schemas",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -1,4 +1,4 @@
-import type { RuntimeRequestType } from '@email-writer/contracts';
+import type { RuntimeRequestType } from '@writehand/contracts';
 import type { MessageSender } from './runtime-messaging';
 
 /**

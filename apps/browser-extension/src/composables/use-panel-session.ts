@@ -6,9 +6,9 @@ import {
   type RefinementKind,
   type TargetLanguage,
   type Tone,
-} from '@email-writer/contracts';
-import { ACTION_LIMITS, deriveCapabilities } from '@email-writer/core';
-import type { SourceReloadKind } from '@email-writer/ui';
+} from '@writehand/contracts';
+import { ACTION_LIMITS, deriveCapabilities } from '@writehand/core';
+import type { SourceReloadKind } from '@writehand/ui';
 import { computed, onScopeDispose, shallowRef } from 'vue';
 
 import type { ActionController } from '../controllers/action-controller';
@@ -31,14 +31,14 @@ export interface PanelSessionDependencies {
 const NOTICE_DURATION_MS = 4_000;
 
 /**
- * Denetleyicilerle Vue arasındaki ince bağlantı. Yeni iş kuralı burada
- * yazılmaz: görünüm `toPanelView` ile üretilir, olaylar denetleyicilere iletilir.
+ * Thin glue between the controllers and Vue. No new business rules belong
+ * here: the view comes from `toPanelView` and events are forwarded to the controllers.
  */
 export function usePanelSession(deps: PanelSessionDependencies) {
   const { store, connector, panel, actions, applier, history } = deps;
   const state = shallowRef(store.getState());
   const page = shallowRef<PageState>(connector.getPageState());
-  // Arka planda okunan mesajlar bağlam listesinde hemen görünsün diye.
+  // So that messages read in the background show up in the context list right away.
   const historyEntries = shallowRef(history.entries());
   const ui = shallowRef<TransientUiState>({ pendingReplace: null, replyReplaceComposer: null, notice: null });
   let noticeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,7 +92,7 @@ export function usePanelSession(deps: PanelSessionDependencies) {
 
   const composer = (): ComposerRef | null => sessionComposer(store.getState(), page.value);
 
-  /** Panelde düzenlenmiş metin, kaynak yeniden alınırken sessizce silinmez. */
+  /** Text edited in the panel is not silently discarded when the source is reloaded. */
   const reloadSource = async (kind: SourceReloadKind, confirmReplace: boolean) => {
     if (capabilities.value.sourceEdited && !confirmReplace) {
       patchUi({ pendingReplace: kind });
@@ -124,18 +124,18 @@ export function usePanelSession(deps: PanelSessionDependencies) {
     replyTargetChange: actions.setReplyTarget,
     refreshContext: () => void actions.readThread(),
     prepare: () => void actions.prepare(),
-    /** Karttaki yanıt talimatını kaydeder ve yanıtı hazırlar. */
-    /** Karttaki dil satırı: dili kaydeder ve çeviriyi hazırlar. */
+    /** Language row on the card: saves the language and prepares the translation. */
     translateTo: (targetLanguage: TargetLanguage) => {
       store.dispatch({ type: 'form-changed', changes: { operation: 'translate', targetLanguage } });
       void actions.prepare();
     },
-    /** Hazır sonucu hazır bir yönde değiştirir (ör. tablo yap, kısalt). */
+    /** Reworks the ready result in a preset direction (e.g. make a table, shorten). */
     refine: (kind: RefinementKind) => void actions.prepare({ refinement: REFINEMENT_INSTRUCTIONS[kind] }),
-    /** Hazır sonucu kullanıcının yazdığı yönde değiştirir. */
+    /** Reworks the ready result in the direction the user typed. */
     refineCustom: (instruction: string) => {
       if (instruction.trim() !== '') void actions.prepare({ refinement: instruction });
     },
+    /** Saves the reply instruction from the card and prepares the reply. */
     submitInstruction: (text: string) => {
       store.dispatch({ type: 'form-changed', changes: { instruction: text } });
       void actions.prepare();

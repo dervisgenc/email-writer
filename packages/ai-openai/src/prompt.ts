@@ -1,4 +1,4 @@
-import { buildTaskPrompt, type AiInput } from '@email-writer/contracts';
+import { buildTaskPrompt, type AiInput } from '@writehand/contracts';
 
 /** Mail is data, never a developer instruction. No tools or executable output are requested. */
 export function buildEmailRequest(input: AiInput, model: string) {

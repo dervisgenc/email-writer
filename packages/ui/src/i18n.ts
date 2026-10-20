@@ -6,7 +6,7 @@ import type {
   Operation,
   SourceOrigin,
   Tone,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { inject, provide, type InjectionKey, type Ref } from 'vue';
 import type { AiText } from './ai-text';
 import type { HelperText } from './helper';
@@ -15,22 +15,22 @@ type CountedNotice = Extract<ContextNotice, { count: number }>['kind'];
 type PlainNotice = Exclude<ContextNotice['kind'], CountedNotice>;
 
 /**
- * Panelin bütün metinleri. Bileşenler metin üretmez; sözlük eklentinin
- * `locales/` dosyalarından sağlanır.
+ * All panel text. Components never produce text of their own; the dictionary
+ * comes from the extension's `locales/` files.
  */
 export interface UiText {
-  /** Dil adlarının ve sıralamanın yapıldığı yerel ayar (BCP 47). */
+  /** Locale (BCP 47) used for language names and sorting. */
   readonly locale: string;
   readonly ai: AiText;
   readonly helper: HelperText;
   readonly panelTitle: string;
   readonly close: string;
-  /** Okuma bölmesindeki "Yanıt hazırla" düğmesi. */
+  /** The "Draft reply" button in the reading pane. */
   readonly threadLauncher: {
     readonly label: string;
     readonly tooltip: string;
   };
-  /** Yazma alanına gömülü araç çubuğu. */
+  /** Toolbar embedded in the compose area. */
   readonly compose: {
     readonly toolbarLabel: string;
     readonly reply: string;
@@ -44,7 +44,7 @@ export interface UiText {
     readonly chooseLanguage: string;
     readonly openPanel: string;
   };
-  /** Yazma alanının yanındaki sonuç kartı. */
+  /** Result card next to the compose area. */
   readonly inline: {
     readonly titles: Readonly<Record<Operation, string>>;
     readonly instructionLabel: string;
@@ -126,14 +126,14 @@ export interface UiText {
     readonly title: string;
     readonly regenerate: string;
     readonly sampleLabel: string;
-    /** Dar alanlarda (sonuç kartı) gösterilen kısa etiket; tam açıklama ipucunda kalır. */
+    /** Short label for narrow spaces (the result card); the full description stays in the tooltip. */
     readonly sampleShort: string;
     readonly stale: string;
     readonly unchanged: string;
     readonly editSource: string;
     readonly showFormatted: string;
   };
-  /** Hazır sonucu değiştirme çubuğu. */
+  /** Bar for refining a finished result. */
   readonly refine: {
     readonly title: string;
     readonly kinds: Readonly<Record<RefinementKind, string>>;
@@ -166,7 +166,7 @@ export interface UiText {
   readonly errors: Readonly<Record<ErrorCode, string>>;
 }
 
-const UI_TEXT_KEY: InjectionKey<Readonly<Ref<UiText>>> = Symbol('email-writer-ui-text');
+const UI_TEXT_KEY: InjectionKey<Readonly<Ref<UiText>>> = Symbol('writehand-ui-text');
 
 export function provideUiText(text: Readonly<Ref<UiText>>): void {
   provide(UI_TEXT_KEY, text);
@@ -175,7 +175,7 @@ export function provideUiText(text: Readonly<Ref<UiText>>): void {
 export function useUiText(): Readonly<Ref<UiText>> {
   const text = inject(UI_TEXT_KEY);
   if (text === undefined) {
-    throw new Error('UiText sağlanmadı: provideUiText çağrılmalı.');
+    throw new Error('UiText was not provided: call provideUiText first.');
   }
   return text;
 }

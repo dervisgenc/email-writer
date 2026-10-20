@@ -6,7 +6,7 @@ import { ICON_PATHS, type IconName } from './icons';
 const props = withDefaults(defineProps<{ name: IconName; size?: number }>(), { size: 16 });
 
 const paths = computed(() => ICON_PATHS[props.name]);
-// Noktalı "daha fazla" simgesi yuvarlak uçlu kalın çizgiyle nokta olarak çizilir.
+// The dotted "more" icon is drawn as dots with a thick round-capped stroke.
 const strokeWidth = computed(() => (props.name === 'more' ? 2.6 : 1.4));
 </script>
 

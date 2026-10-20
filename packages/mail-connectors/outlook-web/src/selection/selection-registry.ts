@@ -1,6 +1,6 @@
 /**
- * Bağlantı modülünün özel belleğinde tutulan seçim kayıtları. `DraftSelection`
- * dışarıya yalnızca kimlik ve indis taşır; doğrulama bu kayıtla yapılır.
+ * Selection records kept in the connector's private memory. `DraftSelection`
+ * only carries an id and offsets outward; validation uses these records.
  */
 export interface SelectionRecord {
   readonly selectionId: string;
@@ -14,12 +14,12 @@ export interface SelectionRecord {
 export interface SelectionRegistry {
   register(record: SelectionRecord): void;
   get(selectionId: string): SelectionRecord | null;
-  /** Editör değişince veya kaldırılınca o editörün seçimleri geçersiz olur. */
+  /** When an editor changes or is removed, its selections become invalid. */
   forgetComposer(composerKey: string): void;
   clear(): void;
 }
 
-/** Editör başına tutulan en fazla seçim kaydı; eski kayıtlar düşer. */
+/** Maximum selection records kept per editor; older records are dropped. */
 const MAX_RECORDS_PER_COMPOSER = 5;
 
 export function createSelectionRegistry(): SelectionRegistry {

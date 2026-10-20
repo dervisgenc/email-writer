@@ -1,9 +1,9 @@
-import { appError, err, ok, type AppError, type Result } from '@email-writer/contracts';
+import { appError, err, ok, type AppError, type Result } from '@writehand/contracts';
 
 /**
- * Kullanıcı tıklamasıyla panoya yazar: her zaman düz metin, biçimli içerikte
- * ayrıca HTML (tablo ve listeler başka yere yapıştırınca korunur). Pano okunmaz
- * ve kullanıcı eylemi olmadan yazılmaz. Yazılamazsa metin panelde seçilebilir kalır.
+ * Writes to the clipboard on a user click: always plain text, plus HTML for formatted
+ * content (so tables and lists survive pasting elsewhere). The clipboard is never read
+ * and never written without a user action. If writing fails, the text stays selectable in the panel.
  */
 export async function copyText(content: {
   text: string;

@@ -1,9 +1,9 @@
 /*
- * Tasarım değişkenleri. Değerler Outlook'un kullandığı Fluent UI v9 tasarım
- * diliyle uyumludur. Eklenti, Outlook'un o anki renklerini okuyabildiğinde
- * renk değişkenleri kökte satır içi olarak bunlarla değiştirilir; burada
- * yalnızca yedek açık/koyu paletler bulunur. Global `body`, `button` veya
- * Outlook sınıflarına stil uygulanmaz; bütün kurallar `.ew-root` altındadır.
+ * Design tokens. Values follow the Fluent UI v9 design language that Outlook uses.
+ * When the extension can read Outlook's current colors, it overrides the color
+ * variables inline on the root; this file only holds the fallback light and dark
+ * palettes. Global `body`, `button` or Outlook classes are never styled; every
+ * rule lives under `.ew-root`.
  */
 .ew-root {
   --ew-font:

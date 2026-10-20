@@ -8,11 +8,11 @@ import {
   type Operation,
   type SourceOrigin,
   type Tone,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { ACTION_LIMITS } from './action-limits';
 
-/** Panelden veya hızlı düğmeden gelen, henüz doğrulanmamış işlem girdisi. */
+/** Not-yet-validated action input from the panel or a quick button. */
 export interface ActionDraft {
   readonly operation: Operation;
   readonly source: { readonly origin: SourceOrigin; readonly text: string };
@@ -24,7 +24,7 @@ export interface ActionDraft {
 }
 
 function isBlank(text: string): boolean {
-  // Boşluk kontrolü kopya üzerinde yapılır; asıl metin değiştirilmez.
+  // The blank check runs on a copy; the original text is not modified.
   return text.trim().length === 0;
 }
 
@@ -55,8 +55,8 @@ function validateInstruction(draft: ActionDraft, errors: AppError[]): void {
 }
 
 /**
- * Hızlı düğmeler ve panel aynı kuralları kullanır. Bütün alan hatalarını
- * birlikte döndürür; boş liste girdinin geçerli olduğu anlamına gelir.
+ * Quick buttons and the panel share the same rules. Returns all field errors together;
+ * an empty list means the input is valid.
  */
 export function validateAction(draft: ActionDraft): AppError[] {
   const errors: AppError[] = [];
@@ -77,7 +77,7 @@ export function validateAction(draft: ActionDraft): AppError[] {
       }
       break;
     case 'compose':
-      // Yeni e-posta: talimat gerekir; dil talimattan anlaşılır, konuşma bağlamı gerekmez.
+      // New email: needs an instruction, which also sets the language; no conversation context is needed.
       validateInstruction(draft, errors);
       break;
     case 'reply':
@@ -90,7 +90,7 @@ export function validateAction(draft: ActionDraft): AppError[] {
           }),
         );
       }
-      // Yanıt, yanıtlanan mesajın dilinde yazılır; talimat başka bir dil isteyebilir.
+      // The reply uses the language of the message being replied to; the instruction may ask for another.
       if (
         draft.context === null ||
         draft.context.activeMessageKey === null ||

@@ -3,7 +3,7 @@ import {
   type AiInput,
   type PreparedAction,
   type RuntimeRequest,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAiHandlers } from '../../../apps/browser-extension/src/platform/ai-background';

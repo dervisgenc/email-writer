@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { createClaudeCodeProvider, findClaudeBinary } from '@email-writer/ai-claude-code';
-import { createOpenAiOAuth, createOpenAiProvider, failureCode } from '@email-writer/ai-openai';
-import { PROTOCOL_VERSION, runtimeRequestSchema } from '@email-writer/contracts';
+import { createClaudeCodeProvider, findClaudeBinary } from '@writehand/ai-claude-code';
+import { createOpenAiOAuth, createOpenAiProvider, failureCode } from '@writehand/ai-openai';
+import { PROTOCOL_VERSION, runtimeRequestSchema } from '@writehand/contracts';
 
 import { createAiService } from './ai-service';
 import { createCredentialStore } from './credential-store';

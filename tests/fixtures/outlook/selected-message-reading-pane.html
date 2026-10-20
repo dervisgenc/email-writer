@@ -1,20 +1,20 @@
 <!--
-  ANONİMLEŞTİRİLMİŞ GERÇEK YAPI — Outlook Web, iş hesabı, İngilizce arayüz,
-  Firefox 157 (macOS), konuşma görünümü açık, okuma bölmesinde yalnızca seçili
-  mesaj (#ItemReadingPaneContainer). 15 Ekim 2026.
+  ANONYMIZED REAL STRUCTURE — Outlook Web, work account, English UI,
+  Firefox 157 (macOS), conversation view on, only the selected message in the
+  reading pane (#ItemReadingPaneContainer). October 15, 2026.
 
-  Etiketler, roller, kimlik biçimleri (MSG_<öğe>_FROM, CONV_<konuşma>_SUBJECT,
-  UniqueMessageBody_N), data-testid değerleri ve iç içe düzen gerçek sayfadan
-  `pnpm outlook:inspect structure` ile maskeli olarak çıkarıldı. Bütün metinler,
-  adlar, adresler ve kimlikler uydurmadır. Üretilmiş CSS sınıfları ve yapısal
-  önemi olmayan sarmalayıcılar çıkarıldı.
+  Tags, roles, ID formats (MSG_<item>_FROM, CONV_<conversation>_SUBJECT,
+  UniqueMessageBody_N), data-testid values and the nesting were extracted, masked,
+  from the real page with `pnpm outlook:inspect structure`. All texts, names,
+  addresses and IDs are made up. Generated CSS classes and structurally
+  insignificant wrappers were removed.
 
-  Gözlenenler:
-  - Gönderen metni "Ad <adres>" biçiminde; alıcılar (TO/CC) adresleri aria-label
-    içinde taşıyor.
-  - Tarih yalnızca biçimlendirilmiş metin; time[datetime] yok.
-  - Gövdenin başında, ilk hücresi boş iki hücreli bir uyarı tablosu ve gövde
-    içinde Outlook'un kendi düğmesi var.
+  Observed:
+  - The sender text has the form "Name <address>"; recipients (TO/CC) carry their
+    addresses in aria-label.
+  - The date is formatted text only; there is no time[datetime].
+  - The body starts with a two-cell warning table whose first cell is empty, and
+    contains a button of Outlook's own.
 -->
 <div id="owa-me-control-container">
   <button aria-label="Account manager for Deniz Yılmaz">DY</button>

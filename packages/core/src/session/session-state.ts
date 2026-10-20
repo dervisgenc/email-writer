@@ -13,12 +13,12 @@ import {
   type ThreadRef,
   type ThreadSnapshot,
   type Tone,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 /**
- * Panel oturumunun tek durum modeli. Birbiriyle çelişebilecek ayrı
- * `isLoading`/`hasResult` değişkenleri yerine tek bir aşama tutulur. Panelin
- * açık/kapalı olması bu modelin parçası değildir.
+ * The single state model of a panel session. It keeps one phase instead of separate
+ * `isLoading`/`hasResult` flags that could contradict each other. Whether the panel is open
+ * or closed is not part of this model.
  */
 export type SessionPhase =
   | { readonly status: 'idle' }
@@ -44,23 +44,23 @@ export interface SessionForm {
   readonly operation: Operation;
   readonly sourceText: string;
   readonly instruction: string;
-  /** Gizlenen tercih oturumda saklanır; düzeltmede işlem kaydına girmez. */
+  /** Kept in the session even while hidden; not included in the action record for revision. */
   readonly targetLanguage: TargetLanguage;
   readonly tone: Tone;
-  /** Düzeltme ve çeviride konuşmanın bağlama dahil edilmesi. */
+  /** Whether the conversation is included as context for revision and translation. */
   readonly useConversation: boolean;
   readonly contextSelection: ContextSelection;
   readonly includedBlocks: readonly BlockRef[];
-  /** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metinleri. */
+  /** Message texts the user edited in the context panel. */
   readonly contextEdits: readonly ContextEdit[];
-  /** Aktif mesaj tanınamadığında kullanıcının seçtiği yanıt verilecek mesaj. */
+  /** Message to reply to, picked by the user when the active message cannot be identified. */
   readonly replyTargetKey: string | null;
 }
 
 /**
- * Kaynak metnin e-posta sayfasında nereden alındığı. Panelde yapılan
- * düzenleme bu kaydı değiştirmez: işlenecek yeni metin ile Outlook'ta
- * değiştirilecek eski bölüm ayrı kayıtlardır.
+ * Where on the email page the source text came from. Editing in the panel does not change
+ * this record: the new text to process and the old range to replace in Outlook are kept
+ * separately.
  */
 export type SourceBinding =
   | { readonly kind: 'panel' }
@@ -86,15 +86,15 @@ export type SourceBinding =
       readonly loadedText: string;
     };
 
-/** Kaynak veya hedefin neden artık geçerli olmadığı. */
+/** Why the source or target is no longer valid. */
 export type StaleReason =
   'composer-changed' | 'composer-removed' | 'selection-invalid' | 'thread-changed' | 'account-changed';
 
 export interface SessionPreview {
   readonly requestId: string;
-  /** Önizlemenin ait olduğu işlem kaydının form sürümü. */
+  /** Form revision of the action record the preview belongs to. */
   readonly formRevision: number;
-  /** Uygulanacak metnin tek kaynağı; kullanıcının son düzenlemesidir. */
+  /** Single source of the text to apply; reflects the user's latest edit. */
   readonly text: string;
   readonly previewRevision: number;
   readonly sample: boolean;
@@ -115,17 +115,17 @@ export interface SessionState {
   readonly phase: SessionPhase;
   readonly formRevision: number;
   readonly form: SessionForm;
-  /** Oturumun bağlı olduğu konuşma; başka konuşmanın içeriği karıştırılmaz. */
+  /** The conversation the session is bound to; content from other conversations is never mixed in. */
   readonly thread: ThreadRef | null;
   readonly threadSnapshot: ThreadSnapshot | null;
   readonly context: ContextSnapshot | null;
   readonly contextError: AppError | null;
-  /** Konuşmaya yeni içerik geldi; yeniden okunmadan bu bağlamla işlem hazırlanmaz. */
+  /** The conversation has new content; no action is prepared with this context until it is re-read. */
   readonly contextStale: boolean;
   readonly binding: SourceBinding;
-  /** Kullanıcının açıkça seçtiği hedef; yoksa hedef kaynak kaydından türetilir. */
+  /** Target the user picked explicitly; otherwise the target is derived from the source binding. */
   readonly explicitTarget: ApplyTarget | null;
-  /** Hedef editörün bilinen son sürümü. */
+  /** Last known revision of the target editor. */
   readonly targetComposerRevision: number | null;
   readonly action: PreparedAction | null;
   readonly preview: SessionPreview | null;
@@ -184,7 +184,7 @@ export function isSessionBusy(state: SessionState): boolean {
   return status === 'reading' || status === 'applying' || status === 'prepared';
 }
 
-/** Süren bir işlem bittiğinde veya iptal edildiğinde oturumun döneceği aşama. */
+/** Phase the session returns to when a running operation finishes or is cancelled. */
 export function restingPhase(state: SessionState): SessionPhase {
   const { preview, lastChange } = state;
   if (preview !== null && isPreviewCurrent(state)) {

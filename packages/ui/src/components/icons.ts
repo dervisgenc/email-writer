@@ -1,6 +1,6 @@
 /**
- * Fluent tarzı ince çizgili simgeler (20×20 ızgara). Simgeler süs amaçlıdır;
- * anlamı her zaman yanındaki metin veya düğmenin `aria-label`'ı taşır.
+ * Fluent-style thin-line icons (20×20 grid). Icons are decorative; the meaning
+ * always comes from the adjacent text or the button's `aria-label`.
  */
 export const ICON_PATHS = {
   sparkle: [

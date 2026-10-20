@@ -1,4 +1,4 @@
-import type { ErrorCode } from '@email-writer/contracts';
+import type { ErrorCode } from '@writehand/contracts';
 
 export class AiFailure extends Error {
   constructor(readonly code: ErrorCode) {

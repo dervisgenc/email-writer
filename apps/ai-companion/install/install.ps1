@@ -1,7 +1,7 @@
 # Installs the Writehand helper app on Windows, for the current user only.
 #
-#   Install:    irm https://github.com/dervisgenc/email-writer/releases/latest/download/install.ps1 | iex
-#   Uninstall:  & ([scriptblock]::Create((irm https://github.com/dervisgenc/email-writer/releases/latest/download/install.ps1))) -Uninstall
+#   Install:    irm https://github.com/dervisgenc/writehand/releases/latest/download/install.ps1 | iex
+#   Uninstall:  & ([scriptblock]::Create((irm https://github.com/dervisgenc/writehand/releases/latest/download/install.ps1))) -Uninstall
 #
 # With `irm | iex`, an extension ID can be passed as $env:WRITEHAND_EXTENSION_ID. The script
 # downloads the program and the release's SHA256SUMS, stops unless the SHA-256 matches, unpacks
@@ -18,7 +18,7 @@ function Install-WritehandHelper {
   $ErrorActionPreference = 'Stop'
   # The download progress bar slows Windows PowerShell 5.1 down considerably.
   $ProgressPreference = 'SilentlyContinue'
-  $base = if ($env:WRITEHAND_DOWNLOAD_BASE) { $env:WRITEHAND_DOWNLOAD_BASE } else { 'https://github.com/dervisgenc/email-writer/releases/latest/download' }
+  $base = if ($env:WRITEHAND_DOWNLOAD_BASE) { $env:WRITEHAND_DOWNLOAD_BASE } else { 'https://github.com/dervisgenc/writehand/releases/latest/download' }
   $installed = Join-Path $env:LOCALAPPDATA 'Programs\writehand\writehand.exe'
 
   # Removal needs no download: the installed program removes itself and its registrations.

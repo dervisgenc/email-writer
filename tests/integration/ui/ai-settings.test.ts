@@ -1,5 +1,5 @@
-import { AiConnectionGuide, AiConnectionSettings } from '@email-writer/ui';
-import type { AiStatus } from '@email-writer/contracts';
+import { AiConnectionGuide, AiConnectionSettings } from '@writehand/ui';
+import type { AiStatus } from '@writehand/contracts';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { tr } from '../../../apps/browser-extension/src/locales/tr';
@@ -342,7 +342,7 @@ describe('AI connection guide', () => {
     const claude = items[2]!;
     expect(claude.text()).toContain(tr.ui.ai.guide.current);
     expect(claude.text()).toContain('Claude Pro, Max, Team veya Enterprise');
-    // `claude` ve `/login` komut olarak gösterilir.
+    // `claude` and `/login` are shown as commands.
     expect(claude.findAll('code').map((code) => code.text())).toEqual(['claude', '/login']);
     expect(claude.get('a').attributes('href')).toBe('https://code.claude.com/docs/en/setup');
     expect(items[1]!.get('a').attributes('href')).toBe('https://platform.openai.com/api-keys');

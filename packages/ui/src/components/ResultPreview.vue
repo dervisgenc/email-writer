@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ErrorCode } from '@email-writer/contracts';
+import type { ErrorCode } from '@writehand/contracts';
 import { useId } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -28,7 +28,7 @@ const errorId = useId();
   <section class="ew-section ew-preview">
     <div class="ew-section__header">
       <label class="ew-section__title" :for="fieldId">{{ text.preview.title }}</label>
-      <!-- Örnek sonuçlar gerçek düzeltme veya çeviri gibi gösterilmez. -->
+      <!-- Sample results never pass as a real revision or translation. -->
       <span v-if="preview.sample" class="ew-badge ew-badge--sample">{{ text.preview.sampleLabel }}</span>
       <span class="ew-card__spacer" />
       <button

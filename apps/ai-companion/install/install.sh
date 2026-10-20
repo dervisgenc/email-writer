@@ -1,8 +1,8 @@
 #!/bin/sh
 # Installs the Writehand helper app on macOS and Linux, for the current user only.
 #
-#   Install:    curl -fsSL https://github.com/dervisgenc/email-writer/releases/latest/download/install.sh | sh
-#   Uninstall:  curl -fsSL https://github.com/dervisgenc/email-writer/releases/latest/download/install.sh | sh -s -- uninstall
+#   Install:    curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/install.sh | sh
+#   Uninstall:  curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/install.sh | sh -s -- uninstall
 #
 # Options after `sh -s --` go to `writehand install` (for example --extension-id=ID) or to
 # `writehand uninstall` (--delete-data). The script downloads this computer's program and the
@@ -11,7 +11,7 @@
 # WRITEHAND_DOWNLOAD_BASE replaces the download address (CI uses a local folder).
 set -eu
 
-base="${WRITEHAND_DOWNLOAD_BASE:-https://github.com/dervisgenc/email-writer/releases/latest/download}"
+base="${WRITEHAND_DOWNLOAD_BASE:-https://github.com/dervisgenc/writehand/releases/latest/download}"
 
 fail() {
   printf 'Writehand: %s\n' "$1" >&2

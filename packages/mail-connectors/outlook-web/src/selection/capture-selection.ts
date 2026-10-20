@@ -1,4 +1,4 @@
-import { appError, err, ok, type AppError, type DraftSelection, type Result } from '@email-writer/contracts';
+import { appError, err, ok, type AppError, type DraftSelection, type Result } from '@writehand/contracts';
 
 import type { StoredRange } from '../observation/observe-editor';
 import type { ComposerHandle } from '../writing/composer-handle';
@@ -30,10 +30,10 @@ function isBeforeBoundary(point: Node, boundary: Element | null): boolean {
 }
 
 /**
- * Taslaktaki seçimi yakalar. Fare ile düğmeye basıldığında odak kaybolmadan
- * çağrılmalıdır; klavye kullanımında son geçerli seçim kullanılır. Seçimin iki
- * ucu da kullanıcının yazdığı bölgede olmalıdır; imza veya alıntıya taşan
- * seçim kabul edilmez.
+ * Captures the selection in a draft. On a mouse press of the button it must be
+ * called before focus is lost; with the keyboard, the last valid selection is
+ * used. Both ends of the selection must be in the region the user wrote; a
+ * selection that spills into the signature or quote is rejected.
  */
 export function captureDraftSelection(
   document: Document,

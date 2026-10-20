@@ -11,7 +11,7 @@ import {
   type PanelView,
   type QuickActionRequest,
   type UiText,
-} from '@email-writer/ui';
+} from '@writehand/ui';
 import { describe, expect, it } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 
@@ -73,7 +73,7 @@ function view(overrides: Partial<PanelView> = {}): PanelView {
 
 const textRef = ref<UiText>(tr.ui);
 
-/** Bileşeni, eklentinin yaptığı gibi metin sözlüğü sağlanmış bir kökte bağlar. */
+/** Mounts the component under a root that provides the text dictionary, as the extension does. */
 function withText(child: unknown, props: Record<string, unknown>, listeners: Record<string, unknown> = {}) {
   const Host = defineComponent({
     setup() {
@@ -85,7 +85,7 @@ function withText(child: unknown, props: Record<string, unknown>, listeners: Rec
 }
 
 describe('WriterPanel', () => {
-  it('erişilebilir, modal olmayan bir diyalog olarak açılır', () => {
+  it('opens as an accessible, non-modal dialog', () => {
     const wrapper = withText(WriterPanel, { view: view(), limits: { source: 20_000, instruction: 5_000 } });
     const dialog = wrapper.get('[role="dialog"]');
     const titleId = dialog.attributes('aria-labelledby');
@@ -96,7 +96,7 @@ describe('WriterPanel', () => {
     wrapper.unmount();
   });
 
-  it('metin işleme bağlı değilse düğmenin neden kapalı olduğunu açıklar', () => {
+  it('explains why the button is disabled when text processing is not connected', () => {
     const wrapper = withText(WriterPanel, { view: view(), limits: { source: 20_000, instruction: 5_000 } });
     const button = wrapper.get('.ew-prepare button');
 
@@ -105,7 +105,7 @@ describe('WriterPanel', () => {
     wrapper.unmount();
   });
 
-  it('kullanıcı olaylarını dışarı verir ve Escape ile kapanır', async () => {
+  it('emits user events and closes on Escape', async () => {
     const events: string[] = [];
     const wrapper = withText(
       WriterPanel,
@@ -123,7 +123,7 @@ describe('WriterPanel', () => {
 
     await wrapper.get('.ew-prepare button').trigger('click');
     await wrapper.get('textarea').setValue('yeni metin');
-    // Sıra: Yanıt hazırla, Düzelt, Çevir.
+    // Order: Yanıt hazırla (Draft reply), Düzelt (Revise), Çevir (Translate).
     await wrapper.findAll('[role="radio"]')[2]!.trigger('click');
     await wrapper.get('[role="dialog"]').trigger('keydown', { key: 'Escape' });
 
@@ -131,7 +131,7 @@ describe('WriterPanel', () => {
     wrapper.unmount();
   });
 
-  it('yanıt hazırlamada talimat alanını ve hedef dili gösterir', () => {
+  it('shows the instruction field and target language when drafting a reply', () => {
     const wrapper = withText(WriterPanel, {
       view: view({
         operation: 'reply',
@@ -147,7 +147,7 @@ describe('WriterPanel', () => {
     wrapper.unmount();
   });
 
-  it('kaynak yeniden alınırken düzenlenmiş metin için onay ister', () => {
+  it('asks for confirmation before reloading the source over edited text', () => {
     const wrapper = withText(WriterPanel, {
       view: view({ source: { ...view().source, edited: true, pendingReplace: 'draft' } }),
       limits: { source: 20_000, instruction: 5_000 },
@@ -160,7 +160,7 @@ describe('WriterPanel', () => {
 });
 
 describe('ResultPreview', () => {
-  it('örnek sonucu etiketler ve HTML çalıştırmaz', () => {
+  it('labels a sample result and does not run HTML', () => {
     const wrapper = withText(ResultPreview, {
       preview: {
         text: '<b>kalın</b><img src=x onerror=alert(1)>',
@@ -179,7 +179,7 @@ describe('ResultPreview', () => {
     wrapper.unmount();
   });
 
-  it('eski önizlemenin uygulanamayacağını açıklar', () => {
+  it('explains that a stale preview cannot be applied', () => {
     const wrapper = withText(ResultPreview, {
       preview: { text: 'Metin', sample: false, stale: true, unchanged: false },
       error: null,
@@ -221,7 +221,7 @@ describe('ContextInspector', () => {
     errorCode: null,
   };
 
-  it('eksik kapsamı genel bir "hazır" mesajının arkasına saklamaz', () => {
+  it('does not hide missing coverage behind a generic "ready" message', () => {
     const wrapper = withText(ContextInspector, { context, disabled: false });
 
     expect(wrapper.text()).toContain('2/2 mesaj kullanılıyor');
@@ -230,7 +230,7 @@ describe('ContextInspector', () => {
     wrapper.unmount();
   });
 
-  it('aktif mesajın seçimi kilitlidir; çıkarılan blok geri dahil edilebilir', async () => {
+  it('locks the selection of the active message and lets a removed block be included again', async () => {
     const included: unknown[] = [];
     const wrapper = withText(
       ContextInspector,
@@ -251,7 +251,7 @@ describe('ContextInspector', () => {
     wrapper.unmount();
   });
 
-  it('aktif mesaj tanınamadıysa yanıt hedefini seçtirir', async () => {
+  it('asks the user to pick the reply target when the active message is not recognized', async () => {
     const chosen: string[] = [];
     const wrapper = withText(
       ContextInspector,
@@ -265,7 +265,7 @@ describe('ContextInspector', () => {
     wrapper.unmount();
   });
 
-  it('başka konuşmalardan açılanları ayrı ve kapalı bir grupta gösterir; işaretleyince bağlama ekler', async () => {
+  it('shows messages opened from other conversations in a separate collapsed group and adds them to the context when checked', async () => {
     const changes: unknown[] = [];
     const wrapper = withText(
       ContextInspector,
@@ -295,7 +295,7 @@ describe('ContextInspector', () => {
     wrapper.unmount();
   });
 
-  it('mesaj metni düzenlenip kaydedilir veya orijinale döndürülür', async () => {
+  it('saves an edited message text or reverts it to the original', async () => {
     const edits: unknown[] = [];
     const wrapper = withText(
       ContextInspector,
@@ -356,7 +356,7 @@ describe('ComposeToolbar', () => {
     return { wrapper, requests };
   }
 
-  it('yanıt taslağında Yanıt yaz, Düzelt ve Çevir işlemlerini doğrudan ister', async () => {
+  it('requests the Yanıt yaz (Write reply), Düzelt (Revise) and Çevir (Translate) actions directly in a reply draft', async () => {
     const { wrapper, requests } = toolbar();
     const button = (label: string) => wrapper.findAll('button').find((b) => b.text() === label)!;
 
@@ -375,7 +375,7 @@ describe('ComposeToolbar', () => {
     wrapper.unmount();
   });
 
-  it('yeni iletide "Yanıt yaz" yerine "Yaz" gösterir; dil menüsünden başka bir dile çevirir', async () => {
+  it('shows "Yaz" (Write) instead of "Yanıt yaz" (Write reply) in a new message and translates into another language from the language menu', async () => {
     const { wrapper, requests } = toolbar({ isReply: false });
 
     expect(wrapper.text()).not.toContain('Yanıt yaz');
@@ -392,7 +392,7 @@ describe('ComposeToolbar', () => {
     wrapper.unmount();
   });
 
-  it('Çevir menüsü varsayılan dili başta, favorileri yerelleştirilmiş adlarıyla ve elle yazılan dili olduğu gibi gösterir', async () => {
+  it('lists the default language first in the Çevir (Translate) menu, favorites by their localized names and a hand-typed language as is', async () => {
     const { wrapper, requests } = toolbar({ defaultLanguage: 'de' });
     await wrapper.get('button[aria-haspopup="menu"]').trigger('click');
 
@@ -403,12 +403,12 @@ describe('ComposeToolbar', () => {
     await wrapper.get('button[aria-haspopup="menu"]').trigger('click');
     await wrapper.findAll('[role="menuitem"]')[1]!.trigger('click');
 
-    // "Başka bir dil…" dili sormak için dilsiz çeviri ister; "Dilleri düzenle" ayarları açar.
+    // "Başka bir dil…" (Another language…) requests a translation without a language so it can ask for one; "Dilleri düzenle" (Edit languages) opens the settings.
     expect(requests).toEqual([{ operation: 'translate', language: null }, 'languages']);
     wrapper.unmount();
   });
 
-  it('bir işlem çalışırken düğmeler kapanır ve çalışan işlemde ilerleme gösterilir', () => {
+  it('disables the buttons while an action runs and shows progress on the running one', () => {
     const { wrapper } = toolbar({ busyOperation: 'revise' });
 
     for (const button of wrapper.findAll('[role="toolbar"] > button, .ew-bar-split > button')) {
@@ -422,7 +422,7 @@ describe('ComposeToolbar', () => {
 });
 
 describe('InlineAssistant', () => {
-  it('yanıt kartı talimatı Enter ile gönderir ve bağlam sayısını gösterir', async () => {
+  it('submits the instruction on Enter in the reply card and shows the context count', async () => {
     const submitted: string[] = [];
     const wrapper = withText(
       InlineAssistant,
@@ -454,7 +454,7 @@ describe('InlineAssistant', () => {
     wrapper.unmount();
   });
 
-  it('sonucu gösterir; Uygula, Kopyala ve Geri al olaylarını verir', async () => {
+  it('shows the result and emits the apply, copy and undo events', async () => {
     const events: string[] = [];
     const wrapper = withText(
       InlineAssistant,
@@ -487,7 +487,7 @@ describe('InlineAssistant', () => {
     wrapper.unmount();
   });
 
-  it('hazırlanırken ilerlemeyi, engel varken nedenini gösterir', () => {
+  it('shows progress while preparing and the reason when blocked', () => {
     const busy = withText(InlineAssistant, {
       view: view({ status: { kind: 'busy', activity: 'preparing' } }),
     });

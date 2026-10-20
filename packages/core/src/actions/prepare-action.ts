@@ -8,7 +8,7 @@ import {
   type PreparedAction,
   type Refinement,
   type Result,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import type { Clock, IdGenerator } from '../dependencies';
 import { deepFreeze } from '../immutability';
@@ -19,7 +19,7 @@ export interface PrepareActionInput {
   readonly sessionId: string;
   readonly formRevision: number;
   readonly draft: ActionDraft;
-  /** Hazır sonucu değiştirme isteği; yoksa görev baştan hazırlanır. */
+  /** Request to change a finished result; without it the task is prepared from scratch. */
   readonly refinement?: Refinement | null;
 }
 
@@ -29,9 +29,9 @@ export interface PrepareActionDependencies {
 }
 
 /**
- * Girdiyi doğrular ve değişmez bir işlem kaydı üretir. UI metni üretmez,
- * DOM okumaz, depolamaya yazmaz. O işlemde kullanılmayan alanlar (düzeltmede
- * hedef dil, çeviride ton ve talimat) kayda etki etmez.
+ * Validates the input and produces an immutable action record. Builds no UI text, reads
+ * no DOM and writes no storage. Fields the operation does not use (target language for
+ * revision, tone and instruction for translation) do not affect the record.
  */
 export function prepareAction(
   input: PrepareActionInput,
@@ -54,7 +54,7 @@ export function prepareAction(
   }
 
   const usesInstruction = isInstructionOperation(draft.operation);
-  // Gelen mesajın çevirisi salt okunurdur; taslak hedefi atanmaz.
+  // Translating a received message is read-only; no draft target is assigned.
   const target = draft.source.origin === 'received-message' ? null : draft.target;
 
   return ok(
@@ -65,7 +65,8 @@ export function prepareAction(
       operation: draft.operation,
       source: { origin: draft.source.origin, text: draft.source.text },
       instruction: usesInstruction ? draft.instruction : '',
-      // Hedef dil yalnızca çeviride anlamlıdır; yanıt ve yeni ileti konuşmanın veya talimatın dilini izler.
+      // Only translation uses a target language; replies and new emails follow the language
+      // of the conversation or the instruction.
       targetLanguage: draft.operation === 'translate' ? draft.targetLanguage : null,
       tone: draft.operation === 'translate' ? 'neutral' : draft.tone,
       context: draft.context,

@@ -3,15 +3,15 @@ import {
   HELPER_DELETE_DATA_OPTION,
   helperUninstallCommand,
   type HostOperatingSystem,
-} from '@email-writer/contracts';
-import { HelperCard, type UiText } from '@email-writer/ui';
+} from '@writehand/contracts';
+import { HelperCard, type UiText } from '@writehand/ui';
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { useHelper } from '../composables/use-helper';
 import { copyText } from '../platform/clipboard';
 import { openWelcomePage, operatingSystem } from '../platform/extension-browser';
 
-/** Ayarlardaki yardımcı uygulama kartı: durum, güncelleme, sihirbaz ve kaldırma. */
+/** Helper app card in settings: status, updates, wizard and uninstall. */
 const props = defineProps<{ text: UiText; checkUpdates: boolean }>();
 const emit = defineEmits<{ 'toggle-updates': [enabled: boolean] }>();
 
@@ -27,7 +27,7 @@ onMounted(async () => {
   system.value = await operatingSystem();
   await helper.refresh();
 });
-// Denetim açıksa yardımcı uygulama bağlanınca bir kez sorulur; o da günde en fazla bir kez GitHub'a gider.
+// If the check is enabled, ask once when the helper connects; the helper queries GitHub at most once a day.
 watch(
   () => [helper.view.value.kind, props.checkUpdates] as const,
   ([kind, enabled]) => {

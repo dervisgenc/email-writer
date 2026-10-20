@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { createConnection } from './outlook-page';
 
-/** Fluent UI v9 sağlayıcısı renkleri CSS değişkeni olarak taşır; test bunu satır içi stille taklit eder. */
+/** The Fluent UI v9 provider carries colors as CSS variables; the test imitates this with an inline style. */
 function fluentProvider(variables: Record<string, string>): void {
   const provider = document.createElement('div');
   provider.className = 'fui-FluentProvider';
@@ -15,12 +15,12 @@ function fluentProvider(variables: Record<string, string>): void {
   document.body.append(provider);
 }
 
-describe('Outlook teması', () => {
+describe('Outlook theme', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });
 
-  it('koyu temayı ve vurgu rengini Fluent değişkenlerinden okur', () => {
+  it('reads the dark theme and accent color from Fluent variables', () => {
     fluentProvider({
       '--colorNeutralBackground1': '#292929',
       '--colorNeutralForeground1': '#ffffff',
@@ -36,7 +36,7 @@ describe('Outlook teması', () => {
     connection.connector.dispose();
   });
 
-  it('açık temayı tanır; arka plan veya metin rengi yoksa tema okunmaz', () => {
+  it('recognizes the light theme, and reads no theme when the background or text color is missing', () => {
     fluentProvider({
       '--colorNeutralBackground1': 'rgb(255, 255, 255)',
       '--colorNeutralForeground1': '#242424',

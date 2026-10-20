@@ -1,6 +1,6 @@
 /**
- * Beklenen hataları istisna fırlatmadan taşıyan ayrımlı sonuç tipi.
- * Programlama hataları bu tipe çevrilmez; uygulama sınırında yakalanır.
+ * Discriminated result type that carries expected errors without throwing.
+ * Programming errors are not converted to this type; they are caught at the app boundary.
  */
 export type Result<T, E> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };
@@ -14,8 +14,8 @@ export function err<E>(error: E): Result<never, E> {
 }
 
 /**
- * Ortamdan bağımsız iptal sinyali. Tarayıcının `AbortSignal` nesnesi bu
- * arayüzü yapısal olarak karşılar; `core` ve `contracts` DOM tiplerine bağlanmaz.
+ * Environment-independent cancellation signal. The browser's `AbortSignal` satisfies this
+ * interface structurally; `core` and `contracts` do not depend on DOM types.
  */
 export interface AbortSignalLike {
   readonly aborted: boolean;

@@ -1,6 +1,6 @@
 /*
- * Ayarlar sayfasının kart, durum rozeti, yöntem seçimi ve rehber stilleri.
- * Renkler tokens.css'teki Fluent değişkenlerinden gelir; açık/koyu tema aynı kurallarla çalışır.
+ * Settings page styles: cards, status pills, method picker and connection guide.
+ * Colors come from the Fluent variables in tokens.css, so light and dark themes share the same rules.
  */
 .ew-root .ew-settings-card {
   display: flex;
@@ -80,7 +80,7 @@
   color: var(--ew-color-warning);
 }
 
-/* Yöntem seçimi: açıklamalı radyo kartları. */
+/* Method picker: radio cards with descriptions. */
 .ew-root .ew-method-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -155,7 +155,7 @@
   color: var(--ew-color-link);
 }
 
-/* Bağlantı rehberi: açılır bölümler. */
+/* Connection guide: expandable sections. */
 .ew-root .ew-ai-guide__list {
   display: flex;
   flex-direction: column;

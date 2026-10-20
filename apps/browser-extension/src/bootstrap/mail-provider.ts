@@ -5,35 +5,35 @@ import type {
   SelectorReport,
   SiteId,
   ThreadRef,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
-/** Eklentinin kendi arayüz kökleri bu öznitelikle işaretlenir ve sayfa gözleminden dışlanır. */
-export const OWN_UI_ATTRIBUTE = 'data-email-writer-ui';
+/** Marks the extension's own UI roots so they are excluded from page observation. */
+export const OWN_UI_ATTRIBUTE = 'data-writehand-ui';
 export const OWN_UI_SELECTOR = `[${OWN_UI_ATTRIBUTE}]`;
 
 /**
- * Başlatma düğmesinin yanına yerleştirileceği doğrulanmış arayüz bölgesi.
- * Düğme Outlook'un DOM ağacına eklenmez; sayfa gövdesinde bu elemanın konumuna
- * göre yüzer. `element` yalnızca montaj kodunda kullanılır; `core`, işlem
- * kayıtları veya depolamaya geçirilmez.
+ * A verified UI region next to which a launcher button is placed.
+ * The button is not inserted into Outlook's DOM tree; it floats in the page body
+ * relative to this element's position. `element` is used only by mounting code; it is
+ * never passed to `core`, operation records or storage.
  */
 export interface LauncherAnchor {
   readonly key: string;
   readonly element: HTMLElement;
-  /** Düğmenin elemana göre köşesi. */
+  /** The button's corner relative to the element. */
   readonly placement: 'top-end' | 'bottom-end';
   readonly target:
     | { readonly kind: 'thread'; readonly thread: ThreadRef }
     | { readonly kind: 'composer'; readonly composer: ComposerRef };
 }
 
-/** Bir e-posta ortamının eklentiye sunduğu her şey: bağlantı ve düğme konumları. */
+/** Everything a mail environment provides to the extension: the connector and button positions. */
 export interface MailPageProvider {
   readonly siteId: SiteId;
   readonly connector: MailConnector;
   locateLauncherAnchors(): readonly LauncherAnchor[];
-  /** Gerçek sayfada seçici doğrulaması için içeriksiz eşleşme sayıları. */
+  /** Content-free match counts for verifying selectors on the real page. */
   selectorReport(): readonly SelectorReport['entries'][number][];
-  /** E-posta uygulamasının o anki tema renkleri; okunamazsa `null`. */
+  /** The mail app's current theme colors; `null` if they cannot be read. */
   readTheme(): PageTheme | null;
 }

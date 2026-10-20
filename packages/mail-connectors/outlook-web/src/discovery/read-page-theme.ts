@@ -1,8 +1,8 @@
-import type { PageColorRole, PageTheme } from '@email-writer/contracts';
+import type { PageColorRole, PageTheme } from '@writehand/contracts';
 
 import { queryFirst } from './selectors';
 
-/** Eklentinin renk rolleri ile Fluent UI v9 tema değişkenlerinin karşılığı. */
+/** Maps the extension's color roles to Fluent UI v9 theme variables. */
 const FLUENT_VARIABLES: Readonly<Record<PageColorRole, string>> = {
   background: '--colorNeutralBackground1',
   surface: '--colorNeutralBackground3',
@@ -17,7 +17,7 @@ const FLUENT_VARIABLES: Readonly<Record<PageColorRole, string>> = {
   focus: '--colorStrokeFocus2',
 };
 
-/** `#rgb`, `#rrggbb` veya `rgb(r, g, b)` değerinin 0–255 arası kanalları. */
+/** The 0–255 channels of a `#rgb`, `#rrggbb` or `rgb(r, g, b)` value. */
 function parseChannels(color: string): number[] | null {
   const value = color.trim().toLowerCase();
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(value)?.[1];
@@ -29,7 +29,7 @@ function parseChannels(color: string): number[] | null {
   return rgb === null ? null : [rgb[1], rgb[2], rgb[3]].map(Number);
 }
 
-/** Rengin 0–1 arası bağıl parlaklığı (WCAG); ayrıştırılamazsa `null`. */
+/** Relative luminance of the color from 0 to 1 (WCAG); `null` if it cannot be parsed. */
 function relativeLuminance(color: string): number | null {
   const channels = parseChannels(color);
   if (channels === null) {
@@ -43,9 +43,9 @@ function relativeLuminance(color: string): number | null {
 }
 
 /**
- * Outlook'un o anki tema renklerini okur. Yalnızca renk değerleri alınır,
- * sayfa içeriği okunmaz. Arka plan veya metin rengi bulunamazsa `null` döner;
- * eklenti kendi açık/koyu temasını kullanır.
+ * Reads Outlook's current theme colors. Only color values are read, never page
+ * content. Returns `null` if the background or text color is missing; the
+ * extension then uses its own light/dark theme.
  */
 export function readPageTheme(document: Document): PageTheme | null {
   const provider = queryFirst(document, 'themeProvider');

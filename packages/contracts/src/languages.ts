@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 /**
- * Çeviri ve yanıt için önerilen hedef diller (BCP 47). Liste yalnızca öneridir:
- * kullanıcı katalogda olmayan bir dili adıyla da yazabilir. Dil adları
- * `Intl.DisplayNames` ile arayüz dilinde gösterilir; burada çeviri tutulmaz.
+ * Suggested target languages for translation and replies (BCP 47). The list is only a
+ * suggestion: the user can also type the name of a language that is not in the catalog.
+ * Language names are shown in the UI language via `Intl.DisplayNames`; no translations
+ * are kept here.
  */
 export const LANGUAGE_CATALOG = [
   'en',
@@ -78,9 +79,9 @@ export const LANGUAGE_CATALOG = [
 export type CatalogLanguage = (typeof LANGUAGE_CATALOG)[number];
 
 /**
- * Hedef dil: katalogdaki bir kod (ör. `de`, `pt-BR`) ya da kullanıcının yazdığı
- * bir dil adı (ör. "Osmanlı Türkçesi"). Ad modele veri olarak gider; satır sonu
- * ve işaretleme karakterleri kabul edilmez.
+ * Target language: a catalog code (e.g. `de`, `pt-BR`) or a language name the user typed
+ * (e.g. "Ottoman Turkish"). The name reaches the model as data; line breaks and markup
+ * characters are rejected.
  */
 export type TargetLanguage = string;
 
@@ -99,8 +100,8 @@ export function isCatalogLanguage(value: string): value is CatalogLanguage {
 }
 
 /**
- * Kullanıcının girdiğini hedef dile çevirir: katalog kodları büyük/küçük harf
- * fark etmeden eşlenir (`PT-br` → `pt-BR`); geçerli bir ad olduğu gibi kalır.
+ * Turns user input into a target language: catalog codes match case-insensitively
+ * (`PT-br` → `pt-BR`); a valid name is kept as is.
  */
 export function normalizeTargetLanguage(input: string): TargetLanguage | null {
   const value = input.trim().replace(/\s+/g, ' ');
@@ -117,18 +118,18 @@ const englishNames = (() => {
   }
 })();
 
-/** Modele giden ad: katalog kodları İngilizce adıyla ve koduyla, diğerleri yazıldığı gibi. */
+/** Name sent to the model: catalog codes as English name plus code, others as typed. */
 export function modelLanguageLabel(language: TargetLanguage): string {
   if (!isCatalogLanguage(language)) return language;
   const name = englishNames?.of(language);
   return name && name !== language ? `${name} (${language})` : language;
 }
 
-/** Eklenti arayüzünün çevrildiği diller. */
+/** Languages the extension UI is translated into. */
 export const UI_LANGUAGES = ['tr', 'en', 'de', 'fr', 'es'] as const;
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
 
-/** Her arayüz dilinin kendi dilindeki adı: kullanıcı kendi dilini hangi dilde olursa olsun tanır. */
+/** Each UI language's name in that language, so users recognize theirs whatever the current UI language. */
 export const UI_LANGUAGE_NAMES: Readonly<Record<UiLanguage, string>> = {
   tr: 'Türkçe',
   en: 'English',
@@ -137,11 +138,11 @@ export const UI_LANGUAGE_NAMES: Readonly<Record<UiLanguage, string>> = {
   es: 'Español',
 };
 
-/** Ayardaki arayüz dili; `auto` tarayıcının dilini izler. */
+/** UI language setting; `auto` follows the browser language. */
 export const UI_LANGUAGE_PREFERENCES = ['auto', ...UI_LANGUAGES] as const;
 export type UiLanguagePreference = (typeof UI_LANGUAGE_PREFERENCES)[number];
 
-/** Tarayıcı dillerinden desteklenen ilk arayüz dilini seçer; yoksa İngilizce. */
+/** Picks the first supported UI language from the browser languages; falls back to English. */
 export function resolveUiLanguage(
   preference: UiLanguagePreference,
   browserLanguages: readonly string[],

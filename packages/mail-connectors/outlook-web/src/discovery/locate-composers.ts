@@ -3,7 +3,7 @@ import { closest, queryAll, queryFirst } from './selectors';
 
 export interface LocatedComposer {
   readonly editor: HTMLElement;
-  /** Okuma bölmesinde bir konuşmanın altında açılmış yanıt taslağı mı? */
+  /** Is this a reply draft opened under a conversation in the reading pane? */
   readonly isReply: boolean;
 }
 
@@ -11,7 +11,7 @@ function isEditable(element: HTMLElement): boolean {
   if (element.getAttribute('contenteditable') !== 'true') {
     return false;
   }
-  // Test DOM'u `isContentEditable` sağlamaz; tarayıcıda ek kontrol yapılır.
+  // The test DOM does not implement `isContentEditable`; browsers get the extra check.
   return element.isContentEditable !== false;
 }
 
@@ -20,9 +20,9 @@ function isVisible(element: HTMLElement): boolean {
 }
 
 /**
- * Görünen taslak editörlerini bulur. `role="textbox"` tek başına yeterli
- * değildir: arama kutusu, kişi seçici ve eklentinin kendi arayüzü elenir.
- * "Sayfadaki ilk editörü seç" gibi bir davranış yoktur; her editör ayrı döner.
+ * Finds the visible draft editors. `role="textbox"` alone is not enough: the
+ * search box, people picker and the extension's own UI are filtered out. There
+ * is no "pick the first editor on the page" behavior; each editor is returned.
  */
 export function locateComposers(document: Document, ownUiSelector: string): LocatedComposer[] {
   const pane = queryFirst(document, 'readingPane');
@@ -39,15 +39,15 @@ export function locateComposers(document: Document, ownUiSelector: string): Loca
     (editor) => !candidates.some((other) => other !== editor && other.contains(editor)),
   );
 
-  // Yanıt kanıtı: editör önceki yazışmayı alıntılıyor veya bir konuşmanın altında açılmış.
-  // Outlook yeni iletileri de aynı yerleşik bölgede açtığı için bölge tek başına yeterli değil.
+  // Reply evidence: the editor quotes earlier mail or was opened under a conversation.
+  // Outlook opens new messages in the same inline region, so the region alone is not enough.
   return outermost.map((editor) => ({
     editor,
     isReply: queryFirst(editor, 'quoteStart') !== null || (paneHasConversation && pane.contains(editor)),
   }));
 }
 
-/** Hesap ipucu: erişilebilir ad veya metin. Yalnızca opak kapsam üretmek için kullanılır. */
+/** Account hint: accessible name or text. Used only to derive an opaque scope. */
 export function readAccountHint(document: Document): string | null {
   const element = queryFirst(document, 'accountHint');
   if (element === null) {

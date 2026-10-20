@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
-import { PRODUCT_NAME } from '@email-writer/contracts';
+import { PRODUCT_NAME } from '@writehand/contracts';
 
 import { AiFailure, providerFailure } from './errors';
 

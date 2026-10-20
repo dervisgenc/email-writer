@@ -1,4 +1,4 @@
-/* AI bağlantısı kartının içi, hoş geldin ve hesap pencereleri, panel göstergesi. */
+/* AI connection card contents, welcome and account dialogs, panel indicator. */
 .ew-root .ew-ai-settings p {
   margin: 0;
 }
@@ -85,7 +85,7 @@
   margin-top: 1px;
   color: var(--ew-color-success);
 }
-/* OpenAI'ın arayüz kurallarına göre "Continue with ChatGPT" siyah düğmedir. */
+/* OpenAI's UI guidelines make "Continue with ChatGPT" a black button. */
 .ew-root .ew-ai-sign-in {
   border-color: #000;
   border-radius: var(--ew-radius-medium);

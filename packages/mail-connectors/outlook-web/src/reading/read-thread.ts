@@ -10,7 +10,7 @@ import {
   type Result,
   type ThreadRef,
   type ThreadSnapshot,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
 import { queryAll, queryFirst } from '../discovery/selectors';
@@ -18,7 +18,7 @@ import type { IdentityRegistry } from '../identity/identity-registry';
 import { extractTextBlocks, type ElementRole } from './extract-text-blocks';
 import { labelText, messageContainerOf, messageKeyOf, readMessageHeader } from './message-header';
 
-/** Başlangıç okuma bütçesi; ölçülmüş ürün sınırı değildir. */
+/** Initial read budget; not a measured product limit. */
 export const READ_LIMITS = Object.freeze({ maxMessages: 100, maxTextLength: 250_000 });
 
 export interface ReadThreadDependencies {
@@ -27,24 +27,24 @@ export interface ReadThreadDependencies {
   readonly currentThread: () => LocatedThread | null;
   readonly threadRevision: () => number;
   readonly now: () => string;
-  /** Uzun gezintiyi parçalara bölmek için tarayıcıya söz verir. */
+  /** Yields to the browser to split a long walk into chunks. */
   readonly yieldToBrowser: () => Promise<void>;
 }
 
 /**
- * Aktif mesaj yalnızca güvenle belirlenebiliyorsa döner: tek açık mesaj.
- * Outlook makinece okunur tarih vermediği için birden fazla açık mesajda
- * en yenisi tahmin edilmez; kullanıcı seçer.
+ * Returns the active message only when it can be determined safely: a single
+ * expanded message. Outlook exposes no machine-readable date, so with several
+ * expanded messages the newest is not guessed; the user picks.
  */
 function activeMessageKey(messages: readonly MessageSnapshot[]): string | null {
   return messages.length === 1 ? (messages[0]?.messageKey ?? null) : null;
 }
 
 /**
- * Yalnızca istenen konuşmanın erişilebilir mesajlarını okur. Kapalı veya
- * yüklenmemiş mesaj okunmuş sayılmaz; eklenti "önceki mesajları göster"
- * düğmesine basmaz, sayfayı kaydırmaz, ek açmaz. Okuma sürerken konuşma
- * değişirse yarım sonuç kullanılmaz.
+ * Reads only the accessible messages of the requested conversation. Collapsed
+ * or unloaded messages do not count as read; the extension does not press "show
+ * earlier messages", scroll the page or open attachments. If the conversation
+ * changes mid-read, the partial result is discarded.
  */
 export async function readThread(
   ref: ThreadRef,
@@ -77,7 +77,7 @@ export async function readThread(
     const container = messageContainerOf(body, located.root);
     const extraction = extractTextBlocks(body, { classify: deps.classify, maxLength: budget });
     if (extraction.truncated) {
-      // Sınır nedeniyle tamamı okunamayan mesaj, tamamlanmış gibi verilmez.
+      // A message cut short by the limit is not passed on as if it were complete.
       skippedByLimit += 1;
       continue;
     }
@@ -86,7 +86,7 @@ export async function readThread(
     messages.push({
       messageKey: messageKeyOf(container, deps.registry),
       senderLabel: header.senderLabel,
-      // Outlook yalnızca biçimlendirilmiş tarih gösteriyor; makinece okunur tarih yok.
+      // Outlook only shows a formatted date; there is no machine-readable one.
       sentAt: null,
       sentAtText: header.sentAtText,
       displayOrder: index,
@@ -118,14 +118,14 @@ export async function readThread(
       located.replyView === undefined
         ? labelText(queryFirst(located.root, 'subject'))
         : located.replyView.subject,
-    // Bölme yanıt taslağını gösteriyorsa yanıtlanan mesaj, gösterilirken kaydedilen mesajdır.
+    // If the pane shows a reply draft, the replied-to message is the one recorded while it was shown.
     activeMessageKey: activeMessageKey(messages) ?? located.replyView?.replyingTo ?? null,
     messages,
     coverage: {
       source: 'visible-dom',
       status: 'partial',
       readableMessageCount: messages.length,
-      // Kapalı satırlar tanınamıyorsa sayı uydurulmaz.
+      // If collapsed rows cannot be recognized, no count is made up.
       knownUnreadableMessageCount: knownUnreadable > 0 ? knownUnreadable : null,
       reasons,
     },

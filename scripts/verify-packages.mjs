@@ -1,7 +1,7 @@
-// Üretim paketlerinin derleme sonrası kontrolü (implementation_details.md §16.2–16.3):
-// izinler dar mı, yerel test adresleri ve geliştirme modülü normal pakete
-// sızmış mı, arka plan biçimi tarayıcıya uygun mu, Firefox kimliği ve veri
-// paylaşımı beyanı var mı?
+// Post-build check of the production packages: are the permissions narrow, have local
+// test addresses or the development module leaked into the regular package, does the
+// background format suit the browser, and are the Firefox ID and data collection
+// declaration present?
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -12,7 +12,7 @@ const outputs = {
 };
 
 const ALLOWED_PERMISSIONS = ['storage'];
-// Yerel yardımcı uygulamayla konuşma izni isteğe bağlıdır; karşılama sihirbazı ister.
+// Talking to the local helper app is an optional permission; the welcome wizard requests it.
 const OPTIONAL_PERMISSIONS = ['nativeMessaging'];
 const FORBIDDEN_PERMISSIONS = [
   '<all_urls>',
@@ -33,7 +33,7 @@ const SUPPORTED_MATCHES = [
   'https://outlook.office365.com/*',
   'https://outlook.cloud.microsoft/*',
 ];
-const DEVELOPMENT_MARKERS = ['email-writer-development-fixture', 'localhost', '127.0.0.1'];
+const DEVELOPMENT_MARKERS = ['writehand-development-fixture', 'localhost', '127.0.0.1'];
 
 const problems = [];
 const fail = (browser, message) => problems.push(`[${browser}] ${message}`);
@@ -50,13 +50,13 @@ for (const [browser, directory] of Object.entries(outputs)) {
   try {
     manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
   } catch {
-    fail(browser, `manifest okunamadı: ${directory} (önce "pnpm build" çalıştırın)`);
+    fail(browser, `could not read the manifest: ${directory} (run "pnpm build" first)`);
     continue;
   }
 
-  if (manifest.manifest_version !== 3) fail(browser, 'Manifest V3 değil.');
+  if (manifest.manifest_version !== 3) fail(browser, 'Not Manifest V3.');
 
-  // Ad ve açıklama `_locales` çevirilerinden gelir; varsayılan dilde karşılıkları olmalı.
+  // The name and description come from the `_locales` translations; the default locale must define them.
   try {
     const messages = JSON.parse(
       readFileSync(join(directory, '_locales', manifest.default_locale, 'messages.json'), 'utf8'),
@@ -64,18 +64,18 @@ for (const [browser, directory] of Object.entries(outputs)) {
     for (const field of [manifest.name, manifest.description]) {
       const key = /^__MSG_(\w+)__$/.exec(field)?.[1];
       if (key === undefined || typeof messages[key]?.message !== 'string')
-        fail(browser, `manifest metni çevrilmemiş: ${field}`);
+        fail(browser, `manifest text is not localized: ${field}`);
     }
   } catch {
-    fail(browser, `varsayılan dilin _locales dosyası okunamadı (${manifest.default_locale})`);
+    fail(browser, `could not read the _locales file of the default locale (${manifest.default_locale})`);
   }
 
   const permissions = manifest.permissions ?? [];
   if (JSON.stringify([...permissions].sort()) !== JSON.stringify(ALLOWED_PERMISSIONS)) {
-    fail(browser, `beklenmeyen izinler: ${JSON.stringify(permissions)}`);
+    fail(browser, `unexpected permissions: ${JSON.stringify(permissions)}`);
   }
   if (JSON.stringify(manifest.optional_permissions ?? []) !== JSON.stringify(OPTIONAL_PERMISSIONS)) {
-    fail(browser, `beklenmeyen isteğe bağlı izinler: ${JSON.stringify(manifest.optional_permissions)}`);
+    fail(browser, `unexpected optional permissions: ${JSON.stringify(manifest.optional_permissions)}`);
   }
   const allPermissions = [
     ...permissions,
@@ -84,39 +84,38 @@ for (const [browser, directory] of Object.entries(outputs)) {
     ...(manifest.optional_host_permissions ?? []),
   ];
   for (const forbidden of FORBIDDEN_PERMISSIONS) {
-    if (allPermissions.includes(forbidden)) fail(browser, `yasak izin: ${forbidden}`);
+    if (allPermissions.includes(forbidden)) fail(browser, `forbidden permission: ${forbidden}`);
   }
   if ((manifest.host_permissions ?? []).length > 0) {
-    fail(browser, `geniş host_permissions eklenmemeli: ${JSON.stringify(manifest.host_permissions)}`);
+    fail(browser, `broad host_permissions must not be added: ${JSON.stringify(manifest.host_permissions)}`);
   }
 
   for (const script of manifest.content_scripts ?? []) {
     for (const pattern of script.matches ?? []) {
-      if (!SUPPORTED_MATCHES.includes(pattern))
-        fail(browser, `desteklenmeyen content script eşleşmesi: ${pattern}`);
+      if (!SUPPORTED_MATCHES.includes(pattern)) fail(browser, `unsupported content script match: ${pattern}`);
     }
-    if (script.all_frames === true) fail(browser, 'all_frames başlangıçta kapalı olmalı.');
+    if (script.all_frames === true) fail(browser, 'all_frames must stay off for now.');
   }
   for (const resource of manifest.web_accessible_resources ?? []) {
     for (const pattern of resource.matches ?? []) {
       if (!SUPPORTED_MATCHES.includes(pattern))
-        fail(browser, `web_accessible_resources eşleşmesi: ${pattern}`);
+        fail(browser, `unsupported web_accessible_resources match: ${pattern}`);
     }
   }
 
   const csp = JSON.stringify(manifest.content_security_policy ?? '');
-  if (csp.includes('unsafe-eval') || csp.includes('http')) fail(browser, `gevşetilmiş CSP: ${csp}`);
+  if (csp.includes('unsafe-eval') || csp.includes('http')) fail(browser, `relaxed CSP: ${csp}`);
 
   if (browser === 'chrome' && typeof manifest.background?.service_worker !== 'string') {
-    fail(browser, 'Chromium paketinde arka plan service worker olmalı.');
+    fail(browser, 'The Chromium package must use a background service worker.');
   }
   if (browser === 'firefox') {
     if (!Array.isArray(manifest.background?.scripts))
-      fail(browser, 'Firefox paketinde arka plan background.scripts olmalı.');
+      fail(browser, 'The Firefox package must use background.scripts.');
     const gecko = manifest.browser_specific_settings?.gecko;
-    if (typeof gecko?.id !== 'string') fail(browser, 'browser_specific_settings.gecko.id eksik.');
+    if (typeof gecko?.id !== 'string') fail(browser, 'browser_specific_settings.gecko.id is missing.');
     if (gecko?.data_collection_permissions === undefined)
-      fail(browser, 'Firefox veri paylaşımı beyanı eksik.');
+      fail(browser, 'The Firefox data collection declaration is missing.');
   }
 
   for (const file of filesIn(directory)) {
@@ -124,16 +123,19 @@ for (const [browser, directory] of Object.entries(outputs)) {
     const content = readFileSync(file, 'utf8');
     for (const marker of DEVELOPMENT_MARKERS) {
       if (content.includes(marker))
-        fail(browser, `geliştirme işareti "${marker}" normal pakette: ${file.slice(directory.length + 1)}`);
+        fail(
+          browser,
+          `development marker "${marker}" in the regular package: ${file.slice(directory.length + 1)}`,
+        );
     }
-    if (/<script[^>]+src=["']https?:/i.test(content)) fail(browser, `uzaktan kod yükleme: ${file}`);
+    if (/<script[^>]+src=["']https?:/i.test(content)) fail(browser, `remote code loading: ${file}`);
   }
 }
 
 if (problems.length > 0) {
-  console.error('Paket kontrolü BAŞARISIZ:\n' + problems.map((problem) => `  - ${problem}`).join('\n'));
+  console.error('Package check FAILED:\n' + problems.map((problem) => `  - ${problem}`).join('\n'));
   process.exit(1);
 }
 console.log(
-  'Paket kontrolü geçti: chrome-mv3 ve firefox-mv3 (izinler, eşleşmeler, arka plan biçimi, geliştirme kodu).',
+  'Package check passed: chrome-mv3 and firefox-mv3 (permissions, matches, background format, development code).',
 );

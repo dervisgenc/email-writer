@@ -1,5 +1,5 @@
-import { DEFAULT_SETTINGS } from '@email-writer/contracts';
-import { createSession, deriveCapabilities } from '@email-writer/core';
+import { DEFAULT_SETTINGS } from '@writehand/contracts';
+import { createSession, deriveCapabilities } from '@writehand/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { createActionController } from '../../../apps/browser-extension/src/controllers/action-controller';
@@ -15,7 +15,7 @@ import { FakeConnector } from './fake-connector';
 
 const tick = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Kullanıcı listede başka konudaki bir e-postayı açar. */
+/** The user opens an email with another subject from the list. */
 function switchToInvoice(connector: FakeConnector) {
   const previous = connector.thread;
   connector.thread = threadB;
@@ -63,7 +63,7 @@ function setup(options: { processorDelayMs?: number; processor?: boolean } = {})
   return { connector, store, actions, applier, panel, history, view, copied };
 }
 
-describe('Panel akışı (sahte bağlantı ile)', () => {
+describe('Panel flow (with a fake connector)', () => {
   let current: ReturnType<typeof setup> | null = null;
   afterEach(() => {
     current?.actions.dispose();
@@ -72,7 +72,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     current = null;
   });
 
-  it('taslaktaki "Düzelt" düğmesi işlemi doğrudan yapar: seçim kaynak olur, sonuç kartta seçime uygulanır', async () => {
+  it('the draft "Düzelt" (Revise) button runs the action directly: the selection is the source and the card result is applied to the selection', async () => {
     current = setup();
     const { panel, applier, store, connector, view } = current;
 
@@ -92,11 +92,11 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().phase.status).toBe('applied');
     expect(view().status).toEqual({ kind: 'success', message: 'applied' });
     expect(view().apply.canUndo).toBe(true);
-    // Aynı sonuç ikinci kez yazılmaz; kendi yazmamız "taslak değişti" diye açıklanmaz.
+    // The same result is not written twice, and our own write is not reported as "draft changed".
     expect(view().apply).toMatchObject({ canApply: false, blocker: null });
   });
 
-  it('normal derlemede (metin işleme yok) düğme nedenini açıklar ve işlem kaydı oluşmaz', async () => {
+  it('in a regular build (no text processing) the button explains why and no action record is created', async () => {
     current = setup({ processor: false });
     const { panel, actions, store, connector, view } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
@@ -110,7 +110,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().action).toBeNull();
   });
 
-  it('sonuç beklenirken kaynak değişirse geç gelen sonuç gösterilmez', async () => {
+  it('does not show a late result when the source changes while waiting for it', async () => {
     current = setup({ processorDelayMs: 30 });
     const { panel, actions, store, connector } = current;
     panel.open({ origin: 'composer-launcher', composer: connector.composer });
@@ -126,7 +126,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().phase.status).toBe('editing');
   });
 
-  it('sonuç hazırlanırken kullanıcı taslağa yazarsa eski sonuç uygulanamaz', async () => {
+  it('cannot apply a stale result after the user types in the draft while it was being prepared', async () => {
     current = setup();
     const { panel, applier, connector, view } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
@@ -138,7 +138,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(connector.applied).toHaveLength(0);
   });
 
-  it('konuşma düğmesinden açılınca yanıt modunda konuşmayı okur ve bağlamı açıklar', async () => {
+  it('reads the conversation in reply mode and explains the context when opened from the conversation button', async () => {
     current = setup();
     const { panel, view, connector } = current;
 
@@ -151,7 +151,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().context.messages.find((message) => message.isReplyTarget)?.locked).toBe(true);
   });
 
-  it('paneli kapatmak okumayı iptal eder ama girilen metni korur', async () => {
+  it('closing the panel cancels the read but keeps the entered text', async () => {
     current = setup();
     const { panel, store, connector } = current;
     connector.readDelayMs = 30;
@@ -165,7 +165,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().form.instruction).toBe('Teşekkür et');
   });
 
-  it('hesap değişince eski çalışmanın içeriği temizlenir', async () => {
+  it('clears the content of the previous work when the account changes', async () => {
     current = setup();
     const { panel, store, connector } = current;
     panel.open({ origin: 'composer-launcher', composer: connector.composer });
@@ -176,7 +176,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().staleReason).toBe('account-changed');
   });
 
-  it('başka e-postaya geçince çalışma o e-postayla kendiliğinden başlar; panel açıksa yeni bağlam okunur', async () => {
+  it('starts the work with the new email automatically after switching, and reads the new context if the panel is open', async () => {
     current = setup();
     const { panel, store, connector, view } = current;
     panel.open({ origin: 'thread-launcher', thread: connector.thread! });
@@ -191,7 +191,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().operation).toBe('reply');
     expect(view().staleNotice).toBeNull();
     expect(panel.surface()).toEqual({ kind: 'panel' });
-    // Önceki konuşmanın mesajları listede (yeniden eskiye) seçilmemiş kalır; yeni konuşmanınki bağlamdadır.
+    // The previous conversation's messages stay listed (newest first) but unselected; the new conversation's are in the context.
     expect(view().context.messages.map((m) => [m.messageKey, m.group, m.included])).toEqual([
       ['b1', 'current', true],
       ['m3', 'other', false],
@@ -200,13 +200,13 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     ]);
   });
 
-  it('başka e-postanın taslağındaki düğme, önceki çalışmayı sormadan işlemi doğrudan yapar', async () => {
+  it("the button in another email's draft runs the action directly without asking about the previous work", async () => {
     current = setup();
     const { panel, store, connector, view } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
     expect(view().preview).not.toBeNull();
 
-    // Sayfa olayı henüz gelmeden yeni e-postanın taslağından düğmeye basılır.
+    // The button in the new email's draft is clicked before the page event arrives.
     connector.thread = threadB;
     connector.composer = { scope: connector.scope, composerKey: 'c2', threadKey: threadB.threadKey };
     await panel.runQuickAction(connector.composer, { operation: 'translate', language: 'en' });
@@ -218,7 +218,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().preview).toMatchObject({ text: 'We can hold the meeting tomorrow.' });
   });
 
-  it('kart açıkken başka e-postaya geçilince kart kapanır; önceki sonuç yeni e-postada görünmez', async () => {
+  it('closes the card when switching to another email while it is open, so the previous result does not show in the new email', async () => {
     current = setup();
     const { panel, store, connector } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
@@ -230,7 +230,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().preview).toBeNull();
   });
 
-  it('yeni ileti yazılırken başka e-posta açılsa da yazılan talimat korunur', async () => {
+  it('keeps the typed instruction while composing a new message even if another email is opened', async () => {
     current = setup();
     const { panel, store, connector } = current;
     connector.composer = { ...connector.composer, threadKey: null };
@@ -243,7 +243,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().form.instruction).toBe('Ekibe toplantı öner');
   });
 
-  it('"Yanıt yaz" kartı kapatılıp aynı düğmeyle yeniden açılınca hazır yanıt eskimez ve taslağa uygulanır', async () => {
+  it('a ready reply does not go stale when the "Yanıt yaz" (Write reply) card is closed and reopened with the same button, and it is applied to the draft', async () => {
     current = setup();
     const { panel, store, connector, view, applier, actions } = current;
     await panel.runQuickAction(connector.composer, { operation: 'reply' });
@@ -257,7 +257,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(connector.applied).toHaveLength(1);
   });
 
-  it('taslağa yazı eklendikten sonra kart yeniden açılırsa önizleme eskir; yeni metin üzerine uygulanmaz', async () => {
+  it('marks the preview stale when the card is reopened after text was added to the draft, and does not apply it over the new text', async () => {
     current = setup();
     const { panel, store, connector, view, applier, actions } = current;
     connector.selection = null;
@@ -272,7 +272,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(connector.applied).toHaveLength(0);
   });
 
-  it('"Başka bir dil…" kartı açar ve dil bekler; karttan seçilen dille çeviri hazırlanır', async () => {
+  it('"Başka bir dil…" (Another language…) opens the card and waits for a language; the translation is prepared in the language picked there', async () => {
     current = setup();
     const { panel, store, connector, view, actions } = current;
     await panel.runQuickAction(connector.composer, { operation: 'translate', language: null });
@@ -281,14 +281,14 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().source.text).toBe('toplantı');
     expect(store.getState().preview).toBeNull();
 
-    // Kartın dil satırı: dili kaydeder ve hazırlar.
+    // The card's language row: stores the language and prepares the translation.
     store.dispatch({ type: 'form-changed', changes: { operation: 'translate', targetLanguage: 'Kurmancî' } });
     await actions.prepare();
     expect(store.getState().action?.targetLanguage).toBe('Kurmancî');
     expect(view().preview).not.toBeNull();
   });
 
-  it('yanıtın işlem kaydında hedef dil yoktur; yanıt konuşmanın dilini izler', async () => {
+  it("has no target language in a reply's action record; the reply follows the conversation's language", async () => {
     current = setup();
     const { panel, store, connector, actions } = current;
     await panel.runQuickAction(connector.composer, { operation: 'reply' });
@@ -298,7 +298,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(store.getState().action).toMatchObject({ operation: 'reply', targetLanguage: null });
   });
 
-  it('hazır sonuç "Kısalt" ile değiştirilir: önceki sonuç ve talimat gider, yeni sonuç doğrudan uygulanabilir', async () => {
+  it('"Kısalt" (Shorten) refines a ready result: the previous result and instruction are sent, and the new result can be applied directly', async () => {
     current = setup();
     const { panel, store, connector, view, actions, applier } = current;
     connector.selection = null;
@@ -313,14 +313,14 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(connector.applied).toHaveLength(1);
   });
 
-  it('cümle içindeki seçimde biçim gerektiren düzenlemeler sunulmaz', async () => {
+  it('does not offer refinements that need formatting for an in-sentence selection', async () => {
     current = setup();
     const { panel, connector, view } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
     expect(view().refine).toEqual({ available: true, rich: false });
   });
 
-  it('kopyalama yalnızca önizleme metnini panoya verir', async () => {
+  it('copies only the preview text to the clipboard', async () => {
     current = setup();
     const { panel, applier, connector, copied } = current;
     await panel.runQuickAction(connector.composer, { operation: 'translate', language: 'en' });
@@ -329,7 +329,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(copied).toEqual(['We can hold the meeting tomorrow.']);
   });
 
-  it('"Yanıt yaz" kartı talimat bekler; bağlam önceden okunur, gönderilen talimatla yanıt hazırlanır', async () => {
+  it('the "Yanıt yaz" (Write reply) card waits for an instruction; the context is read in advance and the reply is prepared from the submitted instruction', async () => {
     current = setup();
     const { panel, store, connector, view } = current;
 
@@ -347,7 +347,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(panel.surface()).toEqual({ kind: 'panel' });
   });
 
-  it('kullanıcı başka işleme geçince eski işlemin eskimiş sonucu gösterilmez', async () => {
+  it("does not show the previous action's stale result after the user switches to another action", async () => {
     current = setup();
     const { panel, connector, view } = current;
     await panel.runQuickAction(connector.composer, { operation: 'revise' });
@@ -360,7 +360,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().preview).toBeNull();
   });
 
-  it('yeni iletide "Yaz" kartı talimat bekler; konuşma bağlamı olmadan e-posta metni hazırlanır', async () => {
+  it('in a new message the "Yaz" (Write) card waits for an instruction and prepares the email text without conversation context', async () => {
     current = setup();
     const { panel, store, connector, view } = current;
     connector.composer = { ...connector.composer, threadKey: null };
@@ -376,13 +376,13 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().preview?.text).toMatch(/Perşembe 14:00/);
   });
 
-  it('okuma bölmesi yanıt editörüne dönüşünce bağlam ve yanıtlanan mesaj daha önce açılan mesajlardan gelir', async () => {
+  it('takes the context and replied-to message from previously opened messages when the reading pane turns into the reply editor', async () => {
     current = setup();
     const { panel, store, connector, view } = current;
-    // Kullanıcı mesajı açtı; arka planda okunup geçmişe eklendi.
+    // The user opened the message; it was read in the background and added to the history.
     await tick(5);
 
-    // "Reply": okuma bölmesinde mesaj gövdesi kalmaz; bağlantı yanıtlanan mesajı bildirir.
+    // "Reply": no message body is left in the reading pane; the connector reports the replied-to message.
     connector.threadSnapshot = thread([], { activeMessageKey: 'm3' });
     await panel.runQuickAction(connector.composer, { operation: 'reply' });
 
@@ -397,15 +397,15 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
     expect(view().preview).not.toBeNull();
   });
 
-  describe('okunan mesajlar ve bağlam', () => {
-    it('aynı konuşmada sonradan açılan mesaj bağlama kendiliğinden girer', async () => {
+  describe('read messages and context', () => {
+    it('adds a message opened later in the same conversation to the context automatically', async () => {
       current = setup();
       const { panel, connector, view } = current;
       panel.open({ origin: 'thread-launcher', thread: connector.thread! });
       await tick();
       expect(view().context.messages.filter((m) => m.included)).toHaveLength(3);
 
-      // Kullanıcı aynı konuşmanın başka bir mesajını açar (okuma bölmesi yalnızca onu gösterir).
+      // The user opens another message of the same conversation (the reading pane shows only that one).
       connector.threadSnapshot = thread([message('m4', 0, [body('Dördüncü mesaj')])]);
       connector.emit({ type: 'thread-content-changed', threadRef: connector.thread! });
       await tick(5);
@@ -419,7 +419,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
       ]);
     });
 
-    it('önceki konuşmadan okunan mesaj, kullanıcı eklerse bağlama "başka konuşma" olarak girer', async () => {
+    it('adds a message read from the previous conversation to the context as "other conversation" when the user includes it', async () => {
       current = setup();
       const { panel, actions, connector, store } = current;
       panel.open({ origin: 'thread-launcher', thread: connector.thread! });
@@ -435,7 +435,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
       });
     });
 
-    it('bağlamdaki mesaj metni düzenlenebilir ve orijinaline döndürülebilir', async () => {
+    it('lets the user edit a context message and revert it to the original', async () => {
       current = setup();
       const { panel, actions, connector, view } = current;
       panel.open({ origin: 'thread-launcher', thread: connector.thread! });
@@ -451,7 +451,7 @@ describe('Panel akışı (sahte bağlantı ile)', () => {
       expect(view().context.messages.find((m) => m.messageKey === 'm2')?.edited).toBe(false);
     });
 
-    it('hesap değişince okunan mesajlar silinir', async () => {
+    it('deletes the read messages when the account changes', async () => {
       current = setup();
       const { connector, history } = current;
       await tick(5);

@@ -1,6 +1,6 @@
-import type { PageColorRole, PageTheme, Theme } from '@email-writer/contracts';
+import type { PageColorRole, PageTheme, Theme } from '@writehand/contracts';
 
-/** Eklenti arayüzünün renk değişkenleri ile sayfa renk rollerinin karşılığı. */
+/** Maps page color roles to the extension UI's color variables. */
 const TOKEN_FOR_ROLE: Readonly<Record<PageColorRole, string>> = {
   background: '--ew-color-bg',
   surface: '--ew-color-surface',
@@ -16,17 +16,17 @@ const TOKEN_FOR_ROLE: Readonly<Record<PageColorRole, string>> = {
 };
 
 export interface Appearance {
-  /** `.ew-root` üzerindeki `data-theme`: yedek paletin seçimi. */
+  /** `data-theme` on `.ew-root`: selects the fallback palette. */
   readonly theme: 'light' | 'dark' | 'system';
-  /** Sayfadan okunan renkler; yedek paletin üzerine yazılır. */
+  /** Colors read from the page; they override the fallback palette. */
   readonly style: Readonly<Record<string, string>>;
 }
 
 /**
- * Ayar "otomatik" (`system`) ise ve e-posta uygulamasının renkleri
- * okunabiliyorsa eklenti onlarla görünür; böylece Outlook'un açık/koyu
- * modu ve vurgu rengi takip edilir. Okunamazsa işletim sistemi tercihi
- * kullanılır. Açık veya koyu seçimi sayfa renklerini geçersiz kılar.
+ * When the setting is "automatic" (`system`) and the mail app's colors can be
+ * read, the extension uses them, so it follows Outlook's light/dark mode and
+ * accent color. If they cannot be read, the operating system preference is
+ * used. Choosing light or dark overrides the page colors.
  */
 export function resolveAppearance(setting: Theme, page: PageTheme | null): Appearance {
   if (setting !== 'system') {

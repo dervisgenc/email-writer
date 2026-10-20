@@ -11,12 +11,12 @@ import {
   type Settings,
   type SettingsChanges,
   type TargetLanguage,
-} from '@email-writer/contracts';
-import { AppIcon, ExtensionPage, LanguagePicker, languageLabel, provideUiText } from '@email-writer/ui';
+} from '@writehand/contracts';
+import { AppIcon, ExtensionPage, LanguagePicker, languageLabel, provideUiText } from '@writehand/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watchEffect } from 'vue';
 
 import { textFor, uiLanguageFor } from '../../src/locales';
-import { onSettingsStorageChanged } from '../../src/platform/extension-browser';
+import { brandIconUrl, onSettingsStorageChanged } from '../../src/platform/extension-browser';
 import { fetchSettings, patchSettings } from '../../src/platform/extension-client';
 import { parseStoredSettings, SETTINGS_STORAGE_KEY } from '../../src/platform/settings-store';
 import AiSettings from '../../src/pages/AiSettings.vue';
@@ -49,7 +49,7 @@ const errorText = (code: ErrorCode) => text.value.ui.errors[code];
 const dirty = computed(() => Object.keys(draft.value).length > 0);
 const addPicker = ref<InstanceType<typeof LanguagePicker> | null>(null);
 
-// Ekran okuyucular ve doğru büyük harf dönüşümü için sayfanın dili arayüz diliyle aynı tutulur.
+// Keep the page language in sync with the UI language for screen readers and correct case conversion.
 watchEffect(() => {
   document.documentElement.lang = uiLanguageFor(current.value.uiLanguage);
   document.title = text.value.options.title;
@@ -64,7 +64,7 @@ onMounted(async () => {
   } else {
     message.value = { kind: 'error', text: errorText(result.error.code) };
   }
-  // Başka bir ekranda yapılan değişiklikler buraya yansır.
+  // Changes made on another screen are reflected here.
   stopWatching = onSettingsStorageChanged(SETTINGS_STORAGE_KEY, (raw) => {
     settings.value = parseStoredSettings(raw).settings;
   });
@@ -107,7 +107,7 @@ function setInstructions(value: string): void {
   change('writingInstructions', value.slice(0, MAX_WRITING_INSTRUCTIONS));
 }
 
-/** Örnek cümle talimata yeni bir satır olarak eklenir; zaten varsa eklenmez. */
+/** Appends the example sentence to the instructions as a new line, unless it is already there. */
 function addExample(example: string): void {
   const value = current.value.writingInstructions;
   if (value.includes(example)) return;
@@ -119,7 +119,7 @@ function discard(): void {
   message.value = null;
 }
 
-/** Kartlardaki anahtarlar (güncelleme denetimi) taslağa girmez, hemen kaydedilir. */
+/** Switches on the cards (update check) bypass the draft and are saved immediately. */
 async function saveNow(changes: SettingsChanges): Promise<void> {
   const result = await patchSettings(settings.value.revision, changes);
   if (result.ok) settings.value = result.value.settings;
@@ -128,7 +128,7 @@ async function saveNow(changes: SettingsChanges): Promise<void> {
 
 async function save(): Promise<void> {
   saving.value = true;
-  // Yalnızca değiştirilen alanlar ve bilinen sürüm gönderilir.
+  // Only the changed fields and the known revision are sent.
   const result = await patchSettings(settings.value.revision, draft.value);
   saving.value = false;
   if (!result.ok) {
@@ -148,7 +148,12 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-  <ExtensionPage :theme="current.theme" :title="text.options.title" :subtitle="text.options.subtitle">
+  <ExtensionPage
+    :theme="current.theme"
+    :title="text.options.title"
+    :subtitle="text.options.subtitle"
+    :logo="brandIconUrl()"
+  >
     <HelperSettings
       :text="text.ui"
       :check-updates="settings.checkHelperUpdates"
@@ -459,7 +464,7 @@ async function save(): Promise<void> {
   cursor: default;
 }
 
-/* Kaydedilmemiş değişiklik olduğunda sayfanın altında kalan kaydetme çubuğu. */
+/* Save bar that sticks to the bottom of the page while there are unsaved changes. */
 .options__savebar {
   position: sticky;
   bottom: 16px;

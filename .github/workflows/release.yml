@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @email-writer/browser-extension zip:all
+      - run: pnpm --filter @writehand/browser-extension zip:all
       - run: pnpm verify:packages
       - name: Collect the store packages and the source archive
         run: |
