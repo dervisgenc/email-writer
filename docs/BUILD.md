@@ -1,6 +1,6 @@
 # Building Writehand from source
 
-This note is for add-on store reviewers (it is written in English for them) and anyone who wants to reproduce the release packages. The source archive attached to each release (`writehand-<version>-source.zip`) is `git archive` of the tagged commit.
+This note is for add-on store reviewers and anyone who wants to reproduce the release packages. The source archive attached to each release (`writehand-<version>-source.zip`) is `git archive` of the tagged commit. For development, see [DEVELOPMENT.md](./DEVELOPMENT.md); for the release process, see [RELEASING.md](./RELEASING.md).
 
 ## Requirements
 
@@ -12,7 +12,7 @@ This note is for add-on store reviewers (it is written in English for them) and 
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm --filter @email-writer/browser-extension zip:all
+pnpm --filter @writehand/browser-extension zip:all
 ```
 
 This writes, under `apps/browser-extension/.output/`:

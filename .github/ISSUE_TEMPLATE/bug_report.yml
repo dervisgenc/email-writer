@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in the extension or the helper app does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **never paste real email content, access tokens, API keys or account details**. Use made-up text and redact anything personal.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a draft in Outlook on the web
+        2. Select text and click Revise
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Shown on the extension's settings page.
+    validations:
+      required: true
+  - type: input
+    id: helper-version
+    attributes:
+      label: Helper app version
+      description: Output of `writehand version`, or "not installed".
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Firefox, Microsoft Edge, Google Chrome, Brave, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Windows, Linux]
+    validations:
+      required: true
+  - type: dropdown
+    id: account
+    attributes:
+      label: Outlook account
+      options: [Work or school (Microsoft 365), Personal (Outlook.com), Not relevant]
+  - type: dropdown
+    id: connection
+    attributes:
+      label: AI connection method
+      options: [ChatGPT plan, OpenAI API key, Claude Code, Not relevant]
+  - type: textarea
+    id: details
+    attributes:
+      label: Error messages or screenshots
+      description: Error codes shown by Writehand (for example `AI_NETWORK`) help a lot. Redact personal information in screenshots.
