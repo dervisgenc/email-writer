@@ -16,7 +16,7 @@ import { AppIcon, ExtensionPage, LanguagePicker, languageLabel, provideUiText } 
 import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watchEffect } from 'vue';
 
 import { textFor, uiLanguageFor } from '../../src/locales';
-import { onSettingsStorageChanged } from '../../src/platform/extension-browser';
+import { brandIconUrl, onSettingsStorageChanged } from '../../src/platform/extension-browser';
 import { fetchSettings, patchSettings } from '../../src/platform/extension-client';
 import { parseStoredSettings, SETTINGS_STORAGE_KEY } from '../../src/platform/settings-store';
 import AiSettings from '../../src/pages/AiSettings.vue';
@@ -148,7 +148,12 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-  <ExtensionPage :theme="current.theme" :title="text.options.title" :subtitle="text.options.subtitle">
+  <ExtensionPage
+    :theme="current.theme"
+    :title="text.options.title"
+    :subtitle="text.options.subtitle"
+    :logo="brandIconUrl()"
+  >
     <HelperSettings
       :text="text.ui"
       :check-updates="settings.checkHelperUpdates"

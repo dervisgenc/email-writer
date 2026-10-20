@@ -30,6 +30,7 @@
     "outlook:inspect": "node tests/manual/outlook-live/inspect.mjs",
     "verify:packages": "node scripts/verify-packages.mjs",
     "release:version": "node scripts/release-version.mjs",
+    "store:assets": "node scripts/store-assets/build.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {

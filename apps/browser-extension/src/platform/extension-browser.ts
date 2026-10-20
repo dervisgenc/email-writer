@@ -24,6 +24,11 @@ export function onSettingsStorageChanged(key: string, listener: (value: unknown)
   return () => browser.storage.onChanged.removeListener(handler);
 }
 
+/** The extension icon (`public/icon/`), shown as the brand mark on the extension's own pages. */
+export function brandIconUrl(): string {
+  return browser.runtime.getURL('/icon/128.png');
+}
+
 export function sendToBackground(message: unknown): Promise<unknown> {
   return browser.runtime.sendMessage(message);
 }

@@ -25,16 +25,9 @@ body {
   gap: 14px;
   padding: 4px 4px 8px;
 }
-.ew-root .ew-page__mark {
+.ew-root .ew-page__logo {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--ew-color-accent), var(--ew-color-accent-hover));
-  color: var(--ew-color-on-accent);
-  box-shadow: var(--ew-shadow-4);
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.14));
 }
 .ew-root .ew-page__title {
   margin: 0;

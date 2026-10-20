@@ -10,3 +10,4 @@ All notable changes to Writehand are recorded here. The extension and the helper
 - Helper app as a single program for macOS, Linux and Windows, installed with one command and without administrator rights. It connects to a ChatGPT plan, an OpenAI API key or Claude Code (experimental) and keeps credentials on the computer.
 - Welcome wizard that installs and checks the helper app, chooses a connection method and tries a sample revision.
 - Signed releases: `SHA256SUMS` with an Ed25519 signature and build provenance attestations; the helper app updates itself only from verified releases.
+- Writehand logo as the extension icon and on the welcome and settings pages.

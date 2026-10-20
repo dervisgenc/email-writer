@@ -19,6 +19,7 @@ import { textFor, uiLanguageFor } from '../../src/locales';
 import AiSettings from '../../src/pages/AiSettings.vue';
 import { copyText } from '../../src/platform/clipboard';
 import {
+  brandIconUrl,
   extensionId,
   onSettingsStorageChanged,
   openOptionsPage,
@@ -100,7 +101,12 @@ async function tryRevision() {
 </script>
 
 <template>
-  <ExtensionPage :theme="settings.theme" :title="welcome.title" :subtitle="welcome.subtitle">
+  <ExtensionPage
+    :theme="settings.theme"
+    :title="welcome.title"
+    :subtitle="welcome.subtitle"
+    :logo="brandIconUrl()"
+  >
     <StepList
       :label="welcome.stepsLabel"
       :steps="welcome.steps"
