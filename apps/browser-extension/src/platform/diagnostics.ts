@@ -1,9 +1,9 @@
-import type { ErrorCode } from '@email-writer/contracts';
+import type { ErrorCode } from '@writehand/contracts';
 
 /**
- * Eklentinin tek kayıt noktası. Yalnızca hata kodu, alan adı ve kişisel içerik
- * taşımayan sayılar kabul edilir; e-posta gövdesi, konu, adres, kaynak metin,
- * önizleme veya tam URL buraya yazılamaz. Normal derlemede sessizdir.
+ * The extension's single logging point. Only an error code, an area name and numbers
+ * that carry no personal content are accepted; email bodies, subjects, addresses, source
+ * text, previews or full URLs can never be written here. Silent in regular builds.
  */
 export interface DiagnosticEvent {
   readonly code: ErrorCode | 'UNHANDLED';
@@ -13,7 +13,7 @@ export interface DiagnosticEvent {
 
 export function reportDiagnostic(event: DiagnosticEvent): void {
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console -- tek ve içeriksiz tanı çıkışı
-    console.warn('[email-writer]', event.area, event.code, event.numbers ?? {});
+    // eslint-disable-next-line no-console -- the single, content-free diagnostic output
+    console.warn('[writehand]', event.area, event.code, event.numbers ?? {});
   }
 }

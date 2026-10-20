@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CHATGPT_USAGE_URL } from '@email-writer/contracts';
-import { useUiText } from '@email-writer/ui';
+import { CHATGPT_USAGE_URL } from '@writehand/contracts';
+import { useUiText } from '@writehand/ui';
 import { computed } from 'vue';
 
 import { requestOpenOptions } from '../platform/extension-client';

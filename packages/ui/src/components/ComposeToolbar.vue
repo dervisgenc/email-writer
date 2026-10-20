@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Operation, TargetLanguage } from '@email-writer/contracts';
+import type { Operation, TargetLanguage } from '@writehand/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -8,12 +8,12 @@ import type { QuickActionRequest } from '../view-model';
 import AppIcon from './AppIcon.vue';
 
 const props = defineProps<{
-  /** Yanıt taslağında "Yanıt yaz" (konuşma bağlamıyla), yeni iletide "Yaz" gösterilir. */
+  /** Shows "Write reply" (with conversation context) in a reply draft and "Write" in a new message. */
   isReply: boolean;
-  /** Çalışan işlem; düğmesinde ilerleme gösterilir, diğerleri beklerken kapanır. */
+  /** The running operation; its button shows progress and the others are disabled meanwhile. */
   busyOperation: Operation | null;
   defaultLanguage: TargetLanguage;
-  /** Menüde gösterilen diller; varsayılan dil her zaman ilk sıradadır. */
+  /** Languages shown in the menu; the default language always comes first. */
   favoriteLanguages: readonly TargetLanguage[];
 }>();
 
@@ -29,8 +29,8 @@ const menuOpen = ref(false);
 const menu = useTemplateRef<HTMLElement>('menu');
 
 /**
- * Fare ile basıldığında odağın editörden ayrılmasını engeller; böylece
- * taslaktaki seçim, işlem başlamadan önce kaybolmaz.
+ * Keeps focus in the editor on mouse press so the selection in the draft is not
+ * lost before the operation starts.
  */
 function keepEditorSelection(event: PointerEvent): void {
   event.preventDefault();
@@ -49,7 +49,7 @@ async function toggleMenu(): Promise<void> {
   }
 }
 
-/** Menüde ok tuşlarıyla gezinme; Escape menüyü kapatır. */
+/** Arrow keys move through the menu; Escape closes it. */
 function onMenuKeydown(event: KeyboardEvent): void {
   const items = [
     ...(menu.value?.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="menuitem"]') ?? []),
@@ -81,7 +81,7 @@ const writeOperation = computed(() => (props.isReply ? 'reply' : 'compose'));
 
 <template>
   <div class="ew-compose-bar" role="toolbar" :aria-label="text.compose.toolbarLabel">
-    <!-- Talimatla yazma: yanıt taslağında konuşmaya yanıt, yeni iletide bağlamsız metin. -->
+    <!-- Write from an instruction: a reply in a reply draft, context-free text in a new message. -->
     <button
       type="button"
       class="ew-bar-btn ew-bar-btn--brand"
@@ -158,7 +158,7 @@ const writeOperation = computed(() => (props.isReply ? 'reply' : 'compose'));
           <AppIcon v-if="language === defaultLanguage" name="check" />
         </button>
         <div class="ew-menu__separator" role="separator" />
-        <!-- Seçim önce yakalanır; dil kartta yazılır veya seçilir. -->
+        <!-- The selection is captured first; the language is typed or picked in the card. -->
         <button
           type="button"
           class="ew-menu__item"

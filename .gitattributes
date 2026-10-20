@@ -1,2 +1,2 @@
-# Bütün metin dosyaları her işletim sisteminde LF satır sonuyla açılır (Prettier `endOfLine: lf`).
+# Check out every text file with LF line endings on every OS (matches Prettier `endOfLine: lf`).
 * text=auto eol=lf

@@ -1,12 +1,12 @@
-import type { MailConnector, ThreadSnapshot } from '@email-writer/contracts';
-import { EMPTY_HISTORY, recordSnapshot, type HistoryEntry, type MessageHistory } from '@email-writer/core';
+import type { MailConnector, ThreadSnapshot } from '@writehand/contracts';
+import { EMPTY_HISTORY, recordSnapshot, type HistoryEntry, type MessageHistory } from '@writehand/core';
 
-/** Okunan mesaj geçmişine erişim; bağlam oluşturma ve görünüm bu arayüzü kullanır. */
+/** Access to the history of read messages; context building and the view use this interface. */
 export interface MessageHistoryStore {
   entries(): readonly HistoryEntry[];
-  /** Kullanıcının istediği bir okumayı geçmişe ekler (dinleyicilere bildirilmez). */
+  /** Adds a user-requested read to the history (listeners are not notified). */
   record(snapshot: ThreadSnapshot): void;
-  /** Kullanıcı yeni bir mesaj açtığında arka planda yapılan okumaları bildirir. */
+  /** Reports the background reads made when the user opens a new message. */
   subscribe(listener: (snapshot: ThreadSnapshot) => void): () => void;
 }
 
@@ -16,18 +16,18 @@ export interface MessageHistoryController extends MessageHistoryStore {
 
 export interface MessageHistoryDependencies {
   readonly connector: MailConnector;
-  /** Eklenti bu sitede kapalıysa hiçbir mesaj okunmaz. */
+  /** No message is read while the extension is disabled on this site. */
   readonly isEnabled: () => boolean;
   readonly debounceMs?: number;
   readonly readTimeoutMs?: number;
 }
 
 /**
- * Kullanıcının açtığı mesajları sayfa oturumu boyunca bellekte biriktirir.
- * Okuma bölmesi yalnızca seçili mesajı gösterdiğinde, aynı konuşmanın daha
- * önce açılan mesajlarına başka yoldan ulaşılamaz. Geçmiş kalıcı saklanmaz,
- * hiçbir yere gönderilmez ve hesap değişince silinir; mesaj açmak işlem
- * başlatmaz.
+ * Accumulates the messages the user opens in memory for the page session.
+ * When the reading pane shows only the selected message, there is no other way
+ * to reach messages of the same conversation opened earlier. The history is never
+ * persisted or sent anywhere and is cleared when the account changes; opening a
+ * message does not start an operation.
  */
 export function createMessageHistory(deps: MessageHistoryDependencies): MessageHistoryController {
   const { connector } = deps;
@@ -81,7 +81,7 @@ export function createMessageHistory(deps: MessageHistoryDependencies): MessageH
   const unsubscribe = connector.subscribe((event) => {
     switch (event.type) {
       case 'account-changed':
-        // Eski hesabın mesajları yeni hesabın bağlamına hiçbir koşulda taşınmaz.
+        // Messages from the previous account must never carry over into the new account's context.
         cancel();
         history = EMPTY_HISTORY;
         break;

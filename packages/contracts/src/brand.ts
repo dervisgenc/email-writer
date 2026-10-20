@@ -1,27 +1,27 @@
 /**
- * Ürünün kullanıcıya görünen adı ve dış kimlikleri. Eklenti, yardımcı uygulama ve
- * kurulum bu değerleri yalnızca buradan alır. İç paket adları (`@email-writer/*`) ve
- * depo adı ürün adından bağımsızdır.
+ * The product's user-facing name and external identifiers. The extension, the helper
+ * app and the installer take these values from here only. Internal package names
+ * (`@writehand/*`) and the repository name are independent of the product name.
  */
 export const PRODUCT_NAME = 'Writehand';
 
-/** Yerel yardımcı uygulamanın tarayıcılara kaydedildiği native messaging adı. */
+/** Native messaging name under which the local helper app is registered with browsers. */
 export const NATIVE_HOST_NAME = 'com.dervisgenc.writehand';
 
-/** Firefox (AMO) eklenti kimliği. Yayından sonra değiştirilirse mağaza güncellemeleri kopar. */
+/** Firefox (AMO) extension ID. Changing it after release breaks store updates. */
 export const FIREFOX_EXTENSION_ID = 'writehand@dervisgenc.com';
 
 /**
- * Mağazalardaki Chromium eklenti kimlikleri (Chrome Web Store, Edge Add-ons). Yardımcı
- * uygulama Chromium tarayıcılarında yalnızca bu kimliklere ve kurulumda `--extension-id`
- * ile verilenlere bağlantı izni verir. Mağaza kimliği alındığında eklenecek tek yer
- * burasıdır; ardından yeni bir sürüm yayımlanır (bkz. docs/GELISTIRICI_REHBERI.md).
+ * Chromium extension IDs in the stores (Chrome Web Store, Edge Add-ons). In Chromium
+ * browsers the helper app accepts connections only from these IDs and from those passed
+ * with `--extension-id` at install time. This is the only place to add a store ID once it
+ * is assigned; then publish a new release (see docs/RELEASING.md).
  */
 export const CHROMIUM_EXTENSION_IDS: readonly string[] = [];
 
-/** Yardımcı uygulamanın program adı; kurulum ve veri klasörleri de bu adı taşır. */
+/** Program name of the helper app; its install and data folders use the same name. */
 export const HELPER_COMMAND = 'writehand';
 
-/** Kaynak kodun ve sürümlerin bulunduğu GitHub deposu (`sahip/ad`). */
-export const REPOSITORY = 'dervisgenc/email-writer';
+/** GitHub repository that hosts the source code and releases (`owner/name`). */
+export const REPOSITORY = 'dervisgenc/writehand';
 export const REPOSITORY_URL = `https://github.com/${REPOSITORY}`;

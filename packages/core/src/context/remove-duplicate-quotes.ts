@@ -1,16 +1,16 @@
-import type { MessageSnapshot } from '@email-writer/contracts';
+import type { MessageSnapshot } from '@writehand/contracts';
 
 import { toComparisonLines } from './normalize-text';
 
-/** Bir alıntı bölümünün başındaki yanıt başlığı için izin verilen en fazla satır. */
+/** Maximum number of lines allowed for the reply header at the start of a quoted section. */
 const MAX_HEADER_LINES = 8;
 const MAX_HEADER_LINE_LENGTH = 1_000;
 const MAX_ATTRIBUTION_LENGTH = 300;
 
 /**
- * Yanıt başlığı satırları dile bağlı kelimelere değil, biçime göre tanınır:
- * "Kimden: …", "From: …", "De : …" gibi kısa etiketler, "… wrote:" gibi
- * iki nokta üst üste ile biten atıf satırları ve ayırıcı çizgiler.
+ * Reply header lines are recognized by shape, not by language-specific words: short labels
+ * such as "Kimden: …", "From: …", "De : …", attribution lines ending in a colon such as
+ * "… wrote:", and separator lines.
  */
 function isHeaderLine(line: string): boolean {
   if (line.length > MAX_HEADER_LINE_LENGTH) {
@@ -26,9 +26,9 @@ function isHeaderLine(line: string): boolean {
 }
 
 /**
- * Bir mesajın alıntılanmış olabileceği satır dizileri: bütün bloklar, alıntısız
- * hali ve yalnızca gövde blokları. Outlook önceki mesajı imzasıyla veya kendi
- * alıntısıyla birlikte alıntılayabilir.
+ * Line sequences a message may have been quoted as: all blocks, without its quotes, and
+ * body blocks only. Outlook may quote the previous message with its signature or with its
+ * own quote.
  */
 export function quotableLineSequences(message: MessageSnapshot): string[][] {
   const variants = [
@@ -58,9 +58,9 @@ function matchesAt(lines: readonly string[], position: number, sequence: readonl
 }
 
 /**
- * Bir alıntı bloğu, ancak içeriğinin tamamı "[yanıt başlığı] + [bağlamdaki
- * başka bir mesajın tam metni]" bölümlerinden oluşuyorsa tekrar sayılır.
- * Eşleşmeyen tek bir satır bile varsa blok korunur; belirsiz içerik silinmez.
+ * A quote block counts as a duplicate only if its entire content consists of
+ * "[reply header] + [full text of another message in the context]" sections. If even one
+ * line does not match, the block is kept; uncertain content is never removed.
  */
 export function isDuplicateQuote(
   quoteText: string,

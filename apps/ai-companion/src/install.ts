@@ -2,9 +2,9 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { access, chmod, copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { userInfo } from 'node:os';
-import { createClaudeCodeProvider, findClaudeBinary } from '@email-writer/ai-claude-code';
-import { createOpenAiOAuth } from '@email-writer/ai-openai';
-import { HOST_BROWSERS, PRODUCT_NAME } from '@email-writer/contracts';
+import { createClaudeCodeProvider, findClaudeBinary } from '@writehand/ai-claude-code';
+import { createOpenAiOAuth } from '@writehand/ai-openai';
+import { HOST_BROWSERS, PRODUCT_NAME } from '@writehand/contracts';
 
 import { createCredentialStore } from './credential-store';
 import { DEFAULT_HOST_CONFIG, hostEnvironment, parseHostConfig, type HostConfig } from './host-config';

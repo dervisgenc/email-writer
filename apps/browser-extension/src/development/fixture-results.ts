@@ -6,20 +6,19 @@ import {
   type Operation,
   type PreparedAction,
   type TextProcessor,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 /**
- * YALNIZCA GELİŞTİRME VE TEST DERLEMESİ. Normal paketten derleme sırasında
- * çıkarılır; `scripts/verify-packages.mjs` bu işaretin üretim paketinde
- * bulunmadığını kontrol eder.
+ * DEVELOPMENT AND TEST BUILDS ONLY. Stripped from the regular package at build
+ * time; `scripts/verify-packages.mjs` checks that this marker is absent from the
+ * production package.
  */
-export const DEVELOPMENT_FIXTURE_MARKER = 'email-writer-development-fixture';
+export const DEVELOPMENT_FIXTURE_MARKER = 'writehand-development-fixture';
 
 /**
- * Sabit örnek sonuçlar. Metni iyileştirdiğini iddia eden kurallar veya sahte
- * bir çeviri sözlüğü yoktur; önizleme ve taslağa yazma akışını denemek için
- * önceden belirlenmiş metinler döner. Arayüz bunları "Örnek sonuç — geliştirme
- * modu" etiketiyle gösterir.
+ * Fixed sample results. There are no rules pretending to improve the text and no
+ * fake translation dictionary; predefined texts are returned to exercise the preview
+ * and write-to-draft flow. The UI labels them "Sample result — development mode".
  */
 const SAMPLE_TEXTS: Readonly<Record<Operation, string>> = {
   revise: 'Toplantıyı yarın yapabiliriz.',
@@ -29,7 +28,7 @@ const SAMPLE_TEXTS: Readonly<Record<Operation, string>> = {
     'Merhaba,\n\nPerşembe 14:00 için kısa bir toplantı önermek istiyorum. Uygun olup olmadığınızı paylaşır mısınız?\n\nİyi çalışmalar',
 };
 
-/** "Sonucu değiştir" örnekleri: biçimli içerik akışını (önizleme, taslağa yazma) denemek için. */
+/** "Change the result" samples, for exercising the formatted content flow (preview, write to draft). */
 const REFINED_TEXTS = {
   table:
     'Merhaba,\n\nGüncel teklif aşağıdadır:\n\n| Kalem | Tutar |\n| --- | ---: |\n| Lisans | 40.000 TL |\n| Kurulum | 8.500 TL |\n\nSaygılarımla',
@@ -53,7 +52,7 @@ export type FixtureScenario = 'success' | 'error';
 export interface FixtureOptions {
   readonly scenario?: FixtureScenario;
   readonly delayMs?: number;
-  /** Testlerin belirli bir metni doğrudan vermesi için. */
+  /** Lets tests supply a specific text directly. */
   readonly text?: string;
 }
 

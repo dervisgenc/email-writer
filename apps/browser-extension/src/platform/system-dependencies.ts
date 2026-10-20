@@ -1,4 +1,4 @@
-import type { Clock, IdGenerator } from '@email-writer/core';
+import type { Clock, IdGenerator } from '@writehand/core';
 
 export const systemClock: Clock = {
   now: () => new Date().toISOString(),

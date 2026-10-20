@@ -6,7 +6,7 @@ import {
   createClaudeCodeProvider,
   findClaudeBinary,
   type ClaudeCommand,
-} from '@email-writer/ai-claude-code';
+} from '@writehand/ai-claude-code';
 import {
   appError,
   buildTaskPrompt,
@@ -16,7 +16,7 @@ import {
   type AiInput,
   type AppError,
   type Result,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const input: AiInput = {
@@ -75,7 +75,7 @@ describe('Claude Code provider', () => {
     provider(mode).generate(input, model, signal);
 
   beforeEach(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'email-writer-fake-claude-'));
+    directory = await mkdtemp(join(tmpdir(), 'writehand-fake-claude-'));
     const script = join(directory, 'fake-claude.cjs');
     record = join(directory, 'record.json');
     await writeFile(script, FAKE_CLAUDE);
@@ -229,7 +229,7 @@ describe('Finding Claude Code', () => {
   const program = Buffer.from('MZ program');
 
   beforeEach(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'email-writer-find-claude-'));
+    directory = await mkdtemp(join(tmpdir(), 'writehand-find-claude-'));
   });
   afterEach(async () => {
     await rm(directory, { recursive: true, force: true });

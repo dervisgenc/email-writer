@@ -1,4 +1,4 @@
-import { appError, type UndoOutcome } from '@email-writer/contracts';
+import { appError, type UndoOutcome } from '@writehand/contracts';
 
 import { rangeForOffsets } from '../selection/text-range-map';
 import { comparableText, isEditorWritable, isProtectedIntact } from './composer-handle';
@@ -9,10 +9,10 @@ function invalid(): UndoOutcome {
 }
 
 /**
- * Yalnızca eklentinin son doğrulanmış yazmasını, koşulları hâlâ geçerliyse
- * geri alır. Outlook'un genel geri alma geçmişi kontrolsüz biçimde geri
- * sarılmaz; `execCommand('undo')` çağrılmaz. Önceki metin düz metin olarak
- * geri gelir; o bölümdeki biçimlendirme geri getirilmez.
+ * Undoes only the extension's last verified write, and only while its
+ * conditions still hold. Outlook's general undo history is never rewound
+ * blindly; `execCommand('undo')` is not called. The previous text comes back as
+ * plain text; formatting in that part is not restored.
  */
 export async function undoChange(undoId: string, deps: WriteDependencies): Promise<UndoOutcome> {
   const pending = deps.undo.find(undoId);
@@ -20,7 +20,7 @@ export async function undoChange(undoId: string, deps: WriteDependencies): Promi
     return invalid();
   }
   await focusEditor(pending.composerRef, deps);
-  // Bekleme sırasında aynı kayıt başka bir çağrıyla geri alınmış olabilir.
+  // Another call may have undone the same record while we were waiting.
   const record = deps.undo.find(undoId);
   if (record === null) {
     return invalid();
@@ -29,7 +29,7 @@ export async function undoChange(undoId: string, deps: WriteDependencies): Promi
   if (handle === null || !isEditorWritable(handle.editor) || handle.tracker.isComposing()) {
     return invalid();
   }
-  // Kullanıcı araya yeni bir düzenleme eklediyse otomatik geri alma kapanır.
+  // If the user made another edit in between, automatic undo is no longer possible.
   if (handle.tracker.sync() !== record.revisionAfter) {
     return invalid();
   }

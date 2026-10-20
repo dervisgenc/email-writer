@@ -1,6 +1,6 @@
-import type { AiMode } from '@email-writer/contracts';
+import type { AiMode } from '@writehand/contracts';
 
-/** Bağlantı rehberindeki bir bölüm. Metindeki `...` parçaları kod olarak gösterilir. */
+/** One section of the connection guide. Text wrapped in `...` is shown as code. */
 export interface AiGuideItem {
   readonly title: string;
   readonly summary: string;
@@ -27,10 +27,10 @@ export interface AiText {
   readonly chatgpt: string;
   readonly apiKey: string;
   readonly claudeCode: string;
-  /** Yöntem kartlarındaki kısa açıklama. */
+  /** Short description on each method card. */
   readonly methodHints: Readonly<Record<AiMode, string>>;
   readonly methodLabel: string;
-  /** Yöntem kartlarındaki rozetler: önerilen (ChatGPT) ve deneysel (Claude). */
+  /** Method card badges: recommended (ChatGPT) and experimental (Claude). */
   readonly recommended: string;
   readonly experimental: string;
   readonly statusReady: string;

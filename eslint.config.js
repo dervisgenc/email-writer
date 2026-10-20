@@ -5,22 +5,22 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /**
- * Modül sınırları (implementation_details.md §18.2) yalnızca dokümana yazılmış
- * niyet olarak bırakılmaz; burada denetlenir.
+ * Module boundaries are not just documented intent (see docs/DEVELOPMENT.md);
+ * they are enforced here.
  */
 const INTERNAL_PACKAGES = [
-  '@email-writer/contracts',
-  '@email-writer/core',
-  '@email-writer/ui',
-  '@email-writer/outlook-web',
-  '@email-writer/ai-openai',
-  '@email-writer/ai-claude-code',
-  '@email-writer/email-format',
+  '@writehand/contracts',
+  '@writehand/core',
+  '@writehand/ui',
+  '@writehand/outlook-web',
+  '@writehand/ai-openai',
+  '@writehand/ai-claude-code',
+  '@writehand/email-format',
 ];
 
 const deepImportBan = {
-  group: ['@email-writer/*/src', '@email-writer/*/src/**'],
-  message: 'Başka paketin dahili dosyalarına erişilmez; paketin dışa aktardığı arayüz kullanılır.',
+  group: ['@writehand/*/src', '@writehand/*/src/**'],
+  message: "Do not reach into another package's internal files; use its exported API.",
 };
 
 function restrictImports(names, message) {
@@ -52,7 +52,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
-  // Biçim kararları Prettier'a aittir; ESLint yalnızca doğruluk ve sınır kurallarını denetler.
+  // Formatting belongs to Prettier; ESLint only checks correctness and boundary rules.
   prettier,
   {
     files: ['**/*.vue'],
@@ -72,7 +72,7 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      // E-posta ve kullanıcı metni HTML olarak çalıştırılmaz.
+      // Email and user text are never rendered as HTML.
       'vue/no-v-html': 'error',
       'vue/max-attributes-per-line': 'off',
       'vue/singleline-html-element-content-newline': 'off',
@@ -80,18 +80,18 @@ export default tseslint.config(
       'no-restricted-imports': ['error', { patterns: [deepImportBan] }],
       'no-restricted-properties': [
         'error',
-        { property: 'innerHTML', message: 'E-posta veya kullanıcı metni HTML olarak yazılmaz.' },
-        { property: 'outerHTML', message: 'E-posta veya kullanıcı metni HTML olarak yazılmaz.' },
+        { property: 'innerHTML', message: 'Never write email or user text as HTML.' },
+        { property: 'outerHTML', message: 'Never write email or user text as HTML.' },
         {
           object: 'document',
           property: 'execCommand',
-          message: 'Yalnızca outlook-web/writing/editor-writer.ts içinde kullanılabilir.',
+          message: 'Allowed only in outlook-web/writing/editor-writer.ts.',
         },
       ],
     },
   },
   {
-    // contracts: ortamdan bağımsız tipler ve sınır şemaları.
+    // contracts: environment-agnostic types and boundary schemas.
     files: ['packages/contracts/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
@@ -99,16 +99,19 @@ export default tseslint.config(
         {
           paths: restrictImports(
             ['vue', 'wxt', '#imports', ...INTERNAL_PACKAGES],
-            'contracts yalnızca zod ve kendi tiplerini kullanır.',
+            'contracts uses only zod and its own types.',
           ),
-          patterns: [deepImportBan, { group: ['wxt/*'], message: 'contracts çalışma ortamını bilmez.' }],
+          patterns: [
+            deepImportBan,
+            { group: ['wxt/*'], message: 'contracts does not know about the runtime environment.' },
+          ],
         },
       ],
       'no-restricted-globals': ['error', ...browserGlobals],
     },
   },
   {
-    // email-format: Markdown → e-posta HTML'i; ortamdan ve diğer paketlerden bağımsız saf fonksiyonlar.
+    // email-format: Markdown → email HTML; pure functions free of environment and package dependencies.
     files: ['packages/email-format/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
@@ -116,7 +119,7 @@ export default tseslint.config(
         {
           paths: restrictImports(
             ['vue', 'wxt', '#imports', ...INTERNAL_PACKAGES],
-            'email-format yalnızca zod ve kendi tiplerini kullanır.',
+            'email-format uses only zod and its own types.',
           ),
           patterns: [deepImportBan],
         },
@@ -125,42 +128,37 @@ export default tseslint.config(
     },
   },
   {
-    // core: Vue'yu, WXT'yi, tarayıcıyı ve Outlook sayfasını bilmez.
+    // core: knows nothing about Vue, WXT, the browser or the Outlook page.
     files: ['packages/core/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: restrictImports(
-            [
-              'vue',
-              'wxt',
-              '#imports',
-              'zod',
-              '@email-writer/ui',
-              '@email-writer/outlook-web',
-              '@email-writer/core',
-            ],
-            'core yalnızca @email-writer/contracts kullanır.',
+            ['vue', 'wxt', '#imports', 'zod', '@writehand/ui', '@writehand/outlook-web', '@writehand/core'],
+            'core depends only on @writehand/contracts.',
           ),
-          patterns: [deepImportBan, { group: ['wxt/*'], message: 'core çalışma ortamını bilmez.' }],
+          patterns: [
+            deepImportBan,
+            { group: ['wxt/*'], message: 'core does not know about the runtime environment.' },
+          ],
         },
       ],
       'no-restricted-globals': ['error', ...browserGlobals],
     },
   },
   {
-    // ui: e-posta bağlantısını, iş kurallarını veya tarayıcı API'lerini içe aktarmaz.
+    // ui: does not import the mail connector, business rules or browser APIs.
     files: ['packages/ui/src/**/*.{ts,vue}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: restrictImports(
-            ['wxt', '#imports', '@email-writer/outlook-web', '@email-writer/core'],
-            'ui yalnızca görünüm verisi alır ve olay yayar.',
+            ['wxt', '#imports', '@writehand/outlook-web', '@writehand/core'],
+            'ui only receives view data and emits events.',
           ),
-          patterns: [deepImportBan, { group: ['wxt/*'], message: 'ui tarayıcı yardımcılarını kullanmaz.' }],
+          patterns: [deepImportBan, { group: ['wxt/*'], message: 'ui does not use browser helpers.' }],
         },
       ],
       'no-restricted-globals': [
@@ -175,19 +173,19 @@ export default tseslint.config(
     },
   },
   {
-    // E-posta bağlantısı Vue bileşeni, iş kuralı veya metin işleme servisi bilmez.
+    // The mail connector knows nothing about Vue components, business rules or the text service.
     files: ['packages/mail-connectors/**/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: restrictImports(
-            ['vue', 'wxt', '#imports', '@email-writer/ui', '@email-writer/core'],
-            'Bağlantı modülü yalnızca contracts ve DOM ile çalışır.',
+            ['vue', 'wxt', '#imports', '@writehand/ui', '@writehand/core'],
+            'The connector works only with contracts and the DOM.',
           ),
           patterns: [
             deepImportBan,
-            { group: ['wxt/*'], message: "Bağlantı modülü eklenti API'lerini bilmez." },
+            { group: ['wxt/*'], message: 'The connector does not know about extension APIs.' },
           ],
         },
       ],
@@ -195,14 +193,14 @@ export default tseslint.config(
     },
   },
   {
-    // Yazma yönteminin tek yeri: execCommand yalnızca burada.
+    // The single write path: execCommand is allowed only here.
     files: ['packages/mail-connectors/outlook-web/src/writing/editor-writer.ts'],
     rules: {
       'no-restricted-properties': ['error', { property: 'innerHTML' }, { property: 'outerHTML' }],
     },
   },
   {
-    // Eklentideki tarayıcı API'leri platform/ altında toplanır.
+    // Browser APIs in the extension are kept under platform/.
     files: [
       'apps/browser-extension/src/{controllers,composables,mounting,bootstrap,locales,development}/**/*.{ts,vue}',
     ],
@@ -223,7 +221,7 @@ export default tseslint.config(
         'error',
         {
           paths: restrictImports(
-            ['vue', 'wxt', '#imports', '@email-writer/core', '@email-writer/ui', '@email-writer/outlook-web'],
+            ['vue', 'wxt', '#imports', '@writehand/core', '@writehand/ui', '@writehand/outlook-web'],
             'AI modules do not depend on the UI or mailbox.',
           ),
           patterns: [deepImportBan],
@@ -232,7 +230,7 @@ export default tseslint.config(
     },
   },
   {
-    // İşletim sistemi farkları yalnızca yardımcı uygulamanın platform.ts dosyasında.
+    // OS differences live only in the helper app's platform.ts.
     files: [
       'packages/ai-openai/src/**/*.ts',
       'packages/ai-claude-code/src/**/*.ts',
@@ -245,13 +243,13 @@ export default tseslint.config(
         ...['platform', 'arch'].map((property) => ({
           object: 'process',
           property,
-          message: 'İşletim sistemi farkları apps/ai-companion/src/platform.ts içinde tanımlanır.',
+          message: 'Define OS differences in apps/ai-companion/src/platform.ts.',
         })),
       ],
     },
   },
   {
-    // Sağlayıcı paketleri birbirini bilmez; ortak talimat ve tipler contracts'tadır.
+    // Provider packages do not know each other; shared instructions and types live in contracts.
     files: ['packages/ai-openai/src/**/*.ts', 'packages/ai-claude-code/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
@@ -262,11 +260,11 @@ export default tseslint.config(
               'vue',
               'wxt',
               '#imports',
-              '@email-writer/core',
-              '@email-writer/ui',
-              '@email-writer/outlook-web',
-              '@email-writer/ai-openai',
-              '@email-writer/ai-claude-code',
+              '@writehand/core',
+              '@writehand/ui',
+              '@writehand/outlook-web',
+              '@writehand/ai-openai',
+              '@writehand/ai-claude-code',
             ],
             'AI provider packages depend only on contracts.',
           ),
@@ -286,7 +284,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: {
       'no-console': 'off',
-      // Playwright fixture'ları bağımlılık listesini boş nesne kalıbıyla bildirir.
+      // Playwright fixtures declare their dependencies with an empty object pattern.
       'no-empty-pattern': 'off',
       'no-restricted-imports': 'off',
       'no-restricted-properties': 'off',

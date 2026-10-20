@@ -4,7 +4,7 @@ import { chromium, test as base, type BrowserContext, type Page, type Worker } f
 
 export const FIXTURE_URL = 'http://127.0.0.1:4517/mail/inbox';
 
-/** Test derlemesi: yerel örnek sayfa origin'i ve etiketli örnek sonuç kaynağı içerir. */
+/** The test build: includes the local fixture page origin and the labeled sample result source. */
 const EXTENSION_PATH = resolve(process.cwd(), 'apps/browser-extension/.output/chrome-mv3-test');
 
 export const test = base.extend<{ context: BrowserContext; extensionId: string }>({
@@ -12,7 +12,7 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       headless: true,
-      // Arayüz dili varsayılan olarak tarayıcı dilini izler; testler Türkçe metinleri doğrular.
+      // The UI language follows the browser language by default; the tests assert the Turkish texts.
       locale: 'tr-TR',
       args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
     });
@@ -29,9 +29,9 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
 export const expect = test.expect;
 
 /**
- * Sahte yerel yardımcı uygulama: arka plandaki `connectNative` yerine geçer. `installed`
- * false iken bağlantı hemen kopar (yardımcı uygulama yok); true iken HOST_*, AI_STATUS ve
- * AI_GENERATE isteklerine sabit yanıt verir. Durum testten `globalThis.fakeHost` ile değiştirilir.
+ * A fake local helper app that replaces `connectNative` in the background. While `installed`
+ * is false the connection drops at once (no helper app); while true it gives fixed answers to
+ * HOST_*, AI_STATUS and AI_GENERATE requests. Tests change its state through `globalThis.fakeHost`.
  */
 export async function installFakeHost(worker: Worker, options: { installed: boolean }): Promise<void> {
   await worker.evaluate((installed) => {
@@ -111,7 +111,7 @@ export async function installFakeHost(worker: Worker, options: { installed: bool
   }, options.installed);
 }
 
-/** İsteğe bağlı `nativeMessaging` iznini sayfada taklit eder; Playwright tarayıcının izin penceresini onaylayamaz. */
+/** Fakes the optional `nativeMessaging` permission in the page, since Playwright cannot accept the browser's permission prompt. */
 export async function fakeNativeMessagingPermission(page: Page, granted = false): Promise<void> {
   await page.addInitScript((initial) => {
     let allowed = initial;

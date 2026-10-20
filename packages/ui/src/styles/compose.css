@@ -1,6 +1,6 @@
 /*
- * Yazma alanına gömülü araç çubuğu ve sonuç kartı. Outlook'un DOM ağacına
- * eklenmezler; taslağın köşesinde yüzen gölge kökte gösterilirler.
+ * Toolbar embedded in the compose area, and the result card. Neither is added to Outlook's
+ * DOM tree; both render in a shadow root floating at the corner of the draft.
  */
 .ew-compose-anchor {
   position: relative;
@@ -87,13 +87,13 @@
   background: var(--ew-color-border);
 }
 
-/* Dil menüsü */
+/* Language menu */
 .ew-menu {
   position: absolute;
   right: 0;
   bottom: calc(100% + 6px);
   min-width: 184px;
-  /* En fazla on favori ve iki eylem; araç çubuğunun üstündeki boşluğa sığar. */
+  /* At most ten favorites and two actions; fits in the space above the toolbar. */
   max-height: min(360px, var(--ew-space-above, 60vh));
   overflow-y: auto;
   padding: 4px;
@@ -139,13 +139,13 @@
   color: var(--ew-color-link);
 }
 
-/* Sonuç kartı: araç çubuğunun hemen üstünde açılır. */
+/* Result card: opens right above the toolbar. */
 .ew-card {
   position: absolute;
   right: 0;
   bottom: calc(100% + 8px);
   width: min(400px, calc(100vw - 32px));
-  /* Konumlandırıcı, araç çubuğunun üstünde kalan boşluğu --ew-space-above ile bildirir. */
+  /* The positioner reports the space left above the toolbar via --ew-space-above. */
   max-height: min(520px, var(--ew-space-above, calc(100vh - 96px)));
   display: flex;
   flex-direction: column;
@@ -241,8 +241,8 @@
 }
 
 /*
- * Kart dar alana sığdırıldığında içerik kayar; uygulama ve kopyalama düğmeleri
- * kartın altında sabit kalır, kullanıcı ana eylemi aramak zorunda kalmaz.
+ * When the card is squeezed into a small space, the content scrolls; the apply and copy
+ * buttons stay pinned at the bottom so the user never has to hunt for the main action.
  */
 .ew-card__footer {
   position: sticky;
@@ -265,7 +265,7 @@
   font-size: var(--ew-font-size-200);
 }
 
-/* Okuma bölmesindeki "Yanıt hazırla" düğmesi */
+/* The "Draft reply" button in the reading pane */
 .ew-thread-launcher {
   display: inline-flex;
   align-items: center;
@@ -290,7 +290,7 @@
   background: var(--ew-color-surface-hover);
 }
 
-/* Sonuç önizlemesi: biçimli sonuç e-postada görüneceği gibi, açık "kâğıt" üzerinde gösterilir. */
+/* Result preview: a formatted result is shown as it will look in the email, on light "paper". */
 .ew-rich-preview {
   position: relative;
   display: flex;
@@ -320,7 +320,7 @@
   max-height: 420px;
 }
 
-/* E-posta, alıcının açık temalı istemcisinde göründüğü gibi önizlenir. */
+/* The email is previewed as it looks in the recipient's light-themed client. */
 .ew-rich-preview__paper {
   background: #ffffff;
   color: #242424;
@@ -357,7 +357,7 @@
   align-self: flex-end;
 }
 
-/* Sonucu değiştirme çubuğu: hazır yönler ve serbest istek. */
+/* Refine bar: preset directions and a free-form request. */
 .ew-refine {
   display: flex;
   flex-direction: column;

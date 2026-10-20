@@ -1,4 +1,4 @@
-import type { ContextNotice, ContextSnapshot, OmissionReason } from '@email-writer/contracts';
+import type { ContextNotice, ContextSnapshot, OmissionReason } from '@writehand/contracts';
 
 type CountedNoticeKind = Extract<ContextNotice, { count: number }>['kind'];
 
@@ -15,8 +15,8 @@ function countBlocks(context: ContextSnapshot, reason: OmissionReason): number {
 }
 
 /**
- * Bağlamın kapsamını kullanıcıya açıklayan kayıtları üretir. Eksik kapsam,
- * genel bir "Bağlam hazır" mesajının arkasına saklanmaz.
+ * Produces records that explain the context's coverage to the user. Incomplete coverage
+ * is never hidden behind a generic "Context ready" message.
  */
 export function describeContext(context: ContextSnapshot): ContextNotice[] {
   const notices: ContextNotice[] = [{ kind: 'message-count', count: context.messages.length }];

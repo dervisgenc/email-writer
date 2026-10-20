@@ -2,9 +2,9 @@ import { matches } from '../discovery/selectors';
 import type { ElementRole } from './extract-text-blocks';
 
 /**
- * Outlook işaretlerine göre metin bölgelerini sınıflandırır: önceki yazışmanın
- * başladığı yer, imza ve eklentinin kendi arayüzü. "Regards" veya
- * "Teşekkürler" gibi kelimeler tek başına imza sayılmaz.
+ * Classifies text regions by Outlook markers: where earlier mail starts, the
+ * signature and the extension's own UI. Words like "Regards" or "Thanks" alone
+ * do not count as a signature.
  */
 export function createOutlookClassifier(ownUiSelector: string): (element: Element) => ElementRole {
   return (element) => {

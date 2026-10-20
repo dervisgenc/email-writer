@@ -3,10 +3,10 @@ import type { AppError } from './errors';
 import type { AbortSignalLike, Result } from './result';
 
 /**
- * Hazırlanmış işlemi alıp aynı işleme ait düz metin sonucu döndüren sınır.
+ * Boundary that takes a prepared action and returns a plain-text result for that same action.
  *
- * Gerçek bağlantı, metni arka plan/yerel AI modülüne gönderir. Test derlemesi
- * aynı sınırda örnek sonuç kullanır. Sağlayıcı ayrıntıları iş mantığına sızmaz.
+ * The real connection sends the text to the background/local AI module. The test build uses
+ * a sample result at the same boundary. Provider details never leak into the business logic.
  */
 export interface TextProcessor {
   readonly kind: 'development-sample' | 'connected';

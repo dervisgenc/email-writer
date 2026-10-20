@@ -3,9 +3,9 @@ import { PRODUCT_NAME } from './brand';
 import { modelLanguageLabel } from './languages';
 
 /**
- * Sağlayıcıdan bağımsız istem. Sistem talimatı görevi, çıktı kurallarını ve
- * güvenlik sınırını anlatır; kullanıcı mesajı yalnızca etiketlenmiş veriyi taşır.
- * E-posta metni her zaman güvenilmeyen veridir ve talimat olarak izlenmez.
+ * Provider-agnostic prompt. The system instruction describes the task, the output rules
+ * and the safety boundary; the user message carries only tagged data. Email text is
+ * always untrusted data and is never followed as instructions.
  */
 export interface TaskPrompt {
   readonly system: string;
@@ -106,12 +106,12 @@ const TAG_NAMES =
   'task|instruction|standing_preferences|source|draft|conversation|message|previous_result|refinement';
 const TAG_LIKE = new RegExp(`<(/?)(?=(${TAG_NAMES})\\b)`, 'gi');
 
-/** Veri içindeki etiket taklitlerini etkisizleştirir; geri kalan metin değişmez. */
+/** Neutralizes tag look-alikes inside data; the rest of the text is unchanged. */
 function content(text: string): string {
   return text.replace(TAG_LIKE, '‹$1');
 }
 
-/** Öznitelik değeri tek satırdır; çift tırnak tek tırnağa çevrilir. */
+/** Attribute values are single-line; double quotes become single quotes. */
 function attribute(value: string): string {
   return value.replace(/"/g, "'").replace(/\s+/g, ' ').trim();
 }

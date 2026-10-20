@@ -5,7 +5,7 @@ import { ERROR_CODES } from './errors';
 import { targetLanguageSchema } from './languages';
 import { MAX_WRITING_INSTRUCTIONS } from './settings';
 
-/** Üretim yöntemi: ChatGPT planı, OpenAI API anahtarı veya bilgisayardaki Claude Code. */
+/** Generation method: a ChatGPT plan, an OpenAI API key or Claude Code on the user's computer. */
 export const AI_MODES = ['chatgpt', 'api-key', 'claude-code'] as const;
 export type AiMode = (typeof AI_MODES)[number];
 export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
@@ -13,8 +13,8 @@ export const OPENAI_API_KEYS_URL = 'https://platform.openai.com/api-keys';
 export const CLAUDE_CODE_SETUP_URL = 'https://code.claude.com/docs/en/setup';
 
 /**
- * Çıktı biçimi: `rich` sınırlı Markdown'a (liste, tablo, grafik) izin verir ve
- * taslağa biçimli yazılır; `plain` düz metindir (ör. bir cümlenin içindeki seçim).
+ * Output format: `rich` allows a limited Markdown subset (lists, tables, charts) and is
+ * written to the draft formatted; `plain` is plain text (e.g. a selection inside a sentence).
  */
 export const OUTPUT_FORMATS = ['plain', 'rich'] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
@@ -27,7 +27,7 @@ export const aiInputSchema = z
     instruction: z.string().max(5_000),
     targetLanguage: targetLanguageSchema.nullable(),
     tone: z.enum(TONES),
-    /** Kullanıcının ayarlardaki kalıcı yazım tercihi; her üretime eklenir. */
+    /** The user's standing writing preference from settings; added to every generation. */
     standingInstructions: z.string().max(MAX_WRITING_INSTRUCTIONS),
     format: z.enum(OUTPUT_FORMATS),
     refinement: z
@@ -71,14 +71,14 @@ export const aiInputSchema = z
   });
 export type AiInput = z.infer<typeof aiInputSchema>;
 
-/** Üretim anında eklenen, işlem kaydında tutulmayan kullanıcı tercihleri. */
+/** User preferences added at generation time and not kept in the action record. */
 export interface AiPreferences {
   readonly standingInstructions: string;
 }
 
 /**
- * Sonucun yazılacağı yere göre biçim: cümle içindeki bir seçim ve alınan
- * mesajdan seçim (yalnızca kopyalanır) düz metin ister; taslağın tamamı biçimli olabilir.
+ * Format by destination: a selection inside a sentence and a selection from a received
+ * message (copy only) need plain text; the whole draft may be formatted.
  */
 export function outputFormatFor(action: PreparedAction): OutputFormat {
   return action.target?.mode === 'replace-selection' || action.source.origin === 'received-message'
@@ -150,12 +150,12 @@ export const aiStatusSchema = z
     ready: z.boolean(),
     signingIn: z.boolean(),
     needsPlanAcknowledgement: z.boolean(),
-    /** Bilgisayardaki Claude Code'un durumu; yalnızca o yöntem seçiliyken denetlenir. */
+    /** State of Claude Code on the user's computer; checked only while that method is selected. */
     claudeCode: z
       .object({
         installed: z.boolean(),
         loggedIn: z.boolean(),
-        /** Claude aboneliğiyle mi (true), API anahtarı veya başka yöntemle mi çalışıyor. */
+        /** Whether it runs on a Claude subscription (true) or with an API key or another method. */
         subscription: z.boolean(),
         plan: z.string().max(64).nullable(),
         account: z.string().max(320).nullable(),

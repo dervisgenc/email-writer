@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SelectorReport, Theme } from '@email-writer/contracts';
+import type { SelectorReport, Theme } from '@writehand/contracts';
 import { computed, onMounted, ref } from 'vue';
 
 import { useHelper } from '../../src/composables/use-helper';
@@ -29,7 +29,7 @@ const siteAccessMissing = ref(false);
 const tabId = ref<number | null>(null);
 const selectorReport = ref<SelectorReport['entries']>([]);
 const isDevelopment = import.meta.env.MODE !== 'production';
-// Yardımcı uygulama bağlı değilse kurulumu tamamlamak için sihirbaza yönlendirilir.
+// If the helper app is not connected, the user is sent to the wizard to finish setup.
 const helper = useHelper();
 const setupNeeded = computed(() => !['checking', 'connected'].includes(helper.view.value.kind));
 
@@ -45,7 +45,7 @@ onMounted(async () => {
   tabId.value = tab.id;
   const result = await queryPageStatus(tab.id);
   if (!result.ok) {
-    // Eklenti sessizce bozuk görünmek yerine site erişimi veya yenileme gereksinimini açıklar.
+    // Explain missing site access or the need to reload instead of silently looking broken.
     status.value = 'unreachable';
     siteAccessMissing.value = !(await hasSiteAccess(SUPPORTED_ORIGINS));
     return;

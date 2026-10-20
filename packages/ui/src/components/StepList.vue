@@ -2,16 +2,16 @@
 import AppIcon from './AppIcon.vue';
 
 /**
- * Sihirbazın adımları: geçerli adım vurgulanır, tamamlananlar işaretlenir. Ulaşılmış adımlar
- * arasında serbestçe gidilip gelinebilir.
+ * The wizard's steps: the current step is highlighted and completed ones are checked. The
+ * user can move freely between the steps reached so far.
  */
 const props = defineProps<{
   label: string;
   steps: readonly string[];
   current: number;
-  /** Şimdiye kadar ulaşılan en ileri adım (0'dan). */
+  /** The furthest step reached so far (zero-based). */
   furthest: number;
-  /** Tamamlanan adımların sırası (0'dan). */
+  /** Indexes of the completed steps (zero-based). */
   done: readonly number[];
 }>();
 const emit = defineEmits<{ select: [index: number] }>();

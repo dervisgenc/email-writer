@@ -46,15 +46,15 @@ function blockText(block: EmailBlock, locale: string | undefined): string {
   }
 }
 
-/** Düz metin karşılığı: kopyalama, düz metin hedefleri ve yedek gösterim için. */
+/** Plain-text equivalent for copying, plain-text targets and fallback display. */
 export function renderPlainText(document: EmailDocument, options: { locale?: string } = {}): string {
   return document.blocks.map((block) => blockText(block, options.locale)).join('\n\n');
 }
 
 /**
- * Editöre yazıldıktan sonra taslaktan geri okunacak metin: bağlantı adresleri ve
- * grafik çubukları metin değildir; liste maddeleri okuyucunun yaptığı gibi
- * "- " veya sıra numarasıyla başlar. Yazma doğrulaması bununla yapılır.
+ * Text expected to be read back from the draft after writing to the editor: link addresses
+ * and chart bars are not text; list items start with "- " or their number, as the reader
+ * produces them. Write verification compares against this.
  */
 export function renderVisibleText(document: EmailDocument, options: { locale?: string } = {}): string {
   return document.blocks

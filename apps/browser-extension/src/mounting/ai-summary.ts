@@ -1,5 +1,5 @@
 import { createAiSummaryStore } from '../composables/ai-summary-store';
 import { fetchAiSummary } from '../platform/extension-client';
 
-/** Sayfa başına tek bağlantı özeti; panel ve kart göstergeleri bunu paylaşır. */
+/** One connection summary per page, shared by the panel and card indicators. */
 export const useAiSummary = createAiSummaryStore(fetchAiSummary);

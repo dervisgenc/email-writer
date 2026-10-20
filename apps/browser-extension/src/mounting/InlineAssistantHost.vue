@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { InlineAssistant } from '@email-writer/ui';
+import { InlineAssistant } from '@writehand/ui';
 
 import { usePanelSession, type PanelSessionDependencies } from '../composables/use-panel-session';
 import AiConnectionIndicator from './AiConnectionIndicator.vue';
@@ -8,7 +8,7 @@ const props = defineProps<{
   session: PanelSessionDependencies;
 }>();
 
-// Kart, paneldeki oturumun aynısını gösterir; "Panelde aç" çalışmayı kaybetmeden sürdürür.
+// The card shows the same session as the panel; "Open in panel" continues the work without losing it.
 const { view, handlers } = usePanelSession(props.session);
 </script>
 

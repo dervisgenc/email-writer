@@ -1,9 +1,9 @@
-import type { TextBlockKind } from '@email-writer/contracts';
+import type { TextBlockKind } from '@writehand/contracts';
 
 /**
- * Çıktı metnindeki `[start, end)` aralığının bir metin düğümündeki
- * `[nodeOffset, nodeOffset + (end - start))` aralığına bire bir karşılığı.
- * Eklenen satır sonları ve ayırıcılar hiçbir düğüme eşlenmez.
+ * One-to-one mapping of the `[start, end)` range in the output text to the
+ * `[nodeOffset, nodeOffset + (end - start))` range in a text node. Inserted line
+ * breaks and separators map to no node.
  */
 export interface TextSegment {
   readonly node: Text;
@@ -20,17 +20,17 @@ export interface ExtractedBlock {
 }
 
 /**
- * Bir elemanın metindeki rolü: `quote-start` sonrasındaki bütün içerik alıntı
- * sayılır; `signature` yalnızca elemanın kendi içeriğini kapsar; `exclude`
- * içeriği tamamen atlar.
+ * An element's role in the text: everything after `quote-start` counts as quote;
+ * `signature` covers only the element's own content; `exclude` skips the content
+ * entirely.
  */
 export type ElementRole = 'quote-start' | 'signature' | 'exclude' | null;
 
 export interface ExtractOptions {
   readonly classify?: (element: Element) => ElementRole;
-  /** Bu elemana ulaşıldığında gezinti durur (ör. editördeki imza sınırı). */
+  /** The walk stops on reaching this element (e.g. the signature boundary in an editor). */
   readonly stopAt?: Element | null;
-  /** İnceleme bütçesi (UTF-16 birimi). Aşılırsa `truncated` döner. */
+  /** Inspection budget in UTF-16 code units. Exceeding it sets `truncated`. */
   readonly maxLength?: number;
 }
 
@@ -104,13 +104,13 @@ const BLOCK_TAGS = new Set([
 
 const TABLE_CELL_SEPARATOR = ' | ';
 
-/** İçindeki yalnızca-boşluk metin düğümleri görüntülenmeyen yapısal elemanlar. */
+/** Structural elements whose whitespace-only text nodes are not rendered. */
 const STRUCTURAL_PARENTS = new Set(['TABLE', 'TBODY', 'THEAD', 'TFOOT', 'TR', 'UL', 'OL', 'DL']);
 
 /**
- * Görünmeyen izleme ve önizleme metinleri genellikle satır içi stil ile
- * gizlenir. `checkVisibility` olmayan ortamlarda (ör. test DOM'u) bu kontrol
- * yedek olarak kullanılır.
+ * Invisible tracking and preview text is usually hidden with inline styles. In
+ * environments without `checkVisibility` (e.g. the test DOM) this check is the
+ * fallback.
  */
 function isHidden(element: Element): boolean {
   if (element.hasAttribute('hidden')) {
@@ -130,7 +130,7 @@ function isHidden(element: Element): boolean {
   return false;
 }
 
-/** Metnin sonundaki satır sonu sayısı (en fazla iki); satır sonları ayrı parçalarda olabilir. */
+/** Number of trailing line breaks (at most two); the breaks may span several parts. */
 function trailingBreaks(parts: readonly string[]): number {
   let count = 0;
   for (let index = parts.length - 1; index >= 0 && count < 2; index -= 1) {
@@ -176,7 +176,7 @@ class BlockWriter {
     return block.length === 0 || lastPart === undefined || lastPart.endsWith('\n');
   }
 
-  /** Şimdiye kadar yazılan karakter sayısı (yapay metin dahil). */
+  /** Characters written so far (including synthetic text). */
   get written(): number {
     return this.totalLength;
   }
@@ -185,10 +185,10 @@ class BlockWriter {
     this.pendingBreaks = Math.max(this.pendingBreaks, count);
   }
 
-  /** Düğüme eşlenmeyen yapay metin (satır sonu, liste işareti, tablo ayırıcı). */
+  /** Synthetic text that maps to no node (line break, list marker, table separator). */
   writeSynthetic(kind: TextBlockKind, text: string): void {
     this.flushBreaks(kind);
-    // Ayırıcı boşlukla başlıyorsa önceki boşlukla birleşip çift boşluk oluşturmaz.
+    // A separator starting with a space does not double up with a preceding space.
     const value = text.startsWith(' ') && this.endsWithSpace(kind) ? text.slice(1) : text;
     this.append(kind, value, null, 0);
   }
@@ -199,7 +199,7 @@ class BlockWriter {
     while (index < data.length && !this.truncated) {
       const char = data.charAt(index);
       if (!preformatted && /[ \t\n\r\f]/.test(char)) {
-        // Art arda boşluklar tek boşluğa iner; satır başındaki boşluk atlanır.
+        // Runs of whitespace collapse to one space; whitespace at the start of a line is skipped.
         let runEnd = index + 1;
         while (runEnd < data.length && /[ \t\n\r\f]/.test(data.charAt(runEnd))) {
           runEnd += 1;
@@ -215,7 +215,7 @@ class BlockWriter {
         runEnd += 1;
       }
       this.flushBreaks(kind);
-      // Bölünemeyen boşluk, eşlemeyi bozmadan normal boşluğa çevrilir (bire bir).
+      // Non-breaking spaces become regular spaces one-for-one, keeping the mapping intact.
       this.append(kind, data.slice(index, runEnd).replace(/\u00a0/g, ' '), node, index);
       index = runEnd;
     }
@@ -243,10 +243,10 @@ class BlockWriter {
   }
 
   /**
-   * Satır sonundan hemen önceki tek boşluk görünmez; metne alınmaz. Boşluk
-   * dizileri her zaman ayrı bir `' '` parçası olarak yazıldığı için yalnızca o
-   * parça ve eşlemesi geri alınır. Eşlenmeyen boşluktaki seçim noktası, seçim
-   * eşlemesinde en yakın metne yaslanır.
+   * A single space right before a line break is invisible, so it is left out of
+   * the text. Whitespace runs are always written as a separate `' '` part, so only
+   * that part and its mapping are rolled back. A selection point on an unmapped
+   * space snaps to the nearest text in the selection mapping.
    */
   private dropTrailingSpace(block: BlockWriter['blocks'][number]): void {
     if (block.parts[block.parts.length - 1] !== ' ') {
@@ -280,13 +280,13 @@ class BlockWriter {
 }
 
 /**
- * Mesaj veya editör içeriğini kontrollü bir DOM gezintisiyle düz metne çevirir.
- * E-posta HTML'i yeniden sayfaya eklenmez veya çalıştırılmaz; tek bir
- * `textContent` çağrısı, gizli metinleri karıştırabileceği için kullanılmaz.
+ * Converts message or editor content to plain text with a controlled DOM walk.
+ * The email HTML is never re-inserted into the page or executed; a single
+ * `textContent` call is avoided because it would mix in hidden text.
  */
 export function extractTextBlocks(root: Node, options: ExtractOptions = {}): ExtractionResult {
   const writer = new BlockWriter(options.maxLength ?? Number.POSITIVE_INFINITY);
-  /** Her tablo satırına girildiğinde yazılmış karakter sayısı. */
+  /** Characters written when each table row was entered. */
   const rowStarts = new Map<Element, number>();
   let mode: 'body' | 'quote' = 'body';
   let stopped = false;
@@ -300,7 +300,7 @@ export function extractTextBlocks(root: Node, options: ExtractOptions = {}): Ext
       return;
     }
     if (node.nodeType === Node.TEXT_NODE) {
-      // Tablo ve liste yapısındaki biçimlendirme boşlukları tarayıcıda da görünmez.
+      // Formatting whitespace inside table and list structure is not visible in the browser either.
       const parentTag = node.parentElement?.tagName.toUpperCase() ?? '';
       if (STRUCTURAL_PARENTS.has(parentTag) && (node.textContent ?? '').trim() === '') {
         return;
@@ -324,8 +324,8 @@ export function extractTextBlocks(root: Node, options: ExtractOptions = {}): Ext
     if (role === 'quote-start') {
       mode = 'quote';
     }
-    // İmza içindeki iç içe elemanlar imza türünü devralır; alıntı başladıktan
-    // sonraki bütün içerik alıntıdır.
+    // Nested elements inside a signature inherit the signature kind; everything
+    // after the quote starts is quote.
     const childKind: () => TextBlockKind = role === 'signature' && mode === 'body' ? () => 'signature' : kind;
 
     if (tag === 'BR') {
@@ -352,8 +352,8 @@ export function extractTextBlocks(root: Node, options: ExtractOptions = {}): Ext
     if (tag === 'TR') {
       rowStarts.set(element, writer.written);
     }
-    // Hücre ayırıcı yalnızca aynı satırda önceki hücrelerden metin yazıldıysa
-    // eklenir; e-posta şablonlarındaki boş renk/boşluk hücreleri ayırıcı üretmez.
+    // A cell separator is added only if earlier cells in the row wrote text, so
+    // empty color/spacer cells in email templates produce no separator.
     const rowStart = element.parentElement === null ? undefined : rowStarts.get(element.parentElement);
     if ((tag === 'TD' || tag === 'TH') && rowStart !== undefined && writer.written > rowStart) {
       writer.writeSynthetic(childKind(), TABLE_CELL_SEPARATOR);

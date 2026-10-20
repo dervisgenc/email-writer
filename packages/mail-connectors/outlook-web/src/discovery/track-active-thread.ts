@@ -3,35 +3,35 @@ import { labelText, messageContainerOf, messageKeyOf } from '../reading/message-
 import { locateThread, messageBodies, selectedRowConversationId, type LocatedThread } from './locate-thread';
 import { queryAll, queryFirst } from './selectors';
 
-/** Okuma bölmesinde son gösterilen konuşma ve o anki bilgileri. */
+/** The conversation last shown in the reading pane and what was known about it then. */
 interface ShownThread {
   readonly located: LocatedThread;
   readonly selectedRow: string | null;
-  /** Tek mesaj gösteriliyorsa o mesajın kimliği; yanıtlanacak mesaj odur. */
+  /** Key of the message if only one is shown; that is the message being replied to. */
   readonly replyingTo: string | null;
   readonly subject: string | null;
 }
 
 export interface ActiveThreadTracker {
-  /** Okuma bölmesindeki etkin konuşma; bölme yanıt taslağına dönüştüyse aynı konuşma. */
+  /** The active conversation in the reading pane; unchanged if the pane turned into a reply draft. */
   locate(): LocatedThread | null;
   reset(): void;
 }
 
-/** Okuma bölmesinde açılmış bir taslak editörü var mı? */
+/** Is a draft editor open in the reading pane? */
 function readingPaneHasEditor(pane: HTMLElement): boolean {
   return queryAll(pane, 'composeEditor').length > 0;
 }
 
 /**
- * Etkin konuşmayı izler. Seçili mesaj görünümünde Outlook, "Yanıtla"ya
- * basılınca okuma bölmesindeki mesajı kaldırıp yerine yanıt editörünü koyar.
- * Listede aynı satır seçili kaldığı sürece okuma bölmesindeki editör bu
- * konuşmaya aittir; konuşma değişmiş sayılmaz. Outlook editörü önce boş açıp
- * alıntıyı sonra doldurduğu için alıntı beklenmez; taslağın yanıt olup
- * olmadığına `locateComposers` alıntıya bakarak karar verir. Başka bir satır
- * (ör. Taslaklar klasöründen bir taslak) seçildiyse bağlanmaz. Taslak açık
- * kaldığı sürece bağ korunur.
+ * Tracks the active conversation. In the selected-message view, pressing
+ * "Reply" makes Outlook replace the message in the reading pane with the reply
+ * editor. As long as the same row stays selected in the list, that editor
+ * belongs to this conversation and the conversation does not count as changed.
+ * Outlook opens the editor empty and fills in the quote later, so the quote is
+ * not awaited; `locateComposers` decides from the quote whether the draft is a
+ * reply. If another row (e.g. a draft from the Drafts folder) was selected, the
+ * editor is not bound. The binding holds while the draft stays open.
  */
 export function createActiveThreadTracker(
   document: Document,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provideUiText, WriterPanel, type UiText } from '@email-writer/ui';
+import { provideUiText, WriterPanel, type UiText } from '@writehand/ui';
 import { toRef, type Ref } from 'vue';
 
 import { usePanelSession, type PanelSessionDependencies } from '../composables/use-panel-session';

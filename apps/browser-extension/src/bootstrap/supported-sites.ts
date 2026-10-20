@@ -1,8 +1,8 @@
 /**
- * Desteklenen Outlook Web adresleri. Gerçek test hesaplarının yönlendiği
- * adreslerle doğrulanır (bkz. docs/outlook-web-dogrulama.md). Geliştirme ve
- * test derlemesinde yerel sayfa adresleri `wxt.config.ts` içinde eklenir;
- * normal paketin manifestinde bulunmaz.
+ * Supported Outlook Web addresses, verified against the addresses real test
+ * accounts are redirected to (see docs/DEVELOPMENT.md). Development and test
+ * builds add local page addresses in `wxt.config.ts`; they are not in the
+ * regular package's manifest.
  */
 export const OUTLOOK_WEB_MATCHES = [
   'https://outlook.live.com/*',
@@ -13,7 +13,7 @@ export const OUTLOOK_WEB_MATCHES = [
 
 export const DEVELOPMENT_MATCHES = ['http://localhost/*', 'http://127.0.0.1/*'] as const;
 
-/** Karşılama sihirbazının "Outlook'u aç" bağlantıları: iş/okul hesabı ve kişisel hesap. */
+/** The welcome wizard's "Open Outlook" links: work/school account and personal account. */
 export const OUTLOOK_WEB_START = {
   work: 'https://outlook.office.com/mail/',
   personal: 'https://outlook.live.com/mail/',

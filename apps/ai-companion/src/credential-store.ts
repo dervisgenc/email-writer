@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { lock } from 'proper-lockfile';
-import { AI_MODES } from '@email-writer/contracts';
+import { AI_MODES } from '@writehand/contracts';
 import { z } from 'zod';
 
 const credentialsSchema = z

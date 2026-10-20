@@ -1,11 +1,11 @@
 /**
- * Bağlam sınırları. Ölçülmüş ürün sınırları değil, ilk implementasyon için
- * başlangıç kararlarıdır ve yalnızca burada tanımlanır. Token hesabı değildir.
+ * Context limits. These are starting values for the first implementation, not measured
+ * product limits, and are defined only here. Not a token count.
  */
 export interface ContextPolicy {
   readonly version: number;
   readonly maxMessages: number;
-  /** UTF-16 birimi cinsinden toplam bağlam metni sınırı. */
+  /** Limit for the total context text, in UTF-16 code units. */
   readonly maxTotalLength: number;
 }
 

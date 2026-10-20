@@ -1,12 +1,12 @@
-import type { HostOperatingSystem, Theme } from '@email-writer/contracts';
-import type { UiText } from '@email-writer/ui';
+import type { HostOperatingSystem, Theme } from '@writehand/contracts';
+import type { UiText } from '@writehand/ui';
 
 export type PopupStatusKey =
   'ready' | 'waiting' | 'unsupported' | 'disabled' | 'not-mail-site' | 'unreachable' | 'checking';
 
-/** Eklentinin bütün kullanıcı metinleri: panel, araç çubuğu penceresi ve ayarlar. */
+/** All of the extension's user-facing text: panel, toolbar popup and settings. */
 export interface ExtensionText {
-  /** Tarayıcının eklenti listesinde ve mağazada görünen açıklama (en fazla 132 karakter). */
+  /** Description shown in the browser's extension list and the store (at most 132 characters). */
   readonly description: string;
   readonly ui: UiText;
   readonly popup: {
@@ -16,7 +16,7 @@ export interface ExtensionText {
     readonly openSettings: string;
     readonly siteAccessMissing: string;
     readonly developmentBuild: string;
-    /** Yardımcı uygulama bağlı değilken gösterilir ve karşılama sihirbazına götürür. */
+    /** Shown while the helper app is not connected; leads to the welcome wizard. */
     readonly setupNeeded: string;
     readonly finishSetup: string;
   };
@@ -26,7 +26,7 @@ export interface ExtensionText {
     readonly preferencesTitle: string;
     readonly preferencesDescription: string;
     readonly uiLanguage: string;
-    /** "Otomatik" seçeneği; diller kendi adlarıyla (`UI_LANGUAGE_NAMES`) gösterilir. */
+    /** The "Automatic" option; languages are shown by their native names (`UI_LANGUAGE_NAMES`). */
     readonly uiLanguageAuto: string;
     readonly targetLanguage: string;
     readonly targetLanguageHint: string;
@@ -63,7 +63,7 @@ export interface ExtensionText {
   readonly welcome: WelcomeText;
 }
 
-/** Karşılama sihirbazı: yardımcı uygulamayı kurma, yöntem seçme ve deneme. */
+/** Welcome wizard: installing the helper app, choosing a method and a trial run. */
 export interface WelcomeText {
   readonly title: string;
   readonly subtitle: string;
@@ -86,7 +86,7 @@ export interface WelcomeText {
     readonly lead: string;
     readonly system: string;
     readonly command: string;
-    /** Terminali veya PowerShell'i açıp komutu çalıştırmayı anlatan tek cümle. */
+    /** One sentence explaining how to open a terminal or PowerShell and run the command. */
     readonly terminal: Readonly<Record<HostOperatingSystem, string>>;
     readonly waiting: string;
     readonly connected: (version: string) => string;
@@ -97,7 +97,7 @@ export interface WelcomeText {
     readonly title: string;
     readonly lead: string;
     readonly sampleLabel: string;
-    /** Düzelt denemesi için uydurma, yazım hatalı kısa bir e-posta. */
+    /** A short, made-up email with typos for the revise trial. */
     readonly sample: string;
     readonly run: string;
     readonly running: string;

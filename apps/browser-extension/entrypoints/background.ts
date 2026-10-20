@@ -1,4 +1,4 @@
-import { ok } from '@email-writer/contracts';
+import { ok } from '@writehand/contracts';
 import { browser, defineBackground } from '#imports';
 
 import { reportDiagnostic } from '../src/platform/diagnostics';
@@ -19,16 +19,16 @@ import { createRuntimeHandler, toMessageListener } from '../src/platform/runtime
 import { createSettingsStore } from '../src/platform/settings-store';
 
 /**
- * Kurulum/ayarlar ve yerel AI bağlantısına doğrulanmış mesaj yönlendirmesi.
- * Üretim metni yalnızca istek süresince bellekte; OAuth anahtarları bu
- * ortama gelmez. Worker yeniden başlarsa bekleyen istek başarısız olur.
+ * Validated message routing for setup/settings and the local AI connection.
+ * Generation text stays in memory only for the duration of a request; OAuth
+ * tokens never reach this context. If the worker restarts, a pending request fails.
  */
 export default defineBackground(() => {
   const settings = createSettingsStore(localSettingsArea);
   const native = createNativeClient(connectAiHost);
 
   browser.runtime.onInstalled.addListener((details) => {
-    // İlk kurulumda karşılama sihirbazı yardımcı uygulamanın kurulumunu ve bağlantıyı anlatır.
+    // On first install the welcome wizard explains how to install and connect the helper app.
     if (details.reason === 'install') void openWelcomePage();
     void settings.ensureInitialized().then((stored) => {
       if (stored.issue === 'invalid' || stored.issue === 'newer-schema') {
@@ -41,7 +41,7 @@ export default defineBackground(() => {
     {
       ...createAiHandlers({ sendNative: native.send, openOptions: openOptionsPage }),
       GET_SETTINGS: async () => ok({ settings: (await settings.read()).settings }),
-      // Yazma istekleri sıralı işlenir; başarı ancak depolama tamamlanınca döner.
+      // Writes are processed in order; success is returned only once storage completes.
       PATCH_SETTINGS: async (payload) => ok(await settings.patch(payload.expectedRevision, payload.changes)),
     },
     {

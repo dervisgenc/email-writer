@@ -7,7 +7,7 @@ import {
   NATIVE_HOST_NAME,
   type HostBrowser,
   type HostOperatingSystem,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 /**
  * Everything that differs between operating systems is described here: where the helper

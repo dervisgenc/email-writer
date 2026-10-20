@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { Theme } from '@email-writer/contracts';
+import type { Theme } from '@writehand/contracts';
 
 import AppIcon from './AppIcon.vue';
 
-/** Eklentinin kendi sayfalarının (ayarlar, karşılama) ortak kabuğu: başlık ve ortalanmış içerik. */
+/** Shared shell for the extension's own pages (settings, welcome): a header and centered content. */
 defineProps<{ theme: Theme; title: string; subtitle: string }>();
 </script>
 

@@ -14,7 +14,7 @@ Security fixes are released as a new version; there are no separate patch branch
 
 ## Reporting a vulnerability
 
-Please report vulnerabilities **privately** through GitHub: open the repository's **Security** tab and select **Report a vulnerability** ([direct link](https://github.com/dervisgenc/email-writer/security/advisories/new)). Do not open a public issue, pull request or discussion for a suspected vulnerability.
+Please report vulnerabilities **privately** through GitHub: open the repository's **Security** tab and select **Report a vulnerability** ([direct link](https://github.com/dervisgenc/writehand/security/advisories/new)). Do not open a public issue, pull request or discussion for a suspected vulnerability.
 
 Include what you found, the affected component and version, the steps to reproduce and the impact you expect. Never include real email content, access tokens, API keys or account details; use made-up text and redact anything personal.
 

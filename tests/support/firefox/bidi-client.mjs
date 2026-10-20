@@ -1,5 +1,5 @@
-// Küçük WebDriver BiDi istemcisi: komut gönderir, yanıtı ve olayları dağıtır.
-// Yalnızca test ve geliştirme araçlarında kullanılır; eklenti paketine girmez.
+// A small WebDriver BiDi client: sends commands and dispatches replies and events.
+// Used only by test and development tools; it is not part of the extension package.
 
 export async function connectBidi(port) {
   const socket = new WebSocket(`ws://127.0.0.1:${port}/session`);
@@ -28,14 +28,14 @@ export async function connectBidi(port) {
   });
   socket.addEventListener('close', () => {
     for (const waiter of pending.values()) {
-      waiter.reject(new Error('BiDi bağlantısı kapandı.'));
+      waiter.reject(new Error('BiDi connection closed.'));
     }
     pending.clear();
   });
 
   await new Promise((done, fail) => {
     socket.addEventListener('open', done, { once: true });
-    socket.addEventListener('error', () => fail(new Error(`BiDi bağlantısı kurulamadı (${port}).`)), {
+    socket.addEventListener('error', () => fail(new Error(`Could not open a BiDi connection (${port}).`)), {
       once: true,
     });
   });
@@ -56,9 +56,9 @@ export async function connectBidi(port) {
 }
 
 /**
- * BiDi oturumu açar ve `run` bittiğinde, hata olsa bile kapatır. Firefox,
- * bağlantı koptuğunda oturumu kendiliğinden kapatmıyor; açık kalan oturum
- * sonraki bağlantıları "Maximum number of active sessions" hatasıyla engeller.
+ * Opens a BiDi session and ends it when `run` finishes, even on error. Firefox
+ * does not end the session by itself when the connection drops, and a session
+ * left open blocks later connections with "Maximum number of active sessions".
  */
 export async function withBidiSession(port, run) {
   const bidi = await connectBidi(port);
@@ -71,7 +71,7 @@ export async function withBidiSession(port, run) {
   }
 }
 
-/** Bir BiDi `script.evaluate` / `script.callFunction` sonucunu değerine çevirir; hata fırlatır. */
+/** Unwraps a BiDi `script.evaluate` / `script.callFunction` result to its value; throws on an exception. */
 export function unwrapScriptResult(result) {
   if (result.type === 'exception') {
     throw new Error(result.exceptionDetails.text);

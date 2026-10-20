@@ -10,13 +10,13 @@ import {
   type PageState,
   type ThreadRef,
   type ThreadSnapshot,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { meetingThread, scopeA, threadA } from '../../fixtures/synthetic-mail/threads';
 
 /**
- * Bellekte çalışan sahte e-posta bağlantısı. Denetleyicilerin sözleşmeye göre
- * davrandığını, gerçek bir sayfa olmadan doğrulamak için kullanılır.
+ * An in-memory fake mail connector. Used to verify that the controllers follow
+ * the contract without a real page.
  */
 export class FakeConnector implements MailConnector {
   readonly providerId = 'fake';
@@ -93,7 +93,7 @@ export class FakeConnector implements MailConnector {
     }
   }
 
-  /** Kullanıcının taslakta yazmasını taklit eder. */
+  /** Simulates the user typing in the draft. */
   userTypes(text: string) {
     this.draftText += text;
     this.revision += 1;

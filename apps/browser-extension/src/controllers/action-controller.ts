@@ -7,7 +7,7 @@ import {
   type MailConnector,
   type TextProcessor,
   type ThreadSnapshot,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import {
   buildContext,
   deriveCapabilities,
@@ -21,7 +21,7 @@ import {
   type IdGenerator,
   type SessionState,
   type SourceBinding,
-} from '@email-writer/core';
+} from '@writehand/core';
 
 import type { MessageHistoryStore } from './message-history';
 import type { SessionStore } from './session-store';
@@ -33,14 +33,14 @@ export type LoadSourceResult = 'loaded' | 'nothing-selected' | 'failed' | 'busy'
 export interface ActionControllerDependencies {
   readonly store: SessionStore;
   readonly connector: MailConnector;
-  /** Metin işleme sınırı; bağlantı bulunmayan gömülü ortamlarda null olabilir. */
+  /** Text processing boundary; may be null in embedded environments without a connection. */
   readonly processor: TextProcessor | null;
-  /** Sayfa oturumunda okunan mesajlar; ilgili olanlar varsayılan olarak bağlama girer. */
+  /** Messages read during the page session; related ones are included in the context by default. */
   readonly history: MessageHistoryStore;
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly policy?: ContextPolicy;
-  /** Sayfa okuma zaman aşımı; ölçülmüş servis süresi değil, başlangıç ayarıdır. */
+  /** Page read timeout; an initial setting, not a measured service time. */
   readonly readTimeoutMs?: number;
 }
 
@@ -48,25 +48,25 @@ export interface ActionController {
   readThread(): Promise<void>;
   rebuildContext(): void;
   /**
-   * Kullanıcı yeni bir mesaj açtı ve arka planda okundu. Bağlam kullanılıyorsa
-   * ve kullanıcı bir sonuç üzerinde çalışmıyorsa bağlam güncellenir.
+   * The user opened a new message and it was read in the background. The context is
+   * updated if it is in use and the user is not working on a result.
    */
   threadCaptured(snapshot: ThreadSnapshot): void;
   setMessageIncluded(messageKey: string, included: boolean): void;
-  /** Bağlamdaki mesaj metnini düzenler; `null` orijinal metne döner. */
+  /** Edits a message's text in the context; `null` reverts to the original text. */
   setMessageText(messageKey: string, text: string | null): void;
   includeBlock(block: BlockRef): void;
-  /** Aktif mesaj tanınamadığında kullanıcının seçtiği yanıt hedefi. */
+  /** The reply target the user picks when the active message cannot be identified. */
   setReplyTarget(messageKey: string): void;
   loadSource(kind: SourceKind, composer: ComposerRef | null): Promise<LoadSourceResult>;
-  /** Hızlı işlemde önce geçerli seçim, yoksa güvenle ayrılmış taslak gövdesi alınır. */
+  /** For a quick action, takes the current selection first, otherwise the safely separated draft body. */
   loadFromComposer(composer: ComposerRef): Promise<LoadSourceResult>;
   /**
-   * İşlemi hazırlar ve sonucu ister. `refinement` verilirse hazır sonuç bu
-   * talimatla değiştirilir (ör. tabloya çevir); görev baştan üretilmez.
+   * Prepares the operation and requests the result. With `refinement`, the ready result
+   * is reworked with that instruction (e.g. turn into a table) instead of regenerating the task.
    */
   prepare(options?: { readonly refinement?: string }): Promise<void>;
-  /** Devam eden okuma ve sonuç beklemesini iptal eder; tamamlanmış girdi korunur. */
+  /** Cancels the in-progress read and result wait; completed input is kept. */
   cancelPending(): void;
   dispose(): void;
 }
@@ -89,7 +89,7 @@ export function createActionController(deps: ActionControllerDependencies): Acti
   };
   const finish = (work: PendingWork) => pending.delete(work.operationId);
 
-  // Form değişince bekleyen sonuç geçersiz olur; işlem iptal edilir.
+  // A form change invalidates the pending result, so the operation is cancelled.
   const unsubscribe = store.subscribe((state) => {
     for (const work of pending.values()) {
       if (
@@ -121,7 +121,7 @@ export function createActionController(deps: ActionControllerDependencies): Acti
     );
   };
 
-  /** Bağlam yalnızca kullanıcı bir sonuç üzerinde çalışmıyorsa sessizce güncellenir. */
+  /** The context is updated quietly only while the user is not working on a result. */
   const canRefreshQuietly = (state: SessionState) =>
     state.threadSnapshot !== null && (state.phase.status === 'idle' || state.phase.status === 'editing');
 
@@ -267,7 +267,7 @@ export function createActionController(deps: ActionControllerDependencies): Acti
           store.dispatch({ type: 'thread-refreshed', snapshot, context });
         }
       } else {
-        // Başka bir konuşma okundu; aynı konudaysa bağlama varsayılan olarak girer.
+        // Another conversation was read; if it is on the same subject it joins the context by default.
         rebuildContext();
       }
     },
@@ -382,7 +382,7 @@ export function createActionController(deps: ActionControllerDependencies): Acti
       pending.clear();
       const state = store.getState();
       if (state.phase.status === 'prepared') {
-        // Bekleyen sonuç iptal edildi; geç gelen cevap tekrar etkinleşmez.
+        // The pending result was cancelled; a late response does not reactivate it.
         store.dispatch({
           type: 'processing-failed',
           requestId: state.phase.requestId,

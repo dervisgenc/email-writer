@@ -1,15 +1,18 @@
 import { expect, fakeNativeMessagingPermission, installFakeHost, test } from './extension-fixture';
 
-const DOWNLOAD = 'https://github.com/dervisgenc/email-writer/releases/latest/download';
+const DOWNLOAD = 'https://github.com/dervisgenc/writehand/releases/latest/download';
+/** The browser runs on the same machine as the test, so the wizard preselects this system. */
+const HOST_SYSTEM =
+  ({ darwin: 'macOS', win32: 'Windows' } as Record<string, string>)[process.platform] ?? 'Linux';
 const noHorizontalScroll = () => document.documentElement.scrollWidth <= window.innerWidth;
 
-test('ilk kurulumda karşılama sihirbazı kendiliğinden açılır', async ({ context, extensionId }) => {
+test('opens the welcome wizard by itself on first install', async ({ context, extensionId }) => {
   await expect
     .poll(() => context.pages().map((page) => page.url()))
     .toContain(`chrome-extension://${extensionId}/welcome.html`);
 });
 
-test('sihirbaz: izin, tek komutla kurulum, yöntem ve deneme sahte yardımcı uygulamayla tamamlanır', async ({
+test('wizard: permission, one-command install, method choice and trial complete with a fake helper app', async ({
   context,
   extensionId,
 }) => {
@@ -25,18 +28,19 @@ test('sihirbaz: izin, tek komutla kurulum, yöntem ve deneme sahte yardımcı uy
   await expect(page.getByText('E-posta göndermez.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'GitHub’daki kaynak kodu' })).toHaveAttribute(
     'href',
-    'https://github.com/dervisgenc/email-writer',
+    'https://github.com/dervisgenc/writehand',
   );
   await page.screenshot({ path: 'test-results/welcome-1-light.png', fullPage: true, animations: 'disabled' });
 
   await page.getByRole('button', { name: 'Devam' }).click();
   await expect(page.getByRole('heading', { name: 'Yardımcı uygulamayı kurun' })).toBeVisible();
-  // İzin verilmeden tarayıcı yardımcı uygulamaya bağlanmaz; izin bu adımda istenir.
+  // The browser cannot reach the helper app without the permission, so it is requested in this step.
   await page.getByRole('button', { name: 'İzin ver' }).click();
   await expect(page.getByRole('button', { name: 'İzin ver' })).toHaveCount(0);
   await expect(page.getByText('Yardımcı uygulama bekleniyor')).toBeVisible();
-  // Tarayıcının çalıştığı sistem önceden seçilir; paketlenmemiş eklentinin kimliği komuta eklenir.
-  await expect(page.getByRole('radio', { name: 'Linux' })).toBeChecked();
+  // The system the browser runs on is preselected; the unpacked extension's ID is added to the command.
+  await expect(page.getByRole('radio', { name: HOST_SYSTEM })).toBeChecked();
+  await page.getByText('Linux', { exact: true }).click();
   await expect(page.locator('.ew-command__text').first()).toHaveText(
     `curl -fsSL ${DOWNLOAD}/install.sh | sh -s -- --extension-id=${extensionId}`,
   );
@@ -53,7 +57,7 @@ test('sihirbaz: izin, tek komutla kurulum, yöntem ve deneme sahte yardımcı uy
     animations: 'disabled',
   });
 
-  // Kullanıcı komutu çalıştırınca yardımcı uygulama birkaç saniye içinde bağlı görünür.
+  // Once the user runs the command, the helper app shows as connected within a few seconds.
   await worker.evaluate(() => {
     (globalThis as unknown as { fakeHost: { installed: boolean } }).fakeHost.installed = true;
   });
@@ -73,11 +77,11 @@ test('sihirbaz: izin, tek komutla kurulum, yöntem ve deneme sahte yardımcı uy
     'href',
     'https://outlook.office.com/mail/',
   );
-  // Son adım geçerli adım olarak kalır; önceki üçü tamamlandı.
+  // The last step stays current; the three before it are done.
   await expect(page.locator('.ew-steps__item[data-state="done"]')).toHaveCount(3);
   await page.screenshot({ path: 'test-results/welcome-4-light.png', fullPage: true, animations: 'disabled' });
 
-  // Koyu tema (Otomatik ayarı sistem tercihini izler) ve telefon genişliği: yatay kaydırma yok.
+  // Dark theme (the Automatic setting follows the system preference) at phone width: no horizontal scroll.
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 390, height: 844 });
   for (let step = 0; step < 4; step++) {
@@ -92,7 +96,7 @@ test('sihirbaz: izin, tek komutla kurulum, yöntem ve deneme sahte yardımcı uy
   });
 });
 
-test('ayarlardaki yardımcı uygulama kartı sürümü gösterir ve güncellemeyi kurar', async ({
+test('the helper app card in settings shows the version and installs the update', async ({
   context,
   extensionId,
 }) => {
@@ -115,7 +119,7 @@ test('ayarlardaki yardımcı uygulama kartı sürümü gösterir ve güncellemey
   await expect(helper).toContainText('Sürüm 0.2.0 kuruldu.');
   await expect(helper).toContainText('Sürüm 0.2.0 · Linux (x64)');
 
-  // Denetim kapatılınca kaydedilir ve güncelleme satırı kalkar.
+  // Turning the check off is saved and the update line disappears.
   await helper.getByRole('switch').uncheck();
   await page.reload();
   await expect(page.locator('.ew-helper').getByRole('switch')).not.toBeChecked();

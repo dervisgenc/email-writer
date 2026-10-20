@@ -1,8 +1,8 @@
-import { reduceSession, type SessionEvent, type SessionState } from '@email-writer/core';
+import { reduceSession, type SessionEvent, type SessionState } from '@writehand/core';
 
 /**
- * Tek panel oturumunun durum sahibi. Durum yalnızca `reduceSession` ile
- * değişir; yeni bir çalışma başlatmak oturumu baştan oluşturur.
+ * Owns the state of the single panel session. State changes only through
+ * `reduceSession`; starting new work recreates the session from scratch.
  */
 export interface SessionStore {
   getState(): SessionState;

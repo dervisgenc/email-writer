@@ -4,39 +4,41 @@ import { CONVERSATION_SUBJECT_ID, queryAll, queryFirst, URL_ITEM_ID } from './se
 export interface LocatedThread {
   readonly root: HTMLElement;
   readonly key: string;
-  /** Kimliğin nereden geldiği; `local` yalnızca mevcut DOM örneği boyunca geçerlidir. */
+  /** Where the key came from; `local` is valid only for the current DOM instance. */
   readonly keySource: 'conversation-id' | 'url' | 'local';
   /**
-   * Okuma bölmesi mesaj yerine bu konuşmanın yanıt taslağını gösteriyor
-   * (seçili mesaj görünümünde "Yanıtla" bölmeyi editöre çevirir). Mesaj
-   * gövdesi sayfada yoktur; yanıtlanan mesaj ve konu, mesaj gösterilirken kaydedilir.
+   * The reading pane shows this conversation's reply draft instead of a message
+   * ("Reply" turns the pane into an editor in the selected-message view). The
+   * message body is not on the page; the replied-to message and subject were
+   * recorded while the message was shown.
    */
   readonly replyView?: { readonly replyingTo: string | null; readonly subject: string | null };
 }
 
-/** Okuma bölmesindeki gövdeler; iç içe eşleşmelerde en içteki (en belirgin) eleman tutulur. */
+/** Bodies in the reading pane; for nested matches the innermost (most specific) element is kept. */
 export function messageBodies(root: ParentNode): HTMLElement[] {
   const all = queryAll(root, 'messageBody');
   return all.filter((element) => !all.some((other) => other !== element && element.contains(other)));
 }
 
-/** Okuma bölmesinin gösterdiği konuşmanın belirteci; konu başlığının kimliğinden okunur. */
+/** Token of the conversation shown in the reading pane, read from the subject heading's id. */
 function readingPaneConversationId(root: HTMLElement): string | null {
   const heading = queryFirst(root, 'subject');
   return heading === null ? null : (CONVERSATION_SUBJECT_ID.exec(heading.id)?.[1] ?? null);
 }
 
-/** İleti listesindeki seçili satırın konuşma kimliği; satır kaydırmayla DOM'dan çıkabilir. */
+/** Conversation id of the selected row in the message list; scrolling can remove the row from the DOM. */
 export function selectedRowConversationId(document: Document): string | null {
   const row = queryFirst(document, 'selectedConversation');
   return row?.getAttribute('data-convid') ?? (row?.id || null);
 }
 
 /**
- * Okuma bölmesindeki konuşmayı ve kimliğini bulur. Mesaj gövdelerini okumaz.
- * Kimlik sırasıyla okuma bölmesindeki konuşma belirtecinden, seçili liste
- * satırından veya URL'den gelir. Konu metni kimlik olarak kullanılmaz; güvenilir
- * bir sayfa kimliği yoksa yalnızca DOM örneği boyunca geçerli yerel kimlik üretilir.
+ * Finds the conversation in the reading pane and its key, without reading the
+ * message bodies. The key comes, in order, from the reading pane's conversation
+ * token, the selected list row or the URL. The subject text is never used as a
+ * key; without a reliable page id, a local key valid only for the DOM instance is
+ * created.
  */
 export function locateThread(document: Document, registry: IdentityRegistry): LocatedThread | null {
   const root = queryFirst(document, 'readingPane');

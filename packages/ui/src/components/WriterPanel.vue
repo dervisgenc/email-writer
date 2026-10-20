@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Operation, RefinementKind, TargetLanguage, Tone } from '@email-writer/contracts';
-import { TONES } from '@email-writer/contracts';
+import type { Operation, RefinementKind, TargetLanguage, Tone } from '@writehand/contracts';
+import { TONES } from '@writehand/contracts';
 import { computed, onMounted, useId, useTemplateRef } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -54,8 +54,8 @@ const titleId = useId();
 const languageId = useId();
 const toneId = useId();
 
-// Açılışta odak panele taşınır; işlem sırasında bir düğme devre dışı kalsa da
-// odak panelin içinde kalır ve Escape çalışır.
+// Focus moves to the panel on open, so even if a button is disabled during an
+// operation, focus stays inside the panel and Escape keeps working.
 onMounted(() => root.value?.focus({ preventScroll: true }));
 
 const isBusy = computed(() => props.view.status.kind === 'busy' && props.view.status.activity !== 'reading');
@@ -86,7 +86,7 @@ function onToneChange(event: Event): void {
 </script>
 
 <template>
-  <!-- Panel sayfanın kullanımını engellemez; bu yüzden aria-modal verilmez ve odak hapsedilmez. -->
+  <!-- The panel does not block the page, so it has no aria-modal and does not trap focus. -->
   <div
     ref="root"
     class="ew-panel"
@@ -228,7 +228,7 @@ function onToneChange(event: Event): void {
           <AppIcon v-else name="sparkle" />
           {{ text.prepareButton[view.operation] }}
         </button>
-        <!-- Metin işleme bağlı değilse düğmenin neden kullanılamadığı açıklanır. -->
+        <!-- When preparing is blocked, explain why the button is unavailable. -->
         <p v-if="view.prepare.blocker !== null" class="ew-muted">{{ text.errors[view.prepare.blocker] }}</p>
       </div>
     </footer>

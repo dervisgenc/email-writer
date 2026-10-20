@@ -1,4 +1,4 @@
-/* Temel tipografi ve ortak kontroller. */
+/* Base typography and shared controls. */
 
 .ew-root {
   font-family: var(--ew-font);
@@ -8,7 +8,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Sıfırlamalar `:where` ile özgüllüksüz yazılır; bileşen sınıfları her zaman kazanır. */
+/* Resets use `:where` for zero specificity, so component classes always win. */
 :where(.ew-root) *,
 :where(.ew-root) *::before,
 :where(.ew-root) *::after {
@@ -38,7 +38,7 @@
   display: block;
 }
 
-/* Butonlar */
+/* Buttons */
 .ew-btn {
   display: inline-flex;
   align-items: center;
@@ -132,7 +132,7 @@
   color: var(--ew-color-disabled);
 }
 
-/* Form öğeleri: ince çerçeve, odakta altta vurgu çizgisi (Fluent giriş alanı). */
+/* Form controls: thin border with an accent underline on focus (Fluent input). */
 .ew-input,
 .ew-textarea,
 .ew-select {
@@ -223,7 +223,7 @@
   font-size: var(--ew-font-size-200);
 }
 
-/* Çip ve rozetler */
+/* Chips and badges */
 .ew-chip {
   display: inline-flex;
   align-items: center;
@@ -265,7 +265,7 @@ button.ew-chip:hover:not(:disabled) {
   color: var(--ew-color-sample);
 }
 
-/* Uyarı satırları */
+/* Alert rows */
 .ew-alert {
   display: flex;
   align-items: flex-start;
@@ -299,7 +299,7 @@ button.ew-chip:hover:not(:disabled) {
   gap: var(--ew-space-2);
 }
 
-/* Yükleniyor göstergesi */
+/* Loading spinner */
 .ew-spinner {
   flex: none;
   width: 16px;

@@ -1,12 +1,13 @@
-import type { AiSummary, AppError, Result } from '@email-writer/contracts';
+import type { AiSummary, AppError, Result } from '@writehand/contracts';
 import { onScopeDispose, readonly, shallowRef } from 'vue';
 
 const POLL_INTERVAL_MS = 5_000;
 
 /**
- * Sayfadaki bütün bağlantı göstergeleri aynı özeti paylaşır. Kart her
- * açıldığında yeniden sorulmaz; son bilinen durum hemen gösterilir. İlk yanıt
- * gelene kadar `checked` yanlıştır: bağlantı "yok" diye gösterilmez.
+ * All connection indicators on the page share the same summary. It is not
+ * re-fetched every time a card opens; the last known state is shown immediately.
+ * `checked` stays false until the first response arrives, so the connection is
+ * never shown as "missing" before then.
  */
 export function createAiSummaryStore(fetchSummary: () => Promise<Result<AiSummary, AppError>>) {
   const summary = shallowRef<AiSummary | null>(null);
@@ -25,7 +26,7 @@ export function createAiSummaryStore(fetchSummary: () => Promise<Result<AiSummar
     }, POLL_INTERVAL_MS);
   };
 
-  /** Göstergenin bağlı olduğu süre boyunca özeti güncel tutar. */
+  /** Keeps the summary up to date for as long as the indicator is mounted. */
   return function useAiSummary() {
     users += 1;
     if (users === 1) {
@@ -35,7 +36,7 @@ export function createAiSummaryStore(fetchSummary: () => Promise<Result<AiSummar
     onScopeDispose(() => {
       users -= 1;
       if (users === 0) {
-        // Bekleyen yanıt da yok sayılır; sonraki gösterge yeniden sorar.
+        // A pending response is ignored too; the next indicator asks again.
         generation += 1;
         clearTimeout(timer);
       }

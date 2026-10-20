@@ -6,30 +6,30 @@ export interface StoredRange {
 }
 
 /**
- * Tek bir editörün sürümünü, IME durumunu ve son seçimini izler. Sürüm,
- * editörün anlamlı içeriğinin parmak izi değiştiğinde artar; böylece içeriği
- * değiştirmeyen DOM gürültüsü hedefleri gereksiz yere geçersiz kılmaz.
+ * Tracks one editor's revision, IME state and last selection. The revision goes
+ * up when the fingerprint of the editor's meaningful content changes, so DOM
+ * noise that leaves the content alone does not needlessly invalidate targets.
  */
 export interface EditorTracker {
   readonly editor: HTMLElement;
-  /** Parmak izini hemen hesaplar, değiştiyse sürümü artırır ve güncel sürümü döner. */
+  /** Computes the fingerprint now, bumps the revision if it changed and returns the current revision. */
   sync(): number;
   isComposing(): boolean;
-  /** Klavye kullanımında odak kaybolsa bile son geçerli seçim. */
+  /** The last valid selection, even if focus was lost while using the keyboard. */
   lastSelection(): StoredRange | null;
   dispose(): void;
 }
 
 export interface ObserveEditorOptions {
   readonly document: Document;
-  /** Editörün içerik ve yapı parmak izi. */
+  /** Fingerprint of the editor's content and structure. */
   readonly fingerprint: (editor: HTMLElement) => string;
   readonly onRevision: (revision: number) => void;
-  /** Birleştirilen her DOM değişikliğinden sonra çağrılır; sürüm değişmemiş olabilir. */
+  /** Called after each debounced batch of DOM changes; the revision may be unchanged. */
   readonly onSettled?: () => void;
-  /** Eklentinin kendi arayüzüne ait düğümler; oraya geçen odak seçimi silmez. */
+  /** Nodes of the extension's own UI; moving focus there does not clear the selection. */
   readonly isOwnUi: (node: Node) => boolean;
-  /** Pahalı metin çıkarımının birleştirileceği süre. */
+  /** Debounce window for the expensive text extraction. */
   readonly debounceMs?: number;
 }
 
@@ -69,8 +69,8 @@ export function observeEditor(editor: HTMLElement, options: ObserveEditorOptions
     }, options.debounceMs ?? 120);
   };
 
-  // `beforeinput` tek başına yeterli değildir; input, IME ve DOM değişiklikleri
-  // birlikte izlenir.
+  // `beforeinput` alone is not enough; input, IME and DOM changes are watched
+  // together.
   const observer = new MutationObserver(schedule);
   observer.observe(editor, { childList: true, characterData: true, subtree: true });
 
@@ -91,7 +91,7 @@ export function observeEditor(editor: HTMLElement, options: ObserveEditorOptions
       return;
     }
     const isInside = editor.contains(range.startContainer) && editor.contains(range.endContainer);
-    // Kullanıcı başka bir yeri seçtiyse eski seçim geçerliliğini yitirir.
+    // If the user selected something elsewhere, the old selection is no longer valid.
     storedSelection =
       isInside && !range.collapsed
         ? {

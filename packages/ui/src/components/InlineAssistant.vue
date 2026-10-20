@@ -4,7 +4,7 @@ import {
   type ErrorCode,
   type RefinementKind,
   type TargetLanguage,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -58,12 +58,12 @@ const showInstruction = computed(
   () => isInstructionOperation(operation.value) && props.view.preview === null && !isPreparing.value,
 );
 const includedContext = computed(() => props.view.context.messages.filter((m) => m.included).length);
-/** Çeviride dil satırı her zaman görünür; sonuç geldikten sonra başka dile çevirmeye de yarar. */
+/** When translating, the language row is always visible; once a result is in, it also re-translates. */
 const showLanguage = computed(() => operation.value === 'translate' && !isPreparing.value);
 const awaitsLanguage = computed(() => showLanguage.value && props.view.preview === null);
 const translatedLabel = computed(() => languageLabel(props.view.options.targetLanguage, text.value.locale));
 
-/** Kartta gösterilecek tek bir sorun: işlem hatası, alan hatası veya hazırlığı engelleyen durum. */
+/** The single problem the card shows: an operation error, a field error or what blocks preparing. */
 const problem = computed<ErrorCode | null>(() => {
   if (status.value.kind === 'error' || status.value.kind === 'info') {
     return status.value.code;
@@ -90,7 +90,7 @@ watch(
   },
 );
 
-// "Başka bir dil…" ile açılınca dil alanı yazmaya hazır gelir.
+// When opened via "Another language…", the language field is ready for typing.
 watch(
   awaitsLanguage,
   async (waiting) => {
@@ -106,7 +106,7 @@ function translate(): void {
   if (props.view.prepare.canPrepare) emit('translate-to', language.value);
 }
 
-// Bağlam okunurken talimat alanı gizlidir; alan göründüğü anda yazmaya hazır olur.
+// The instruction field is hidden while the context is read; it is ready for typing once shown.
 watch(
   showInstruction,
   async (visible) => {
@@ -124,7 +124,7 @@ function submit(): void {
   }
 }
 
-/** Enter gönderir, Shift+Enter yeni satır ekler. */
+/** Enter submits; Shift+Enter inserts a new line. */
 function onInstructionKeydown(event: KeyboardEvent): void {
   if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault();
@@ -146,7 +146,7 @@ function onEscape(event: KeyboardEvent): void {
       <span v-if="operation === 'translate' && view.preview !== null" class="ew-badge">
         {{ translatedLabel }}
       </span>
-      <!-- Örnek sonuçlar gerçek sonuç gibi gösterilmez; tam açıklama ipucunda ve ekran okuyucuda. -->
+      <!-- Samples never pass as real results; the full label is in the tooltip and aria-label. -->
       <span
         v-if="view.preview?.sample"
         class="ew-badge ew-badge--sample"
@@ -176,7 +176,7 @@ function onEscape(event: KeyboardEvent): void {
     </header>
     <slot name="connection" />
 
-    <!-- Yanıtlanan mesaj ekrandan güvenle anlaşılamadıysa tahmin edilmez; kullanıcı panelde seçer. -->
+    <!-- An uncertain reply target is never guessed; the user picks it in the panel. -->
     <div
       v-if="showInstruction && operation === 'reply' && view.context.needsReplyTarget"
       class="ew-alert ew-alert--warning"

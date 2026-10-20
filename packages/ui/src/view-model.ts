@@ -7,17 +7,17 @@ import type {
   Operation,
   SourceOrigin,
   Tone,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 /**
- * Panelin göstermek için ihtiyaç duyduğu salt okunur görünüm verisi. Oturum
- * durumundan eklenti tarafında üretilir; bileşenler iş kuralı hesaplamaz.
+ * Read-only view data the panel needs to render. The extension derives it from
+ * session state; components do not evaluate business rules.
  */
 
-/** Yazma alanındaki araç çubuğundan doğrudan istenen işlem. */
+/** An operation requested directly from the compose toolbar. */
 export type QuickActionRequest =
   | { readonly operation: 'revise' }
-  /** Dil yoksa kart dili sorar; seçim önce yakalanır. */
+  /** Without a language the card asks for one; the selection is captured first. */
   | { readonly operation: 'translate'; readonly language: TargetLanguage | null }
   | { readonly operation: 'reply' }
   | { readonly operation: 'compose' };
@@ -34,7 +34,7 @@ export interface SourceView {
   readonly text: string;
   readonly instruction: string;
   readonly edited: boolean;
-  /** Kaynağı yeniden almak mevcut metni değiştirecekse onay istenir. */
+  /** Reloading the source asks for confirmation when it would replace the current text. */
   readonly pendingReplace: SourceReloadKind | null;
   readonly canLoadDraft: boolean;
   readonly canLoadSelection: boolean;
@@ -63,16 +63,16 @@ export interface ContextMessageView {
   readonly sentAtText: string | null;
   readonly subject: string | null;
   /**
-   * `current`: açık konuşmadan veya aynı konudan (varsayılan olarak bağlamda).
-   * `other`: başka bir konuşmadan okunan; yalnızca kullanıcı eklerse bağlamda.
+   * `current`: from the open conversation or the same subject (in context by default).
+   * `other`: read from another conversation; in context only if the user adds it.
    */
   readonly group: 'current' | 'other';
   readonly preview: string;
-  /** Bağlama girecek metin; kullanıcı düzenlediyse düzenlenmiş hâli. */
+  /** Text that goes into the context; the edited version if the user changed it. */
   readonly text: string;
   readonly included: boolean;
   readonly edited: boolean;
-  /** Yanıt hazırlamada aktif mesaj bağlamdan çıkarılamaz. */
+  /** When drafting a reply, the active message cannot be removed from the context. */
   readonly locked: boolean;
   readonly isReplyTarget: boolean;
   readonly omittedBlocks: readonly OmittedBlockView[];
@@ -81,7 +81,7 @@ export interface ContextMessageView {
 export interface ContextView {
   readonly status: 'not-loaded' | 'reading' | 'ready' | 'stale' | 'error';
   readonly required: boolean;
-  /** Aktif mesaj tanınamadı: kullanıcı yanıt verilecek mesajı seçmelidir. */
+  /** The active message could not be identified: the user must pick the message to reply to. */
   readonly needsReplyTarget: boolean;
   readonly notices: readonly ContextNotice[];
   readonly messages: readonly ContextMessageView[];
@@ -102,9 +102,9 @@ export interface ApplyView {
   readonly canCopy: boolean;
   readonly canUndo: boolean;
   readonly isApplying: boolean;
-  /** Dolu bir yanıt taslağını değiştirmek için açık onay seçeneği. */
+  /** Explicit opt-in to replace a reply draft that already has text. */
   readonly canReplaceExistingReply: boolean;
-  /** Hedefsiz bir önizlemeyi açık yanıt taslağına bağlama seçeneği. */
+  /** Option to bind a preview without a target to the open reply draft. */
   readonly canUseOpenComposer: boolean;
 }
 
@@ -118,8 +118,8 @@ export type StatusView =
 export interface PanelView {
   readonly operation: Operation;
   /**
-   * Talimattan yazma işlemi: konuşmanın yanıtında `reply`, yeni iletide veya
-   * taslak yokken `compose`. Panelin ilk sekmesi buna göre gösterilir.
+   * The write-from-instruction operation: `reply` when replying to the conversation,
+   * `compose` in a new message or when there is no draft. The panel's first tab follows it.
    */
   readonly writeOperation: 'reply' | 'compose';
   readonly target: TargetView;
@@ -133,7 +133,7 @@ export interface PanelView {
     readonly isPreparing: boolean;
   };
   readonly preview: PreviewView | null;
-  /** Hazır sonucu değiştirme (tablo, liste, grafik, kısaltma, ton). */
+  /** Refining a finished result (table, list, chart, shorten, tone). */
   readonly refine: {
     readonly available: boolean;
     readonly rich: boolean;

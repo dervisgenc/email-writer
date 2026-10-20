@@ -1,4 +1,4 @@
-/* Sağdaki panel: sayfayı engellemez, görünüm alanına sığar. */
+/* Side panel on the right: does not block the page and fits the viewport. */
 .ew-panel {
   position: fixed;
   top: 12px;
@@ -12,7 +12,7 @@
   border-radius: var(--ew-radius-large);
   box-shadow: var(--ew-shadow-28);
   overflow: hidden;
-  /* Sayfadaki başlatıcıların (999990) üstünde, Outlook'un açılır katmanlarının (1000000) altında kalır. */
+  /* Sits above the in-page launchers (999990) and below Outlook's popup layers (1000000). */
   z-index: 999991;
   animation: ew-slide-in var(--ew-duration) var(--ew-ease);
 }
@@ -86,7 +86,7 @@
   background: var(--ew-color-bg);
 }
 
-/* İşlem seçimi: bölümlü kontrol */
+/* Operation picker: segmented control */
 .ew-segmented {
   display: flex;
   gap: 2px;
@@ -128,7 +128,7 @@
   opacity: 0.6;
 }
 
-/* Bölümler */
+/* Sections */
 .ew-section {
   display: flex;
   flex-direction: column;
@@ -196,7 +196,7 @@
   border-color: transparent;
 }
 
-/* Alt bölüm: hazırla / uygula */
+/* Footer: prepare / apply */
 .ew-prepare,
 .ew-apply {
   display: flex;
@@ -222,7 +222,7 @@
   gap: var(--ew-space-2);
 }
 
-/* Durum satırı */
+/* Status row */
 .ew-status {
   display: flex;
   align-items: center;

@@ -166,25 +166,25 @@ importers:
 
   .:
     devDependencies:
-      '@email-writer/ai-claude-code':
+      '@writehand/ai-claude-code':
         specifier: workspace:*
         version: link:packages/ai-claude-code
-      '@email-writer/ai-openai':
+      '@writehand/ai-openai':
         specifier: workspace:*
         version: link:packages/ai-openai
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:packages/contracts
-      '@email-writer/core':
+      '@writehand/core':
         specifier: workspace:*
         version: link:packages/core
-      '@email-writer/email-format':
+      '@writehand/email-format':
         specifier: workspace:*
         version: link:packages/email-format
-      '@email-writer/outlook-web':
+      '@writehand/outlook-web':
         specifier: workspace:*
         version: link:packages/mail-connectors/outlook-web
-      '@email-writer/ui':
+      '@writehand/ui':
         specifier: workspace:*
         version: link:packages/ui
       '@eslint/js':
@@ -247,13 +247,13 @@ importers:
 
   apps/ai-companion:
     dependencies:
-      '@email-writer/ai-claude-code':
+      '@writehand/ai-claude-code':
         specifier: workspace:*
         version: link:../../packages/ai-claude-code
-      '@email-writer/ai-openai':
+      '@writehand/ai-openai':
         specifier: workspace:*
         version: link:../../packages/ai-openai
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       proper-lockfile:
@@ -275,19 +275,19 @@ importers:
 
   apps/browser-extension:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@email-writer/core':
+      '@writehand/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@email-writer/email-format':
+      '@writehand/email-format':
         specifier: workspace:*
         version: link:../../packages/email-format
-      '@email-writer/outlook-web':
+      '@writehand/outlook-web':
         specifier: workspace:*
         version: link:../../packages/mail-connectors/outlook-web
-      '@email-writer/ui':
+      '@writehand/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       vue:
@@ -309,7 +309,7 @@ importers:
 
   packages/ai-claude-code:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -318,7 +318,7 @@ importers:
 
   packages/ai-openai:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../contracts
       jose:
@@ -336,7 +336,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../contracts
 
@@ -348,16 +348,16 @@ importers:
 
   packages/mail-connectors/outlook-web:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../../contracts
 
   packages/ui:
     dependencies:
-      '@email-writer/contracts':
+      '@writehand/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@email-writer/email-format':
+      '@writehand/email-format':
         specifier: workspace:*
         version: link:../email-format
       vue:

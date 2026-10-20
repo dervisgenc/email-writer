@@ -6,8 +6,8 @@ import {
   type ComposerRef,
   type MailConnector,
   type Result,
-} from '@email-writer/contracts';
-import { isSessionBusy, validateApply, validateUndo, type IdGenerator } from '@email-writer/core';
+} from '@writehand/contracts';
+import { isSessionBusy, validateApply, validateUndo, type IdGenerator } from '@writehand/core';
 
 import { clipboardContent, withRichContent, type ClipboardContent } from './rich-content';
 import type { SessionStore } from './session-store';
@@ -21,7 +21,7 @@ export interface ApplyControllerDependencies {
 
 export type BindResult =
   | { readonly status: 'bound' }
-  /** Taslakta yazı var: ayrı "Mevcut yanıt metnini değiştir" onayı gerekir. */
+  /** The draft has text: a separate "Replace the existing reply text" confirmation is required. */
   | { readonly status: 'needs-replace-confirmation'; readonly composer: ComposerRef }
   | { readonly status: 'failed'; readonly error: AppError };
 
@@ -29,13 +29,13 @@ export interface ApplyController {
   apply(): Promise<void>;
   undo(): Promise<void>;
   copy(): Promise<Result<void, AppError>>;
-  /** Hedefi olmayan bir yanıt önizlemesini, aynı konuşmanın açık taslağına bağlar. */
+  /** Binds a reply preview without a target to an open draft in the same conversation. */
   bindComposer(composer: ComposerRef, allowReplace: boolean): Promise<BindResult>;
 }
 
 /**
- * Yazma ve geri alma kurallarını bağlantı modülüne uygulatır. DOM ayrıntılarını
- * bilmez; son doğrulamayı bağlantı modülü ayrıca yapar.
+ * Has the connector carry out writes and undos according to the rules. Knows
+ * nothing about the DOM; the connector performs its own final validation.
  */
 export function createApplyController(deps: ApplyControllerDependencies): ApplyController {
   const { store, connector, ids } = deps;
@@ -90,7 +90,7 @@ export function createApplyController(deps: ApplyControllerDependencies): ApplyC
 
     async bindComposer(composer, allowReplace) {
       const state = store.getState();
-      // Aynı konu başlığı yeterli değildir: hesap ve konuşma ilişkisi doğrulanmalı.
+      // A matching subject is not enough: the account and conversation relationship must be verified.
       if (
         state.thread === null ||
         composer.threadKey === null ||

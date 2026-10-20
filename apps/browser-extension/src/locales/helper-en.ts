@@ -1,4 +1,4 @@
-import type { HelperText } from '@email-writer/ui';
+import type { HelperText } from '@writehand/ui';
 
 export const helperEn: HelperText = {
   title: 'Helper app',

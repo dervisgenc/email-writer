@@ -9,7 +9,7 @@ import {
   type PageState,
   type PageTheme,
   type ThreadRef,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { detectPage, DEFAULT_WAIT_LIMIT_MS } from './discovery/detect-page';
 import { locateComposers, readAccountHint } from './discovery/locate-composers';
@@ -42,14 +42,14 @@ import { createUndoStore } from './writing/undo-store';
 
 export interface OutlookWebOptions {
   readonly document: Document;
-  /** Eklentinin kendi arayüz köklerini seçen CSS seçicisi; okumadan ve gözlemden dışlanır. */
+  /** CSS selector for the extension's own UI roots; excluded from reading and observation. */
   readonly ownUiSelector: string;
-  /** SPA gezinmesi bildirimi (ör. WXT `wxt:locationchange`). */
+  /** SPA navigation notification (e.g. WXT `wxt:locationchange`). */
   readonly subscribeLocation?: (listener: () => void) => () => void;
   readonly createId?: () => string;
   readonly now?: () => Date;
   readonly writer?: EditorWriter;
-  /** Yazmadan sonra editörün bir sonraki normal yeniden çizimini bekler. */
+  /** Waits for the editor's next regular re-render after a write. */
   readonly settle?: () => Promise<void>;
   readonly waitLimitMs?: number;
 }
@@ -57,16 +57,16 @@ export interface OutlookWebOptions {
 export interface SelectorReportEntry {
   readonly key: SelectorKey;
   readonly status: SelectorStatus;
-  /** Yalnızca eşleşme sayısı; içerik taşımaz. */
+  /** Match count only; carries no content. */
   readonly matches: number;
 }
 
 export interface OutlookWebConnection {
   readonly connector: MailConnector;
   locateLauncherAnchors(): readonly OutlookLauncherAnchor[];
-  /** Gerçek sayfada seçici doğrulaması için içeriksiz tanı raporu. */
+  /** Content-free diagnostic report for verifying selectors on the live page. */
   selectorReport(): readonly SelectorReportEntry[];
-  /** Outlook'un o anki tema renkleri; eklenti arayüzü bunlarla uyumlu görünür. */
+  /** Outlook's current theme colors, so the extension UI can match them. */
   readTheme(): PageTheme | null;
 }
 
@@ -86,22 +86,22 @@ function samePageState(a: PageState, b: PageState): boolean {
   );
 }
 
-/** Mesaj gövdelerinin sayısı ve metin uzunluğu; okuma yapmadan değişikliği fark etmek için. */
+/** Message body count and text length; detects changes without reading the thread. */
 function threadSignature(thread: LocatedThread): string {
   const bodies = messageBodies(thread.root);
   const length = bodies.reduce((total, body) => total + (body.textContent?.length ?? 0), 0);
   return `${bodies.length}:${queryAll(thread.root, 'collapsedMessage').length}:${length}`;
 }
 
-/** Editör kaydı; konuşma bağı, editör aynı kalırken sonradan anlaşılabilir. */
+/** Composer record; its thread binding may become known later while the editor stays the same. */
 interface TrackedComposer extends ComposerHandle {
   readonly binding: { ref: ComposerRef; isReply: boolean };
 }
 
 /**
- * Outlook Web için `MailConnector`. Outlook'un dahili JavaScript durumuna,
- * belgelenmemiş ağ uçlarına veya oturum çerezlerine bağlanmaz; yalnızca
- * sayfanın görünen yapısıyla çalışır.
+ * `MailConnector` for Outlook Web. It does not touch Outlook's internal
+ * JavaScript state, undocumented network endpoints or session cookies; it
+ * works only with the visible structure of the page.
  */
 export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWebConnection {
   const { document, ownUiSelector } = options;
@@ -159,14 +159,14 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       isOwnUi: (node) =>
         (node instanceof Element ? node : node.parentElement)?.closest(ownUiSelector) != null,
       onRevision: (revision) => {
-        // Editör değişince eski seçim kayıtları geçersiz olur.
+        // Once the editor changes, earlier selection records are no longer valid.
         selections.forgetComposer(binding.ref.composerKey);
         emit({ type: 'composer-changed', ref: binding.ref, revision });
       },
       onSettled: () => {
-        // Editörün içi sayfa gözleminin dışındadır. Outlook yanıt alıntısını editörü
-        // açtıktan sonra doldurur (sürüm değişmez); "yeni ileti" sayılan taslak yanıta
-        // dönüşmüş olabilir.
+        // The editor's contents are outside the page observer. Outlook fills in the reply
+        // quote after opening the editor (the revision does not change), so a draft counted
+        // as a new message may have turned into a reply.
         if (!binding.isReply && queryFirst(editor, 'quoteStart') !== null) {
           observer.request();
         }
@@ -190,8 +190,8 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       return;
     }
     if (registry.updateAccountHint(readAccountHint(document))) {
-      // Hesap kapsamı değişti: eski kapsamın editör, seçim ve geri alma kayıtları
-      // temizlenir. Önceden bir kapsam yayımlandıysa bu bir hesap değişimidir.
+      // The account scope changed: drop the old scope's composer, selection and undo
+      // records. If a scope had already been published, this is an account switch.
       const hadScope = pageState.scope !== null;
       for (const key of [...composers.keys()]) {
         removeComposer(key, hadScope);
@@ -245,14 +245,14 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       if (tracked !== undefined) {
         tracked.binding.isReply = isReply;
         if (tracked.ref.threadKey === null && threadKey !== null) {
-          // Taslağın hangi konuşmaya ait olduğu sonradan anlaşıldı (ör. Outlook
-          // alıntıyı editörü açtıktan sonra doldurdu). Editör aynıdır: sürümü,
-          // seçim ve geri alma kayıtları korunur; açık çalışma geçerli kalır.
+          // The draft's thread became known later (e.g. Outlook filled in the quote
+          // after opening the editor). The editor is the same: its revision, selection
+          // and undo records are kept, and work in progress stays valid.
           const previous = tracked.ref;
           tracked.binding.ref = { ...previous, threadKey };
           emit({ type: 'composer-rebound', previous, ref: tracked.ref });
         } else if (tracked.ref.threadKey !== threadKey) {
-          // Başka bir konuşmaya bağlanan veya bağı kopan taslak yeni kayıt sayılır.
+          // A draft that moves to another thread or loses its thread counts as a new record.
           removeComposer(key, true);
         }
       }
@@ -290,7 +290,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     },
     ...(options.subscribeLocation ? { subscribeLocation: options.subscribeLocation } : {}),
   });
-  // Yükleme sürerken "desteklenmiyor" kararını verebilmek için tek seferlik kontrol.
+  // One-off check so the page can be declared unsupported while it is still loading.
   const waitTimer = setTimeout(refresh, (options.waitLimitMs ?? DEFAULT_WAIT_LIMIT_MS) + 50);
   refresh();
 
@@ -358,7 +358,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     },
 
     async captureDraftSelection(ref) {
-      // Canlı seçim, ilk beklemeden önce eşzamanlı olarak okunur.
+      // The live selection is read synchronously, before the first await.
       const handle = findComposer(ref);
       if (handle === null) {
         return err(appError('TARGET_MISSING', { field: 'target' }));
@@ -409,7 +409,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       if (pageState.support !== 'ready') {
         return [];
       }
-      // Bölme yanıt taslağını gösterirken konuşma düğmesi gösterilmez; taslak araç çubuğu yeterlidir.
+      // No thread button while the reading pane shows a reply draft; the draft toolbar is enough.
       const shownThread = thread !== null && thread.replyView === undefined ? thread : null;
       return locateLauncherAnchors({
         thread:

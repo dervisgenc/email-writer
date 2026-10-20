@@ -1,5 +1,5 @@
-import type { TargetLanguage } from '@email-writer/contracts';
-import type { QuickActionRequest, UiText } from '@email-writer/ui';
+import type { TargetLanguage } from '@writehand/contracts';
+import type { QuickActionRequest, UiText } from '@writehand/ui';
 import { createApp, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { createShadowRootUi, type ContentScriptContext, type ShadowRootContentScriptUi } from '#imports';
 
@@ -10,7 +10,7 @@ import type { Appearance } from './appearance';
 import LauncherHost from './LauncherHost.vue';
 import { ISOLATED_EVENTS } from './mount-panel';
 
-/** Başlatıcının gösterdiği arayüz: okuma bölmesi düğmesi veya taslak araç çubuğu. */
+/** What a launcher shows: the reading pane button or the draft toolbar. */
 export type LauncherTarget =
   | { readonly kind: 'thread' }
   | { readonly kind: 'composer'; readonly composerKey: string; readonly isReply: boolean };
@@ -31,34 +31,34 @@ export interface LauncherOptions extends LauncherCallbacks {
 }
 
 export interface LauncherMounter {
-  /** Doğrulanan bölgelere düğme ekler; kaybolan bölgelerin düğmelerini kaldırır. */
+  /** Adds buttons to verified regions and removes the buttons of regions that disappeared. */
   sync(anchors: readonly LauncherAnchor[]): void;
   removeAll(): void;
 }
 
 interface MountedLauncher {
-  /** Aynı bölge yeni kimlikle bildirilince (ör. taslak yanıta bağlandı) güncellenir. */
+  /** Updated when the same region is reported with a new identity (e.g. the draft became a reply). */
   anchor: LauncherAnchor;
   readonly target: ShallowRef<LauncherTarget>;
   ui: ShadowRootContentScriptUi<unknown> | null;
   removed: boolean;
-  /** Boyutu izlenen elemanlar: bölgenin kendisi ve onu kırpan en yakın üst elemanlar. */
+  /** Elements whose size is observed: the region itself and its nearest clipping ancestors. */
   observed: readonly Element[];
   /**
-   * Kullanıcı düğmeye basılı tutuyor. Bu sırada konum değişmez: Outlook odak
-   * kaybında taslağı yeniden çizip bölgeyi büyütebilir; düğme imlecin altından
-   * kayarsa bırakınca tıklama gerçekleşmez.
+   * The user is holding the button down. The position is frozen meanwhile: Outlook may
+   * redraw the draft and grow the region on focus loss, and if the button slides out from
+   * under the pointer, releasing it does not produce a click.
    */
   pressed: boolean;
 }
 
-/** Kırpan üst elemanlardan izlenenlerin sayısı; uzaktakiler pencere boyutuyla değişir. */
+/** How many clipping ancestors are observed; more distant ones change with the window size. */
 const OBSERVED_CLIP_ANCESTORS = 3;
 
 /**
- * Bölgeyi kırpan en yakın üst elemanlar. Outlook yanıt editörünü bu kapsayıcılar
- * yerleşmeden açabilir; editörün boyutu değişmese de kapsayıcı büyüyünce düğme
- * yeniden konumlanmalıdır.
+ * The nearest ancestors that clip the region. Outlook may open the reply editor before
+ * these containers settle; even if the editor's size does not change, the button must be
+ * repositioned when a container grows.
  */
 function clippingAncestors(element: HTMLElement): HTMLElement[] {
   const result: HTMLElement[] = [];
@@ -75,17 +75,17 @@ function clippingAncestors(element: HTMLElement): HTMLElement[] {
   return result;
 }
 
-/** Düğme ile bölgenin kenarı arasındaki boşluk (px). */
+/** Gap between the button and the region's edge (px). */
 const OFFSET = 8;
-/** Bölgenin bu kadarı görünmüyorsa düğme gizlenir. Tek satırlık taslak da görünür sayılır. */
+/** The button is hidden unless this much of the region is visible; a one-line draft still counts. */
 const MIN_VISIBLE_WIDTH = 44;
 const MIN_VISIBLE_HEIGHT = 12;
-/** Araç çubuğunun yüksekliği ve pay: bölge bundan kısaysa düğme bölgenin dışına konur. */
+/** Toolbar height plus margin: if the region is shorter, the button is placed outside it. */
 const TOOLBAR_ROOM = 48;
 /**
- * Sayfa içeriğinin üstünde, Outlook'un açılır katmanlarının (iletişim kutuları, menüler,
- * ipuçları: 1000000) altında. Kart açıkken Outlook'un onay penceresi (ör. "Discard
- * message") kartın altında kalırsa kullanıcı onu onaylayamaz.
+ * Above the page content, below Outlook's popup layers (dialogs, menus,
+ * tooltips: 1000000). If Outlook's confirmation dialog (e.g. "Discard message")
+ * ended up below the open card, the user could not confirm it.
  */
 const Z_INDEX = '999990';
 
@@ -97,10 +97,10 @@ interface VisibleRect {
 }
 
 /**
- * Elemanın ekranda gerçekten görünen bölümü: kaydırılan üst elemanlar ve
- * görünüm alanıyla kırpılır. Outlook'un yanıt editörü kaydırılan bir
- * kapsayıcının içinde ekrandan uzun olabilir; düğme editörün gerçek alt kenarına
- * değil, görünen bölümün alt kenarına yerleşir ve kaydırırken ekranda kalır.
+ * The part of the element actually visible on screen, clipped by scrolling ancestors
+ * and the viewport. Outlook's reply editor can be taller than the screen inside a
+ * scrolling container; the button sits at the bottom edge of the visible part rather
+ * than the editor's real bottom edge, and stays on screen while scrolling.
  */
 function visibleRect(element: HTMLElement): VisibleRect | null {
   const rect = element.getBoundingClientRect();
@@ -129,9 +129,9 @@ function visibleRect(element: HTMLElement): VisibleRect | null {
 }
 
 /**
- * Konum gölge kökün içindeki kapsayıcıya verilir: WXT gölge kökün dış
- * elemanına `all: initial !important` uygular ve gölge DOM'da önemli
- * kurallarda iç bağlam kazandığı için dış elemana verilen konum işlemez.
+ * The position is set on the container inside the shadow root: WXT applies
+ * `all: initial !important` to the shadow host, and since the inner context wins
+ * for important rules in shadow DOM, a position set on the host has no effect.
  */
 function position(entry: MountedLauncher): void {
   const host = entry.ui?.uiContainer;
@@ -144,8 +144,8 @@ function position(entry: MountedLauncher): void {
     return;
   }
   const isTop = entry.anchor.placement === 'top-end';
-  // Kısa bölgede (ör. tek satırlık yanıt) araç çubuğu metnin üstüne binmesin diye
-  // bölgenin hemen altına, altta yer yoksa hemen üstüne konur.
+  // In a short region (e.g. a one-line reply) the toolbar goes right below the region so it
+  // does not cover the text, or right above it if there is no room below.
   const roomInside = visible.bottom - visible.top >= TOOLBAR_ROOM;
   const roomBelow = window.innerHeight - visible.bottom >= TOOLBAR_ROOM;
   let top: number;
@@ -164,10 +164,10 @@ function position(entry: MountedLauncher): void {
     transform = 'translate(-100%, -100%)';
   }
   host.style.top = `${top}px`;
-  // Sağ kenara yaslanır; dar bölmede (veya uzun etiketli dillerde) ekranın soluna taşmaz.
+  // Right-aligned, but never overflowing the left of the screen in a narrow pane or with long labels.
   host.style.left = `${Math.max(visible.right - OFFSET, host.offsetWidth + OFFSET)}px`;
   host.style.transform = transform;
-  // Sonuç kartı araç çubuğunun üstünde açılır; ekranın üstünden taşmasın diye yüksekliği sınırlanır.
+  // The result card opens above the toolbar; cap its height so it does not overflow the top of the screen.
   host.style.setProperty('--ew-space-above', `${Math.max(160, top - 2 * OFFSET - 40)}px`);
 }
 
@@ -188,10 +188,10 @@ function targetOf(anchor: LauncherAnchor): LauncherTarget {
 }
 
 /**
- * Okuma bölmesi düğmesini ve taslak araç çubuklarını Outlook'un DOM ağacına
- * eklemeden, sayfa gövdesinde ilgili bölgenin köşesine yüzen gölge köklerde
- * gösterir. Böylece Outlook'un yeniden çizimi düğmeleri veya düğmeler
- * Outlook'u bozmaz. Sonuç kartı, işlemin başladığı taslağın araç çubuğunda açılır.
+ * Shows the reading pane button and draft toolbars in shadow roots that float at the
+ * corner of their region in the page body, without inserting them into Outlook's DOM
+ * tree. That way Outlook's redraws do not break the buttons, and the buttons do not
+ * break Outlook. The result card opens on the toolbar of the draft where the operation started.
  */
 export function createLauncherMounter(ctx: ContentScriptContext, options: LauncherOptions): LauncherMounter {
   const mounted = new Map<string, MountedLauncher>();
@@ -209,7 +209,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
     }
   };
   const resizeObserver = new ResizeObserver(scheduleReposition);
-  // Birden çok düğme aynı üst elemanı izleyebilir; izleme son kullanan kalkınca bırakılır.
+  // Several buttons may observe the same ancestor; observation stops when the last user goes away.
   const observers = new Map<Element, number>();
   const observe = (element: Element) => {
     const count = observers.get(element) ?? 0;
@@ -227,7 +227,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
   };
   ctx.addEventListener(window, 'scroll', scheduleReposition, { capture: true, passive: true });
   ctx.addEventListener(window, 'resize', scheduleReposition, { passive: true });
-  // Bırakınca bekleyen konum uygulanır; çizim karesinde, yani tıklama işlendikten sonra.
+  // On release, apply the pending position in the next animation frame, i.e. after the click is handled.
   const release = () => {
     let wasPressed = false;
     for (const entry of mounted.values()) {
@@ -238,7 +238,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
   };
   ctx.addEventListener(window, 'pointerup', release, { capture: true, passive: true });
   ctx.addEventListener(window, 'pointercancel', release, { capture: true, passive: true });
-  // Düğme pencere dışında bırakılırsa bırakma olayı gelmeyebilir.
+  // If the button is released outside the window, the release event may never arrive.
   ctx.addEventListener(window, 'blur', release);
   ctx.onInvalidated(() => resizeObserver.disconnect());
 
@@ -263,11 +263,11 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
     };
     mounted.set(anchor.key, entry);
     let shadowRoot: ShadowRoot | null = null;
-    // Panel kapanınca odak, onu açan düğmeye döner.
+    // When the panel closes, focus returns to the button that opened it.
     const opener = () => shadowRoot?.activeElement as HTMLElement | null;
 
     void createShadowRootUi(ctx, {
-      name: 'email-writer-launcher',
+      name: 'writehand-launcher',
       position: 'inline',
       anchor: 'body',
       append: 'last',
@@ -275,7 +275,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
       onMount(container, shadow, host) {
         shadowRoot = shadow;
         host.setAttribute(OWN_UI_ATTRIBUTE, 'launcher');
-        // Sağ kenara yaslanan kapsayıcı kalan dar alana göre daralıp düğmeleri kırmasın.
+        // Keep the right-aligned container from shrinking into the remaining space and wrapping the buttons.
         Object.assign(container.style, {
           position: 'fixed',
           zIndex: Z_INDEX,
@@ -308,7 +308,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
         app?.unmount();
       },
     }).then((ui) => {
-      // Montaj beklenirken bölge kaybolduysa düğme eklenmez.
+      // If the region disappeared while mounting was pending, the button is not added.
       if (entry.removed || !anchor.element.isConnected) {
         return;
       }
@@ -339,7 +339,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
           mount(anchor);
           continue;
         }
-        // Aynı konuma ikinci kez düğme eklenmez; yeni kimlik ve etiket yerinde uygulanır.
+        // Never add a second button at the same spot; the new identity and label are applied in place.
         entry.anchor = anchor;
         const target = targetOf(anchor);
         if (!sameTarget(entry.target.value, target)) entry.target.value = target;

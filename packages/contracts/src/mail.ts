@@ -1,14 +1,14 @@
 /**
- * E-posta bağlantılarının ortak biçime çevirdiği veri. Buradaki kimlikler
- * yetkilendirme token'ı değildir; yanlış hedefin kullanılmasını engelleyen
- * yerel ilişkilerdir. DOM referansları bağlantı modülünün içinde kalır.
+ * Data that email connectors convert into a common shape. The IDs here are not
+ * authorization tokens; they are local references that prevent using the wrong target.
+ * DOM references stay inside the connector module.
  */
 
 export interface MailScope {
   readonly providerId: string;
-  /** Açık posta hesabını ayıran yerel, opak kimlik. E-posta adresi değildir. */
+  /** Local, opaque ID that distinguishes the open mailbox account. Not an email address. */
   readonly accountScopeId: string;
-  /** Sayfa yeniden yüklendiğinde değişir; sekmeler aynı değeri paylaşmaz. */
+  /** Changes when the page reloads; tabs never share the same value. */
   readonly documentInstanceId: string;
 }
 
@@ -19,7 +19,7 @@ export interface ThreadRef {
 
 export interface ComposerRef {
   readonly scope: MailScope;
-  /** Editör silinip yeniden oluşturulursa yeni kimlik alır. */
+  /** Gets a new key if the editor is removed and recreated. */
   readonly composerKey: string;
   readonly threadKey: string | null;
 }
@@ -38,17 +38,17 @@ export type CoverageReason =
 export interface MessageSnapshot {
   readonly messageKey: string;
   readonly senderLabel: string | null;
-  /** Yalnızca güvenilir biçimde okunabildiyse ISO tarih; aksi halde `null`. */
+  /** ISO date only if it could be read reliably; otherwise `null`. */
   readonly sentAt: string | null;
-  /** Ekranda görünen tarih yazısı. Ayrıştırılmaz, sıralamada kullanılmaz. */
+  /** Date text as shown on screen. Never parsed and never used for ordering. */
   readonly sentAtText: string | null;
   readonly displayOrder: number;
   readonly blocks: readonly TextBlock[];
 }
 
 /**
- * DOM'dan okumak bütün posta geçmişine erişildiğini kanıtlamaz; bu yüzden
- * `complete` diye bir kapsam değeri bilinçli olarak yoktur.
+ * Reading from the DOM does not prove access to the whole mail history, so there is
+ * deliberately no `complete` coverage value.
  */
 export interface ContextCoverage {
   readonly source: 'visible-dom';
@@ -72,7 +72,7 @@ export interface ComposerSnapshot {
   readonly ref: ComposerRef;
   readonly revision: number;
   readonly capturedAt: string;
-  /** Kullanıcının yazdığı ve güvenle düzenlenebilen bölge. */
+  /** The region the user wrote that can be edited safely. */
   readonly editableText: string;
   readonly canReplaceBody: boolean;
   readonly canReplaceSelection: boolean;
@@ -80,7 +80,7 @@ export interface ComposerSnapshot {
   readonly containsRichContent: boolean;
 }
 
-/** Aralıklar, `editableText` üzerinde UTF-16 indisleridir. */
+/** Ranges are UTF-16 indices into `editableText`. */
 export interface DraftSelection {
   readonly selectionId: string;
   readonly composerRef: ComposerRef;
@@ -90,7 +90,7 @@ export interface DraftSelection {
   readonly text: string;
 }
 
-/** Salt okunur gelen mesajdan yapılan seçim; yazma hakkı oluşturmaz. */
+/** Selection from a read-only received message; grants no write access. */
 export interface ReceivedMessageSelection {
   readonly threadRef: ThreadRef;
   readonly messageKey: string;

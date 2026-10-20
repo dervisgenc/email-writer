@@ -1,7 +1,7 @@
 import type { CellAlign, ChartSpec, EmailBlock, EmailDocument, Inline } from './document';
 
 export interface HtmlOptions {
-  /** Grafik değerlerinin biçimlendirileceği yerel ayar. */
+  /** Locale used to format chart values. */
   readonly locale?: string;
 }
 
@@ -37,7 +37,7 @@ function inlineHtml(inlines: readonly Inline[]): string {
     .join('');
 }
 
-/** Boş satır Outlook'taki gibi `<div><br></div>` olarak yazılır. */
+/** An empty line is written as `<div><br></div>`, as Outlook does. */
 const lineHtml = (inlines: readonly Inline[]) =>
   `<div>${inlines.length > 0 ? inlineHtml(inlines) : '<br>'}</div>`;
 
@@ -83,8 +83,8 @@ function tableHtml(block: Extract<EmailBlock, { type: 'table' }>): string {
 }
 
 /**
- * E-posta uyumlu yatay çubuk grafik: iç içe tablolar ve satır içi stiller.
- * Resim, betik veya SVG kullanılmaz; bütün e-posta istemcilerinde görünür.
+ * Email-safe horizontal bar chart built from nested tables and inline styles.
+ * No images, scripts or SVG, so it renders in every email client.
  */
 function chartHtml(chart: ChartSpec, options: HtmlOptions): string {
   const max = Math.max(...chart.data.map((point) => Math.abs(point.value)), 0);
@@ -128,7 +128,7 @@ function blockHtml(block: EmailBlock, options: HtmlOptions): string {
   }
 }
 
-/** Taslağa yerleştirilecek HTML. Bloklar arasında Outlook'taki gibi boş satır bırakılır. */
+/** HTML to insert into the draft. Blocks are separated by an empty line, as in Outlook. */
 export function renderEmailHtml(document: EmailDocument, options: HtmlOptions = {}): string {
   return document.blocks.map((block) => blockHtml(block, options)).join('<div><br></div>');
 }

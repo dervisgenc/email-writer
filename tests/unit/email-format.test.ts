@@ -4,13 +4,13 @@ import {
   renderEmailHtml,
   renderPlainText,
   renderVisibleText,
-} from '@email-writer/email-format';
+} from '@writehand/email-format';
 import { describe, expect, it } from 'vitest';
 
 const html = (markdown: string) => renderEmailHtml(parseEmailMarkdown(markdown), { locale: 'tr' });
 
-describe('E-posta Markdown ayrıştırma', () => {
-  it('paragrafları ve satır sonlarını Outlook taslağındaki gibi satır satır yazar', () => {
+describe('Email Markdown parsing', () => {
+  it('writes paragraphs and line breaks line by line, as in an Outlook draft', () => {
     const document = parseEmailMarkdown(
       'Merhaba Ayşe,\n\nTeklifi ekte bulabilirsiniz.\nİyi çalışmalar,\nDeniz',
     );
@@ -23,13 +23,13 @@ describe('E-posta Markdown ayrıştırma', () => {
     );
   });
 
-  it('kalın, italik ve güvenli bağlantıları biçimler; kelime içindeki alt çizgiye dokunmaz', () => {
+  it('formats bold, italic and safe links, and leaves underscores inside words alone', () => {
     expect(html('**Önemli:** toplantı *yarın*, dosya_adi_v2 ve [plan](https://example.test/plan)')).toBe(
       '<div><b>Önemli:</b> toplantı <i>yarın</i>, dosya_adi_v2 ve <a href="https://example.test/plan">plan</a></div>',
     );
   });
 
-  it('modelden gelen HTML ve tehlikeli bağlantılar metin olarak kalır', () => {
+  it('keeps HTML from the model and dangerous links as text', () => {
     const output = html('<img src=x onerror=alert(1)> [tıkla](javascript:alert(1)) "a" & \'b\'');
     expect(output).toBe(
       '<div>&lt;img src=x onerror=alert(1)&gt; [tıkla](javascript:alert(1)) &quot;a&quot; &amp; &#39;b&#39;</div>',
@@ -38,7 +38,7 @@ describe('E-posta Markdown ayrıştırma', () => {
     expect(output).not.toContain('href="javascript');
   });
 
-  it('madde ve numaralı listeleri, devam satırlarını ve başlangıç numarasını tanır', () => {
+  it('recognizes bulleted and numbered lists, continuation lines and the start number', () => {
     const document = parseEmailMarkdown(
       'Gündem:\n- Bütçe\n- Takvim\n  ve sorumlular\n\n3. Üçüncü\n4. Dördüncü',
     );
@@ -48,13 +48,13 @@ describe('E-posta Markdown ayrıştırma', () => {
     );
     expect(renderEmailHtml(document)).toContain('<ol start="3"');
     expect(renderPlainText(document)).toContain('- Takvim\nve sorumlular\n\n3. Üçüncü\n4. Dördüncü');
-    // Taslaktan geri okunan metin: maddeler "- " ile, numaralı liste sırasıyla (başlangıçtan bağımsız) başlar.
+    // Text read back from the draft: bullets start with "- ", numbered items with their position (regardless of the start number).
     expect(renderVisibleText(document)).toBe(
       'Gündem:\n- Bütçe\n- Takvim\nve sorumlular\n1. Üçüncü\n2. Dördüncü',
     );
   });
 
-  it('tabloları hizalamayla birlikte kenarlıklı HTML tabloya, düz metinde " | " ile ayrılmış satırlara çevirir', () => {
+  it('turns tables into bordered HTML tables with alignment, and into " | "-separated rows in plain text', () => {
     const document = parseEmailMarkdown('| Ürün | Fiyat |\n| --- | ---: |\n| A | 10 |\n| B \\| C | 20 |');
     const output = renderEmailHtml(document);
     expect(output).toMatch(
@@ -65,7 +65,7 @@ describe('E-posta Markdown ayrıştırma', () => {
     expect(renderPlainText(document)).toBe('Ürün | Fiyat\nA | 10\nB | C | 20');
   });
 
-  it('```chart bloğunu çubuk grafiğe çevirir; geçersiz grafik metin olarak kalır', () => {
+  it('turns a ```chart block into a bar chart and keeps an invalid chart as text', () => {
     const document = parseEmailMarkdown(
       'Satışlar:\n\n```chart\n{"title":"Çeyrek satışları","unit":"k€","data":[{"label":"Ç1","value":120},{"label":"Ç2","value":60}]}\n```',
     );
@@ -95,7 +95,7 @@ describe('E-posta Markdown ayrıştırma', () => {
     ]);
   });
 
-  it('başlıkları kalın satıra çevirir, yatay çizgileri atar', () => {
+  it('turns headings into bold lines and drops horizontal rules', () => {
     expect(html('# Özet\n---\nMetin')).toBe('<div><b>Özet</b></div><div><br></div><div>Metin</div>');
   });
 });

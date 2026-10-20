@@ -1,6 +1,6 @@
 /**
- * Kişisel bilgi içermeyen sentetik konuşmalar. Bütün adlar, adresler ve
- * içerikler uydurmadır; gerçek posta kutusundan alınmamıştır.
+ * Synthetic conversations without personal data. All names, addresses and
+ * contents are made up; none were taken from a real mailbox.
  */
 import type {
   ContextCoverage,
@@ -9,7 +9,7 @@ import type {
   TextBlock,
   ThreadRef,
   ThreadSnapshot,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 export const scopeA: MailScope = {
   providerId: 'outlook-web',
@@ -72,7 +72,7 @@ export function thread(messages: MessageSnapshot[], overrides: Partial<ThreadSna
   };
 }
 
-/** Türkçe/İngilizce karışık, alıntı ve imza içeren üç mesajlık konuşma. */
+/** A three-message conversation in mixed Turkish and English, with quotes and signatures. */
 export function meetingThread(): ThreadSnapshot {
   const first = message(
     'm1',

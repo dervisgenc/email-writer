@@ -1,17 +1,17 @@
 <!--
-  SENTETİK ÖRNEK — gerçek Outlook sayfasından alınmamıştır ve gerçek hesapla
-  doğrulanmamıştır. Bütün adlar, adresler ve içerikler uydurmadır.
+  SYNTHETIC FIXTURE — not taken from a real Outlook page and not verified
+  against a real account. All names, addresses and contents are made up.
 
-  Yapının dayandığı kaynaklar (ayrıntı: docs/outlook-web-dogrulama.md):
-  - GERÇEK SAYFADA DOĞRULANDI (15 Ekim 2026, seçili mesaj görünümü): #ReadingPaneContainerId;
-    div#UniqueMessageBody_N[role="document"]; #MailList satırlarında data-convid; ileti
-    başlığında MSG_<öğe>_FROM / MSG_<öğe>_DATETIME (data-testid="SentReceivedSavedTime");
-    CONV_<konuşma>_SUBJECT konu başlığı; gelen iletide x_divRplyFwdMsg alıntı başlangıcı.
-    Gerçek yapının anonim örneği: selected-message-reading-pane.html.
-  - KANITI GÜÇLÜ (araştırma): yanıt editöründe #Signature → #appendonsend → hr → #divRplyFwdMsg
-    sırası; div[role="textbox"][contenteditable="true"][aria-multiline="true"] editörü;
-    [id^="docking_InitVisiblePart"] yerleşik yanıt bölgesi.
-  - KANITSIZ ADAY: konuşma görünümünde çok mesajlı düzen ve kapalı mesaj satırı
+  Sources the structure relies on (details: docs/DEVELOPMENT.md):
+  - VERIFIED ON THE REAL PAGE (October 15, 2026, selected message view): #ReadingPaneContainerId;
+    div#UniqueMessageBody_N[role="document"]; data-convid on #MailList rows;
+    MSG_<item>_FROM / MSG_<item>_DATETIME in the message header (data-testid="SentReceivedSavedTime");
+    the CONV_<conversation>_SUBJECT subject header; the x_divRplyFwdMsg quote start in a received message.
+    Anonymized sample of the real structure: selected-message-reading-pane.html.
+  - STRONG EVIDENCE (research): the #Signature → #appendonsend → hr → #divRplyFwdMsg order
+    in the reply editor; the div[role="textbox"][contenteditable="true"][aria-multiline="true"] editor;
+    the [id^="docking_InitVisiblePart"] inline reply area.
+  - UNVERIFIED CANDIDATE: the multi-message layout in conversation view and the collapsed message row
     ([role="listitem"][aria-expanded="false"]).
 -->
 <div id="MainModule">

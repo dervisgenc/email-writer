@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION, type RuntimeRequest } from '@email-writer/contracts';
+import { PROTOCOL_VERSION, type RuntimeRequest } from '@writehand/contracts';
 
 export interface NativePort {
   postMessage(message: unknown): void;

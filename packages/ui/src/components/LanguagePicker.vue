@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { TargetLanguage } from '@email-writer/contracts';
+import type { TargetLanguage } from '@writehand/contracts';
 import { computed, ref, useId, watch } from 'vue';
 
 import { useUiText } from '../i18n';
 import { languageLabel, languageOptions, matchLanguage } from '../languages';
 
 /**
- * Listeden seçilebilen veya elle yazılabilen dil alanı. Değer yalnızca geçerli
- * bir dile karşılık geldiğinde yayılır; geçersiz girdi son geçerli değere döner.
+ * Language field that accepts a pick from the list or typed input. The value is
+ * emitted only when it matches a valid language; invalid input reverts to the last valid one.
  */
 const props = defineProps<{
   modelValue: TargetLanguage | null;
@@ -15,11 +15,11 @@ const props = defineProps<{
   disabled?: boolean;
   invalid?: boolean;
   placeholder?: string;
-  /** Listenin başında gösterilen diller (ör. favoriler). */
+  /** Languages shown at the top of the list (e.g. favorites). */
   preferred?: readonly TargetLanguage[];
-  /** Listeden çıkarılan diller (ör. zaten eklenmiş olanlar). */
+  /** Languages left out of the list (e.g. ones already added). */
   exclude?: readonly TargetLanguage[];
-  /** Ekleme alanı: geçerli dil seçilince yayılır ve alan temizlenir. */
+  /** Add field: a valid language is emitted and the field is cleared. */
   clearOnCommit?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [language: TargetLanguage]; submit: [] }>();
@@ -28,7 +28,7 @@ const text = useUiText();
 const listId = useId();
 const draft = ref('');
 const rejected = ref(false);
-// Son yayılan değer: üst bileşen değeri hemen güncellemese de aynı dil iki kez yayılmaz.
+// Last emitted value, so the same language is not emitted twice before the parent updates.
 const committed = ref<TargetLanguage | null>(props.modelValue);
 
 const label = (language: TargetLanguage | null) =>
@@ -77,7 +77,7 @@ function commit(): boolean {
 }
 
 function onBlur(): void {
-  // Ekleme alanında yazılan bırakılır; kullanıcı Enter veya Ekle ile onaylar.
+  // In the add field, typed text is left alone; the user confirms with Enter or Add.
   if (props.clearOnCommit) return;
   if (!commit()) {
     draft.value = label(committed.value);
@@ -86,7 +86,7 @@ function onBlur(): void {
 }
 
 function onChange(): void {
-  // Listeden bir seçenek seçildiğinde tarayıcı `change` gönderir.
+  // The browser fires `change` when an option is picked from the list.
   if (!props.clearOnCommit || options.value.some((option) => option.label === draft.value)) commit();
 }
 
@@ -100,7 +100,7 @@ function onFocus(event: FocusEvent): void {
   (event.target as HTMLInputElement).select();
 }
 
-/** Ekleme alanındaki "Ekle" düğmesi için: yazılanı onaylar. */
+/** For the "Add" button of the add field: commits the typed text. */
 defineExpose({ commit });
 </script>
 

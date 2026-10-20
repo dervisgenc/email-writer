@@ -1,7 +1,7 @@
 export interface PageObserver {
-  /** Bekleyen yeniden keşfi hemen çalıştırır. */
+  /** Runs a pending rediscovery right away. */
   flush(): void;
-  /** Gözlenmeyen bir değişiklik (ör. izlenen editörün içi) yeniden keşif gerektiriyorsa ister. */
+  /** Requests a rediscovery when an unobserved change (e.g. inside a tracked editor) needs one. */
   request(): void;
   dispose(): void;
 }
@@ -9,17 +9,17 @@ export interface PageObserver {
 export interface ObservePageOptions {
   readonly document: Document;
   readonly onChange: () => void;
-  /** Eklentinin kendi arayüzü ve izlenen editörler sayfa keşfini tetiklemez. */
+  /** The extension's own UI and tracked editors do not trigger page discovery. */
   readonly isIgnored: (node: Node) => boolean;
-  /** SPA gezinmesi: konum değişikliği yeniden keşif için bir işarettir. */
+  /** SPA navigation: a location change is a signal to rediscover. */
   readonly subscribeLocation?: (listener: () => void) => () => void;
   readonly debounceMs?: number;
 }
 
 /**
- * Sayfa değişikliklerini kısa aralıkta birleştirir. Her DOM değişikliğinde
- * bütün sayfa taranmaz; yalnızca eklenti dışı ve izlenen editör dışı
- * değişiklikler yeniden keşfi tetikler. Sabit aralıklı polling yapılmaz.
+ * Debounces page changes over a short window. The whole page is not rescanned on
+ * every DOM change; only changes outside the extension and outside tracked
+ * editors trigger rediscovery. There is no fixed-interval polling.
  */
 export function observePage(options: ObservePageOptions): PageObserver {
   const { document } = options;
@@ -51,7 +51,7 @@ export function observePage(options: ObservePageOptions): PageObserver {
     childList: true,
     subtree: true,
     characterData: true,
-    // Konuşma seçimi ve editörün düzenlenebilirliği öznitelikle değişebilir.
+    // Conversation selection and editor editability can change through attributes.
     attributes: true,
     attributeFilter: ['aria-selected', 'aria-expanded', 'data-convid', 'contenteditable'],
   });

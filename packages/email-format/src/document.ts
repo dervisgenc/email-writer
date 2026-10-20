@@ -1,6 +1,6 @@
 /**
- * Modelin döndürdüğü sınırlı Markdown'ın ayrıştırılmış hâli. HTML yalnızca bu
- * yapıdan üretilir; modelden gelen metin hiçbir zaman HTML olarak yorumlanmaz.
+ * Parsed form of the limited Markdown the model returns. HTML is generated only from this
+ * structure; text from the model is never interpreted as HTML.
  */
 export type Inline =
   | { readonly type: 'text'; readonly text: string }
@@ -42,7 +42,7 @@ export interface EmailDocument {
   readonly blocks: readonly EmailBlock[];
 }
 
-/** Düz paragraflardan fazlası (biçim, liste, tablo, grafik, bağlantı) var mı? */
+/** Does the document contain more than plain paragraphs (formatting, lists, tables, charts, links)? */
 export function isRichDocument(document: EmailDocument): boolean {
   const richInline = (inlines: readonly Inline[]): boolean =>
     inlines.some((inline) => inline.type !== 'text' && inline.type !== 'break');

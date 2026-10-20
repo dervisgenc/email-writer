@@ -6,7 +6,7 @@ import {
   type ApplyRequest,
   type ApplyTarget,
   type Result,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { ACTION_LIMITS } from '../actions/action-limits';
 import type { SessionPreview, SessionState, StaleReason } from '../session/session-state';
@@ -20,7 +20,7 @@ const STALE_REASON_ERRORS: Record<StaleReason, AppError['code']> = {
   'account-changed': 'TARGET_MISSING',
 };
 
-/** Aynı önizleme sürümü ve hedef için her zaman aynı kimliği üretir. */
+/** Always produces the same ID for the same preview revision and target. */
 export function applyOperationIdFor(preview: SessionPreview, target: ApplyTarget): string {
   return [
     preview.requestId,
@@ -36,9 +36,9 @@ function replacedText(state: SessionState): string | null {
 }
 
 /**
- * Oturum, sürüm ve işlem kurallarına göre yazmanın yapılabilir olup olmadığını
- * belirler. DOM'a ait son kontrolleri (bağlılık, görünürlük, gerçek seçim)
- * bağlantı modülü ayrıca yapar; bu kontrol tek başına yeterli değildir.
+ * Decides whether a write is allowed based on session, revision and operation rules. The
+ * connector separately performs the final DOM checks (attachment, visibility, actual
+ * selection); this check alone is not sufficient.
  */
 export function validateApply(state: SessionState): Result<ApplyRequest, AppError> {
   const { preview } = state;
@@ -60,7 +60,7 @@ export function validateApply(state: SessionState): Result<ApplyRequest, AppErro
     return err(appError(STALE_REASON_ERRORS[state.staleReason], { field: 'target' }));
   }
   if (state.targetComposerRevision !== target.expectedRevision) {
-    // Sürüm uyuşmazlığı, beklenen sürümü güncelleyerek giderilmez.
+    // A revision mismatch is never resolved by updating the expected revision.
     return err(appError('TARGET_CHANGED', { field: 'target' }));
   }
 

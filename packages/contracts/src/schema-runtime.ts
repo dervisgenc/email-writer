@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 /**
- * Eklenti sayfalarının içerik güvenlik politikası `eval` kullanımına izin
- * vermez. Zod'un çalışma zamanında kod üreten hızlandırması kapatılır; şema
- * doğrulaması aynı sonucu daha yavaş ama güvenli yoldan verir.
+ * The content security policy of extension pages does not allow `eval`. Zod's
+ * optimization that generates code at runtime is turned off; schema validation gives the
+ * same result on a slower but safe path.
  */
 z.config({ jitless: true });

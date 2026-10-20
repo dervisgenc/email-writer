@@ -1,9 +1,9 @@
 import { maskIdentifier, maskText } from './mask-text';
 
 /**
- * İleti listesindeki konuşma satırları. Liste, konuşma okumanın parçası
- * değildir (bağlantı modülü listeyi okumaz); bu yüzden seçici burada,
- * yalnızca inceleme aracında durur ve gerçek yapı görüldükçe güncellenir.
+ * Conversation rows in the message list. The list is not part of conversation
+ * reading (the connector does not read it), so the selector lives here, only in
+ * the inspection tool, and is updated as the real structure is observed.
  */
 export const DEFAULT_ROW_SELECTOR = '[role="listbox"] [role="option"]';
 

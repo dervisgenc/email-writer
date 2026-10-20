@@ -1,20 +1,20 @@
-// Gerçek Outlook sayfasını, eklentinin okuma koduyla inceleyen geliştirme aracı.
-// `pnpm outlook:firefox` ile açılan Firefox'a WebDriver BiDi ile bağlanır.
+// Development tool that inspects the real Outlook page with the extension's reading code.
+// Connects over WebDriver BiDi to the Firefox opened by `pnpm outlook:firefox`.
 //
-// Kurallar: Yalnızca okur ve konuşma satırına tıklar. E-posta göndermez,
-// yanıtlamaz, silmez, taşımaz; klavye olayı göndermez. Çıktılar maskelidir;
-// gerçek içerik terminale veya diske yazılmaz (implementation_details.md §17.2).
+// Rules: it only reads and clicks conversation rows. It never sends, replies to,
+// deletes or moves email, and sends no keyboard events. Output is masked; real
+// content is never written to the terminal or to disk (see docs/DEVELOPMENT.md).
 //
-// Kullanım:
-//   pnpm outlook:inspect rows                 konuşma satırları
-//   pnpm outlook:inspect open <sıra>          satıra tıklar, açılan konuşmayı okur
-//   pnpm outlook:inspect read                 açık konuşmayı bağlantıyla okur
-//   pnpm outlook:inspect selectors [anahtar]  her seçicinin ayrı eşleşme sayısı
-//   pnpm outlook:inspect theme                Outlook tema renkleri
-//   pnpm outlook:inspect layout               eklenti düğmelerinin konumu ve Outlook düğmeleriyle çakışma
-//   pnpm outlook:inspect diagnose-reply       "Reply" geçişinde bağlantının durumunu kaydeder (boş taslak açar)
-//   pnpm outlook:inspect structure [hedef]    anonim DOM yapısı (varsayılan: readingPane)
-//     --bodies  gövdelerin içini de göster   --depth N   --lines N   --rows <css>
+// Usage:
+//   pnpm outlook:inspect rows                 conversation rows
+//   pnpm outlook:inspect open <index>         clicks the row and reads the opened conversation
+//   pnpm outlook:inspect read                 reads the open conversation with the connector
+//   pnpm outlook:inspect selectors [key]      match count of each selector separately
+//   pnpm outlook:inspect theme                Outlook theme colors
+//   pnpm outlook:inspect layout               position of the extension buttons and overlap with Outlook buttons
+//   pnpm outlook:inspect diagnose-reply       records the connector state during "Reply" (opens an empty draft)
+//   pnpm outlook:inspect structure [target]   anonymous DOM structure (default: readingPane)
+//     --bodies  also show inside message bodies   --depth N   --lines N   --rows <css>
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -25,7 +25,7 @@ import { isBidiListening } from '../../support/firefox/firefox-process.mjs';
 import { LIVE_BIDI_PORT } from './live-config.mjs';
 
 const PROBE_GLOBAL = '__emailWriterProbe';
-const SANDBOX = 'email-writer-live-probe';
+const SANDBOX = 'writehand-live-probe';
 const OPEN_TIMEOUT_MS = 5_000;
 const OPEN_SETTLE_MS = 500;
 
@@ -65,7 +65,7 @@ async function findOutlookContext(bidi) {
   const { contexts } = await bidi.send('browsingContext.getTree', { maxDepth: 0 });
   const outlook = contexts.find((context) => /^https:\/\/outlook\.[^/]+\/mail\//.test(context.url));
   if (outlook === undefined) {
-    throw new Error('Outlook posta sekmesi bulunamadı. Pencere kapandıysa: pnpm outlook:firefox --restart');
+    throw new Error('Outlook mail tab not found. If the window was closed: pnpm outlook:firefox --restart');
   }
   return outlook.context;
 }
@@ -79,8 +79,8 @@ function createProbeClient(bidi, context) {
       );
     },
     /**
-     * Sandbox içindeki fonksiyonu çağırır; sonuç JSON olarak taşınır. Verilmeyen
-     * argüman `undefined` kalır ki fonksiyonun varsayılan değeri kullanılsın.
+     * Calls a function inside the sandbox; the result is carried as JSON. An omitted
+     * argument stays `undefined` so that the function's default value applies.
      */
     async call(name, ...args) {
       const serialized = args.map((arg) => (arg === undefined ? 'undefined' : JSON.stringify(arg)));
@@ -103,7 +103,7 @@ async function clickAt(bidi, context, { x, y }) {
     actions: [
       {
         type: 'pointer',
-        id: 'email-writer-mouse',
+        id: 'writehand-mouse',
         parameters: { pointerType: 'mouse' },
         actions: [
           { type: 'pointerMove', x, y, origin: 'viewport' },
@@ -118,46 +118,48 @@ async function clickAt(bidi, context, { x, y }) {
 
 function printRows(rows) {
   if (rows.length === 0) {
-    console.log('Konuşma satırı bulunamadı (--rows ile seçici verilebilir).');
+    console.log('No conversation rows found (pass a selector with --rows).');
     return;
   }
   for (const row of rows) {
     console.log(
-      `${row.selected ? '▶' : ' '} ${String(row.index).padStart(3)}  ${row.conversationId ?? '(convid yok)'}  ${row.shape}`,
+      `${row.selected ? '▶' : ' '} ${String(row.index).padStart(3)}  ${row.conversationId ?? '(no convid)'}  ${row.shape}`,
     );
   }
 }
 
 function printThreadReport(report) {
-  console.log(`Sayfa: ${report.support} · konuşma anahtarı: ${report.threadKey ?? '—'}`);
-  console.log(`Seçiciler: ${report.selectors.map((entry) => `${entry.key}=${entry.matches}`).join(' ')}`);
+  console.log(`Page: ${report.support} · conversation key: ${report.threadKey ?? '—'}`);
+  console.log(`Selectors: ${report.selectors.map((entry) => `${entry.key}=${entry.matches}`).join(' ')}`);
   const { thread } = report;
   if (thread === null) {
-    console.log('Açık konuşma bulunamadı.');
+    console.log('No open conversation found.');
     return;
   }
   if ('error' in thread) {
-    console.log(`Okuma hatası: ${thread.error}`);
+    console.log(`Read error: ${thread.error}`);
     return;
   }
-  console.log(`Konu: ${thread.subject ?? '(bulunamadı)'}`);
+  console.log(`Subject: ${thread.subject ?? '(not found)'}`);
   console.log(
-    `Mesajlar: ${thread.messages.length} · etkin: ${thread.activeMessage === null ? 'belirlenemedi' : `#${thread.activeMessage}`}`,
+    `Messages: ${thread.messages.length} · active: ${thread.activeMessage === null ? 'undetermined' : `#${thread.activeMessage}`}`,
   );
   for (const message of thread.messages) {
     console.log(
-      `  #${message.order}  gönderen: ${message.sender ?? '—'} · tarih: ${message.sentAt ?? '—'} / ${message.sentAtText ?? '—'}`,
+      `  #${message.order}  sender: ${message.sender ?? '—'} · date: ${message.sentAt ?? '—'} / ${message.sentAtText ?? '—'}`,
     );
     for (const block of message.blocks) {
-      console.log(`      ${block.kind} (${block.certainty}, ${block.length} kr): ${block.shape}`);
+      console.log(`      ${block.kind} (${block.certainty}, ${block.length} chars): ${block.shape}`);
     }
   }
   const { coverage, text } = thread;
   console.log(
-    `Kapsam: ${coverage.status} · okunan ${coverage.readableMessageCount} · okunamayan ${coverage.knownUnreadableMessageCount ?? 'bilinmiyor'} · ${coverage.reasons.join(', ')}`,
+    `Coverage: ${coverage.status} · readable ${coverage.readableMessageCount} · unreadable ${coverage.knownUnreadableMessageCount ?? 'unknown'} · ${coverage.reasons.join(', ')}`,
   );
-  const ratio = text.rendered === 0 ? '—' : `%${Math.round((text.extracted / text.rendered) * 100)}`;
-  console.log(`Metin (boşluksuz karakter): okunan ${text.extracted} / ekranda ${text.rendered} (${ratio})`);
+  const ratio = text.rendered === 0 ? '—' : `${Math.round((text.extracted / text.rendered) * 100)}%`;
+  console.log(
+    `Text (non-whitespace characters): read ${text.extracted} / on screen ${text.rendered} (${ratio})`,
+  );
 }
 
 const { positionals, values } = parseArgs({
@@ -172,7 +174,7 @@ const { positionals, values } = parseArgs({
 const [command = 'read', argument] = positionals;
 
 if (!(await isBidiListening(LIVE_BIDI_PORT))) {
-  console.error(`Firefox BiDi ${LIVE_BIDI_PORT} kapalı. Önce: pnpm outlook:firefox`);
+  console.error(`Firefox BiDi ${LIVE_BIDI_PORT} is not listening. Start it first: pnpm outlook:firefox`);
   process.exit(1);
 }
 
@@ -185,17 +187,17 @@ async function runCommand(bidi, context, probe) {
       const index = Number(argument);
       const point = Number.isInteger(index) ? await probe.call('rowClickPoint', index, values.rows) : null;
       if (point === null) {
-        throw new Error(`Satır ${argument} bulunamadı veya güvenli tıklama noktası yok.`);
+        throw new Error(`Row ${argument} not found or it has no safe click point.`);
       }
       await probe.call('markReadingPane');
       await clickAt(bidi, context, point);
       if (!(await waitUntil(() => probe.call('targetRowSelected'), OPEN_TIMEOUT_MS))) {
-        throw new Error('Tıklama hedef konuşmayı seçmedi; okuma yapılmadı.');
+        throw new Error('The click did not select the target conversation; nothing was read.');
       }
       if (!(await waitUntil(() => probe.call('readingPaneChanged'), OPEN_TIMEOUT_MS))) {
-        console.log('Not: okuma bölmesi değişmedi (aynı ileti zaten açık olabilir).');
+        console.log('Note: the reading pane did not change (the same message may already be open).');
       }
-      // Gövdenin geç yüklenen bölümleri (ör. resim yer tutucuları) için kısa bekleme.
+      // A short wait for parts of the body that load late (e.g. image placeholders).
       await sleep(OPEN_SETTLE_MS);
       printThreadReport(await probe.call('readThread'));
       break;
@@ -211,7 +213,7 @@ async function runCommand(bidi, context, probe) {
         Number(values.lines),
         values.bodies,
       );
-      console.log(result.found ? result.lines.join('\n') : `Hedef bulunamadı: ${argument ?? 'readingPane'}`);
+      console.log(result.found ? result.lines.join('\n') : `Target not found: ${argument ?? 'readingPane'}`);
       break;
     }
     case 'theme':
@@ -221,18 +223,18 @@ async function runCommand(bidi, context, probe) {
       console.log(JSON.stringify(await probe.call('launcherLayout'), null, 2));
       break;
     case 'diagnose-reply': {
-      // Mesaj gösterilirken bağlantıyı başlatır, "Reply"a basar ve geçişi kaydeder.
-      // Gönder'e dokunmaz, yazı yazmaz; açılan boş taslak elle kapatılır.
+      // Starts the connector while a message is shown, presses "Reply" and records the transition.
+      // It never touches Send and types nothing; close the empty draft it opens by hand.
       const start = await probe.call('watchStart');
       if (start.bodies === 0) {
         await probe.call('watchStop');
-        throw new Error('Önce bir mesaj açın (okuma bölmesinde mesaj gövdesi yok).');
+        throw new Error('Open a message first (there is no message body in the reading pane).');
       }
-      console.log(`başlangıç ${JSON.stringify(start)}`);
+      console.log(`start ${JSON.stringify(start)}`);
       const point = await probe.call('replyClickPoint');
       if (point === null) {
         await probe.call('watchStop');
-        throw new Error('"Reply" düğmesi bulunamadı veya güvenli tıklama noktası yok.');
+        throw new Error('"Reply" button not found or it has no safe click point.');
       }
       await clickAt(bidi, context, point);
       for (let elapsed = 250; elapsed <= 4000; elapsed += 250) {
@@ -251,14 +253,14 @@ async function runCommand(bidi, context, probe) {
       }
       break;
     default:
-      throw new Error(`Bilinmeyen komut: ${command}`);
+      throw new Error(`Unknown command: ${command}`);
   }
 }
 
 function explain(error) {
   const message = error instanceof Error ? error.message : String(error);
   return /Maximum number of active sessions/.test(message)
-    ? 'Firefox yarım kalmış bir otomasyon oturumu tutuyor. Yeniden başlatın: pnpm outlook:firefox --restart'
+    ? 'Firefox is holding an unfinished automation session. Restart it: pnpm outlook:firefox --restart'
     : message;
 }
 

@@ -1,4 +1,4 @@
-import { appError, type AppError, type ApplyTarget } from '@email-writer/contracts';
+import { appError, type AppError, type ApplyTarget } from '@writehand/contracts';
 
 import { effectiveApplyTarget } from '../editing/derive-apply-target';
 import { validateApply } from '../editing/validate-apply';
@@ -6,8 +6,8 @@ import { validateUndo } from '../editing/validate-undo';
 import { isPreviewCurrent, isSessionBusy, type SessionState } from './session-state';
 
 /**
- * Düğmelerin etkinliği durumdan ve doğrulama kurallarından hesaplanır; ayrı
- * bir değişkende saklanmaz.
+ * Button availability is computed from the state and the validation rules; it is never
+ * stored in a separate variable.
  */
 export interface SessionCapabilities {
   readonly isBusy: boolean;
@@ -22,7 +22,7 @@ export interface SessionCapabilities {
 }
 
 export interface CapabilityOptions {
-  /** Metin işleme bağlantısı var mı? Normal derlemede bu aşamada yoktur. */
+  /** Is a text processing connection available? The regular build has none at this stage. */
   readonly processingAvailable: boolean;
 }
 

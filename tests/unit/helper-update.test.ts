@@ -34,7 +34,7 @@ describe('Trusting a release', () => {
   it('carries a valid release key and downloads only from this repository', () => {
     expect(RELEASE_PUBLIC_KEY.asymmetricKeyType).toBe('ed25519');
     expect(releaseFileUrl('1.2.3', 'SHA256SUMS')).toBe(
-      'https://github.com/dervisgenc/email-writer/releases/download/v1.2.3/SHA256SUMS',
+      'https://github.com/dervisgenc/writehand/releases/download/v1.2.3/SHA256SUMS',
     );
     expect(() => releaseFileUrl('../../evil', 'x')).toThrow();
   });
@@ -123,7 +123,7 @@ describe('Updating the helper app', () => {
     expect(await updater.check()).toEqual({ current: HOST_VERSION, latest: null, available: false });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0]).toEqual([
-      'https://api.github.com/repos/dervisgenc/email-writer/releases/latest',
+      'https://api.github.com/repos/dervisgenc/writehand/releases/latest',
       expect.objectContaining({
         headers: expect.objectContaining({ Accept: 'application/vnd.github+json' }),
       }),
@@ -172,7 +172,7 @@ describe('Updating the helper app', () => {
         return vi.fn(async (url: string | URL | Request) => {
           const address = String(url);
           if (address.endsWith('/releases/latest')) return response({ tag_name: 'v9.9.9' });
-          const prefix = 'https://github.com/dervisgenc/email-writer/releases/download/v9.9.9/';
+          const prefix = 'https://github.com/dervisgenc/writehand/releases/download/v9.9.9/';
           const file = address.startsWith(prefix)
             ? files[decodeURIComponent(address.slice(prefix.length))]
             : undefined;

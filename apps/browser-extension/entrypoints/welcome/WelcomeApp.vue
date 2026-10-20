@@ -9,8 +9,8 @@ import {
   REPOSITORY_URL,
   type HostOperatingSystem,
   type Settings,
-} from '@email-writer/contracts';
-import { AppIcon, CommandBox, ExtensionPage, provideUiText, StepList } from '@email-writer/ui';
+} from '@writehand/contracts';
+import { AppIcon, CommandBox, ExtensionPage, provideUiText, StepList } from '@writehand/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 
 import { OUTLOOK_WEB_START } from '../../src/bootstrap/supported-sites';
@@ -28,8 +28,8 @@ import { fetchSettings, generateText } from '../../src/platform/extension-client
 import { parseStoredSettings, SETTINGS_STORAGE_KEY } from '../../src/platform/settings-store';
 
 /**
- * Karşılama sihirbazı: neden yardımcı uygulama gerektiği, tek komutla kurulumu, bağlantı
- * yöntemi ve uydurma bir e-postayla deneme. İlk kurulumda açılır; ayarlardan yeniden açılabilir.
+ * Welcome wizard: why the helper app is needed, its one-command install, the connection
+ * method, and a trial run on a made-up email. Opens on first install; can be reopened from settings.
  */
 const settings = shallowRef<Settings>(DEFAULT_SETTINGS);
 const text = computed(() => textFor(settings.value.uiLanguage));

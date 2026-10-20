@@ -1,14 +1,14 @@
-import type { MailScope } from '@email-writer/contracts';
+import type { MailScope } from '@writehand/contracts';
 
 export const OUTLOOK_PROVIDER_ID = 'outlook-web';
 
 /**
- * Hesap ipucundan (ör. hesap düğmesinin erişilebilir adı) yerel ve opak bir
- * kimlik üretir. Ham değer saklanmaz veya dışarı verilmez; yalnızca aynı sayfa
- * örneğinde hesap değişimini ayırt etmek için kullanılır.
+ * Derives a local, opaque id from an account hint (e.g. the account button's
+ * accessible name). The raw value is never stored or exposed; the id only tells
+ * account switches apart within the same page instance.
  */
 export function opaqueHash(value: string): string {
-  // FNV-1a 32 bit: kriptografik değildir, yalnızca yerel ayrım içindir.
+  // 32-bit FNV-1a: not cryptographic, only for telling values apart locally.
   let hash = 0x811c9dc5;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
@@ -21,17 +21,17 @@ export interface IdentityRegistry {
   readonly documentInstanceId: string;
   scope(): MailScope;
   /**
-   * Yeni ve farklı bir hesap ipucu görülürse kapsamı değiştirir, eski eleman
-   * kimliklerini geçersiz kılar ve `true` döner. Geçici olarak okunamayan ipucu
-   * (`null`) kapsamı değiştirmez.
+   * On a new, different account hint, switches the scope, invalidates the old
+   * element keys and returns `true`. A hint that is temporarily unreadable
+   * (`null`) does not change the scope.
    */
   updateAccountHint(hint: string | null): boolean;
   /**
-   * Bir DOM elemanına yalnızca o eleman yaşadığı sürece geçerli yerel kimlik
-   * verir. Eleman yeniden oluşturulursa yeni kimlik alır.
+   * Gives a DOM element a local key that is valid only while that element lives.
+   * A recreated element gets a new key.
    */
   keyFor(element: Element, prefix: string): string;
-  /** Daha önce kimlik verilmiş elemanı döndürür; artık bağlı değilse `null`. */
+  /** Returns the element a key was given to; `null` once it is no longer connected. */
   elementFor(key: string): Element | null;
   clear(): void;
 }

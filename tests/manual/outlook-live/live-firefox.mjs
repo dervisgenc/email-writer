@@ -1,4 +1,4 @@
-// Gerçek Outlook incelemesinde kullanılan kalıcı profilli Firefox'u hazırlar.
+// Prepares the persistent-profile Firefox used for real Outlook inspection.
 import { mkdirSync } from 'node:fs';
 
 import {
@@ -10,9 +10,9 @@ import {
 import { LIVE_BIDI_PORT, LIVE_PROFILE, OUTLOOK_MAIL_URL } from './live-config.mjs';
 
 /**
- * Firefox açıksa onu kullanır, değilse Outlook ile başlatır. `restart` verilirse
- * yalnızca bu profille çalışan Firefox kapatılıp yeniden açılır (ör. pencere
- * kapandıysa veya yarım kalmış bir otomasyon oturumu yeni bağlantıyı engelliyorsa).
+ * Uses Firefox if it is already running, otherwise starts it with Outlook. With `restart`,
+ * only the Firefox running with this profile is closed and reopened (e.g. if the window
+ * was closed or an unfinished automation session blocks new connections).
  */
 export async function ensureLiveFirefox({ restart = false } = {}) {
   if (await isBidiListening(LIVE_BIDI_PORT)) {

@@ -5,21 +5,21 @@ import {
   createOutlookWebConnector,
   type EditorWriter,
   type OutlookWebConnection,
-} from '@email-writer/outlook-web';
+} from '@writehand/outlook-web';
 
-export const OWN_UI_SELECTOR = '[data-email-writer-ui]';
+export const OWN_UI_SELECTOR = '[data-writehand-ui]';
 
 export function loadFixture(name: string): void {
-  // Testler depo kökünden çalıştırılır (vitest.config.ts).
+  // Tests run from the repository root (vitest.config.ts).
   const html = readFileSync(resolve(process.cwd(), 'tests/fixtures/outlook', name), 'utf8');
   document.body.innerHTML = html;
 }
 
 /**
- * Test ortamının editör yazıcısı. Gerçek Outlook editöründe kullanılan
- * `execCommand` yöntemi jsdom'da bulunmadığı için, aralığı DOM işlemleriyle
- * değiştirir. Bağlantının ön kontrol ve sonradan doğrulama kuralları bu
- * yazıcıyla da aynen çalışır.
+ * The editor writer for the test environment. jsdom lacks the `execCommand`
+ * method used in the real Outlook editor, so this writer replaces the range
+ * with DOM operations. The connector's pre-check and post-write verification
+ * rules work unchanged with it.
  */
 export function createDomWriter(): EditorWriter & { calls: number } {
   const writer = {
@@ -59,12 +59,12 @@ export function createConnection(writer: EditorWriter = createDomWriter()): Outl
 export function editor(fixtureName = 'reply-editor'): HTMLElement {
   const element = document.querySelector<HTMLElement>(`[data-fixture="${fixtureName}"]`);
   if (element === null) {
-    throw new Error(`Örnek editör bulunamadı: ${fixtureName}`);
+    throw new Error(`Fixture editor not found: ${fixtureName}`);
   }
   return element;
 }
 
-/** Bir metin düğümündeki ifadeyi belgede seçer. */
+/** Selects a phrase from a text node in the document. */
 export function selectText(root: Element, phrase: string, occurrence = 0): void {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let seen = 0;
@@ -85,10 +85,10 @@ export function selectText(root: Element, phrase: string, occurrence = 0): void 
       index = text.indexOf(phrase, index + 1);
     }
   }
-  throw new Error(`İfade bulunamadı: ${phrase}`);
+  throw new Error(`Phrase not found: ${phrase}`);
 }
 
-/** Kullanıcının editörde yazmasını taklit eder (gözlemciler DOM değişikliğini görür). */
+/** Simulates the user typing in the editor (observers see the DOM change). */
 export function typeInto(target: HTMLElement, text: string): void {
   target.querySelector('div')?.append(document.createTextNode(text));
 }

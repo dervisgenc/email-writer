@@ -1,12 +1,12 @@
 import { createHash, createPublicKey, verify, type KeyObject } from 'node:crypto';
-import { AiFailure } from '@email-writer/ai-openai';
+import { AiFailure } from '@writehand/ai-openai';
 import {
   compareVersions,
   REPOSITORY,
   REPOSITORY_URL,
   versionSchema,
   type HostUpdateCheck,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { ed25519PublicKey } from '../release-key.json';
 

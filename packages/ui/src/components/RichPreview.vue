@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isRichDocument, parseEmailMarkdown, renderEmailHtml } from '@email-writer/email-format';
+import { isRichDocument, parseEmailMarkdown, renderEmailHtml } from '@writehand/email-format';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 
 import { useUiText } from '../i18n';
@@ -7,9 +7,9 @@ import { inputValue } from '../input-value';
 import AppIcon from './AppIcon.vue';
 
 /**
- * Sonuç önizlemesi. Biçimli sonuç (liste, tablo, grafik) e-postada görüneceği
- * gibi gösterilir ve "Düzenle" ile kaynağı açılır; düz sonuç doğrudan düzenlenir.
- * HTML yalnızca ayrıştırılmış yapıdan üretilir ve bütün metin kaçışlanır.
+ * Result preview. A formatted result (list, table, chart) is shown as it will look in
+ * the email, and "Edit source" opens its source; a plain result is edited directly.
+ * HTML is generated only from the parsed structure and all text is escaped.
  */
 const props = defineProps<{
   text: string;
@@ -18,7 +18,7 @@ const props = defineProps<{
   disabled: boolean;
   invalid?: boolean;
   describedBy?: string;
-  /** Kartta daha alçak, panelde daha yüksek gösterilir. */
+  /** Shorter in the card, taller in the panel. */
   size: 'card' | 'panel';
 }>();
 const emit = defineEmits<{ change: [text: string] }>();
@@ -30,7 +30,7 @@ const document = computed(() => parseEmailMarkdown(props.text));
 const rich = computed(() => isRichDocument(document.value));
 const html = computed(() => renderEmailHtml(document.value, { locale: ui.value.locale }));
 
-// Yeni sonuç geldiğinde biçimli görünüme dönülür.
+// A new result switches back to the formatted view.
 watch(rich, (value) => {
   if (!value) editing.value = false;
 });
@@ -41,7 +41,7 @@ async function edit(): Promise<void> {
   editor.value?.focus({ preventScroll: true });
 }
 
-/** Önizlemedeki bağlantılar sayfayı (Outlook'u) başka adrese götürmez. */
+/** Links in the preview never navigate the page (Outlook) away. */
 function blockNavigation(event: MouseEvent): void {
   if ((event.target as Element | null)?.closest('a') !== null) event.preventDefault();
 }
@@ -50,7 +50,7 @@ function blockNavigation(event: MouseEvent): void {
 <template>
   <div class="ew-rich-preview" :data-size="size">
     <template v-if="rich && !editing">
-      <!-- HTML ayrıştırılmış yapıdan üretilir; bütün metin kaçışlanır. -->
+      <!-- HTML is generated from the parsed structure; all text is escaped. -->
       <!-- eslint-disable vue/no-v-html -->
       <div
         :id="id"

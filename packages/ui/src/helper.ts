@@ -1,20 +1,20 @@
-import type { HostInfo } from '@email-writer/contracts';
+import type { HostInfo } from '@writehand/contracts';
 
-/** Eklentinin bu bilgisayardaki yardımcı uygulama hakkında bildikleri. */
+/** What the extension knows about the helper app on this computer. */
 export type HelperView =
   | { readonly kind: 'checking' }
-  /** Tarayıcı, eklentinin bilgisayardaki programlarla konuşmasına henüz izin vermedi. */
+  /** The browser has not yet allowed the extension to talk to programs on this computer. */
   | { readonly kind: 'permission' }
   | { readonly kind: 'missing' }
-  /** Bu eklentinin desteklediğinden eski; sürümünü bildiremeyecek kadar eskiyse `version` null. */
+  /** Older than this extension supports; `version` is null when it is too old to report one. */
   | { readonly kind: 'outdated'; readonly version: string | null }
   | { readonly kind: 'connected'; readonly info: HostInfo };
 
-/** Yardımcı uygulama kartının ve sihirbazdaki kurulum adımının ortak metinleri. */
+/** Text shared by the helper app card and the wizard's install step. */
 export interface HelperText {
   readonly title: string;
   readonly description: string;
-  /** Kartın başındaki kısa durum. */
+  /** Short status shown at the top of the card. */
   readonly states: Readonly<Record<HelperView['kind'], string>>;
   readonly permissionBody: string;
   readonly grant: string;
@@ -32,7 +32,7 @@ export interface HelperText {
   readonly updated: (version: string) => string;
   readonly openWizard: string;
   readonly uninstallTitle: string;
-  /** Kaldırma komutunun açıklaması; `flag` hesap bilgilerini de silen seçenektir. */
+  /** Explains the uninstall command; `flag` is the option that also deletes account data. */
   readonly uninstallBody: (flag: string) => string;
   readonly copy: string;
   readonly copied: string;

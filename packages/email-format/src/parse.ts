@@ -24,7 +24,7 @@ export const chartSpecSchema = z.object({
 const isWordChar = (char: string | undefined) => char !== undefined && /[\p{L}\p{N}]/u.test(char);
 const isSpace = (char: string | undefined) => char === undefined || /\s/u.test(char);
 
-/** Vurgu işaretinin kapanışını arar; kapanış boşlukla başlamamalı ve kelime içinde olmamalıdır. */
+/** Finds the closing emphasis marker; it must not follow whitespace or sit inside a word. */
 function findClosing(source: string, from: number, marker: string): number {
   for (let index = from; index <= source.length - marker.length; index++) {
     if (source[index] === '\\') {
@@ -32,7 +32,7 @@ function findClosing(source: string, from: number, marker: string): number {
       continue;
     }
     if (!source.startsWith(marker, index)) continue;
-    // Tek işaret ararken çift işaretin parçası atlanır.
+    // When looking for a single marker, skip halves of a double marker.
     if (marker.length === 1 && (source[index + 1] === marker || source[index - 1] === marker)) continue;
     if (isSpace(source[index - 1])) continue;
     if (marker[0] === '_' && isWordChar(source[index + marker.length])) continue;
@@ -43,7 +43,7 @@ function findClosing(source: string, from: number, marker: string): number {
 
 function canOpen(source: string, index: number, marker: string): boolean {
   if (isSpace(source[index + marker.length])) return false;
-  // Alt çizgi kelime içinde (ör. dosya_adi) vurgu açmaz.
+  // An underscore inside a word (e.g. file_name) does not open emphasis.
   return !(marker[0] === '_' && isWordChar(source[index - 1]));
 }
 
@@ -149,9 +149,9 @@ function startsBlock(lines: readonly string[], index: number): boolean {
 }
 
 /**
- * E-posta için sınırlı Markdown: paragraflar (satır sonları korunur), kalın,
- * italik, bağlantı, madde ve numaralı liste, tablo ve ```chart grafik bloğu.
- * Başlıklar kalın satıra, tanınmayan kod blokları düz paragrafa dönüşür.
+ * Limited Markdown for email: paragraphs (line breaks kept), bold, italic, links, bulleted
+ * and numbered lists, tables and ```chart blocks. Headings become bold lines and
+ * unrecognized code blocks become plain paragraphs.
  */
 export function parseEmailMarkdown(markdown: string): EmailDocument {
   const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
@@ -213,7 +213,7 @@ export function parseEmailMarkdown(markdown: string): EmailDocument {
           /^\s{2,}\S/.test(lines[index]!) &&
           !startsBlock(lines, index)
         ) {
-          // Girintili devam satırı önceki maddeye eklenir.
+          // An indented continuation line is appended to the previous item.
           items[items.length - 1] += `\n${lines[index]!.trim()}`;
           index++;
         } else break;

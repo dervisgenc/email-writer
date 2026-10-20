@@ -1,11 +1,10 @@
-import { appError, err, ok, type AppError, type Result } from '@email-writer/contracts';
+import { appError, err, ok, type AppError, type Result } from '@writehand/contracts';
 
 import type { SessionState } from '../session/session-state';
 
 /**
- * "Son uygulamayı geri al" yalnızca eklentinin son doğrulanmış yazmasını
- * hedefler. Kullanıcı araya yeni bir düzenleme yaptıysa geri alma kapanır;
- * böylece kullanıcının sonradan yazdıkları kaybolmaz.
+ * "Undo last apply" targets only the extension's last verified write. If the user edited
+ * the draft in between, undo is disabled so that what they wrote afterwards is not lost.
  */
 export function validateUndo(state: SessionState): Result<{ undoId: string }, AppError> {
   const change = state.lastChange;

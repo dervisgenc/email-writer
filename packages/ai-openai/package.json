@@ -1,5 +1,5 @@
 {
-  "name": "@email-writer/ai-openai",
+  "name": "@writehand/ai-openai",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@email-writer/contracts": "workspace:*",
+    "@writehand/contracts": "workspace:*",
     "jose": "^6.1.0",
     "zod": "^4.6.7"
   }

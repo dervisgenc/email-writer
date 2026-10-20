@@ -1,11 +1,11 @@
-import { buildContext, describeContext } from '@email-writer/core';
+import { buildContext, describeContext } from '@writehand/core';
 import { describe, expect, it } from 'vitest';
 
 import { body, message, thread, threadA } from '../../fixtures/synthetic-mail/threads';
 import { testDependencies } from '../test-dependencies';
 
 describe('describeContext', () => {
-  it('eksik kapsamı ve çıkarılanları ayrı ayrı açıklar', () => {
+  it('describes missing coverage and excluded messages separately', () => {
     const snapshot = thread(
       [message('m1', 0, [body('Bir')]), message('m2', 1, [body('İki')]), message('m3', 2, [body('Üç')])],
       {
@@ -27,7 +27,7 @@ describe('describeContext', () => {
       },
       testDependencies(),
     );
-    if (!context.ok) throw new Error('beklenmeyen hata');
+    if (!context.ok) throw new Error('unexpected error');
 
     expect(describeContext(context.value)).toEqual([
       { kind: 'message-count', count: 2 },

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from './AppIcon.vue';
 
-/** Terminale yapıştırılacak komut ve "Kopyala" düğmesi. Panoya yazma işi sayfaya aittir. */
+/** A command to paste into a terminal, with a "Copy" button. Writing to the clipboard is up to the page. */
 defineProps<{ command: string; label: string; copyLabel: string; copiedLabel: string; copied: boolean }>();
 const emit = defineEmits<{ copy: [command: string] }>();
 </script>

@@ -9,5 +9,9 @@ playwright-report/
 .DS_Store
 web-ext-artifacts/
 
-# Kişisel tarayıcı çalıştırma ayarları (profil yolları, tarayıcı konumu)
+# Personal browser launch settings (profile paths, browser location)
 web-ext.config.ts
+
+# Private keys never belong in the repository (the release signing key is a GitHub secret)
+*.pem
+*.key

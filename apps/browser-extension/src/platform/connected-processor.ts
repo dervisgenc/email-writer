@@ -1,17 +1,10 @@
-import {
-  appError,
-  err,
-  ok,
-  toAiInput,
-  type AiPreferences,
-  type TextProcessor,
-} from '@email-writer/contracts';
+import { appError, err, ok, toAiInput, type AiPreferences, type TextProcessor } from '@writehand/contracts';
 
 import { createRequest, sendRequest } from './runtime-messaging';
 
 /**
- * Üretimi arka plandaki yerel bağlantıya gönderir. Kalıcı talimat her üretimde
- * ayardan okunur; ayarlar sayfasında yapılan değişiklik açık sekmede de geçerlidir.
+ * Sends generation to the local connection via the background. The standing instructions
+ * are read from settings on every generation, so a change on the settings page also applies to open tabs.
  */
 export function createConnectedProcessor(
   transport: (message: unknown) => Promise<unknown>,

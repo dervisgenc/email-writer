@@ -1,6 +1,6 @@
 import { maskIdentifier, maskText } from './mask-text';
 
-/** Değeri olduğu gibi gösterilen, içerik taşımayan yapısal öznitelikler. */
+/** Structural attributes that carry no content; their values are shown as is. */
 const STRUCTURAL_ATTRIBUTES = new Set([
   'role',
   'aria-expanded',
@@ -17,13 +17,13 @@ const STRUCTURAL_ATTRIBUTES = new Set([
   'dir',
 ]);
 
-/** Kimlik başvurusu taşıyan öznitelikler: değerleri kimlik gibi maskelenir. */
+/** Attributes that reference IDs: their values are masked like IDs. */
 const REFERENCE_ATTRIBUTES = new Set(['id', 'aria-labelledby', 'aria-describedby', 'aria-controls', 'for']);
 
-/** Değeri ad, konu veya adres içerebilen öznitelikler: biçimi maskelenerek gösterilir. */
+/** Attributes whose value may contain a name, subject or address: shown as a masked shape. */
 const MASKED_ATTRIBUTES = new Set(['aria-label', 'title', 'alt', 'aria-description', 'placeholder']);
 
-/** İçi gösterilmeyen elemanlar. */
+/** Elements whose contents are not shown. */
 const OPAQUE_TAGS = new Set(['svg', 'script', 'style', 'noscript', 'template', 'img', 'iframe']);
 
 const MAX_CLASSES = 4;
@@ -31,11 +31,11 @@ const MAX_CLASSES = 4;
 export interface StructureOptions {
   readonly maxDepth: number;
   readonly maxLines: number;
-  /** Bu seçiciye uyan elemanların içi dökülmez (ör. e-posta gövdesi). */
+  /** Elements matching this selector are not expanded (e.g. the email body). */
   readonly collapse: string;
 }
 
-/** Boşluk veya `@` içeren değer doğal metin ya da adres olabilir. */
+/** A value with whitespace or `@` may be natural text or an address. */
 const looksLikeText = (value: string) => /[\s@]/.test(value);
 
 function describeAttributes(element: Element): string {
@@ -49,7 +49,7 @@ function describeAttributes(element: Element): string {
     } else if (MASKED_ATTRIBUTES.has(name) || (name.startsWith('data-') && looksLikeText(value))) {
       parts.push(`${name}=«${maskText(value, 40)}»`);
     } else if (REFERENCE_ATTRIBUTES.has(name) || name.startsWith('data-')) {
-      // Outlook'un kendi işaretleri (ör. data-testid) olduğu gibi kalır; sayılar ve opak kimlikler gizlenir.
+      // Outlook's own markers (e.g. data-testid) stay as they are; numbers and opaque IDs are hidden.
       parts.push(`${name}=${maskIdentifier(value)}`);
     }
   }
@@ -62,7 +62,7 @@ function describeClasses(element: Element): string {
   return shown.join('') + (classes.length > MAX_CLASSES ? `(+${classes.length - MAX_CLASSES})` : '');
 }
 
-/** Elemanın doğrudan metin düğümlerinin maskeli biçimi. */
+/** Masked shape of the element's direct text nodes. */
 function ownTextShape(element: Element): string {
   const text = Array.from(element.childNodes)
     .filter((node) => node.nodeType === Node.TEXT_NODE)
@@ -74,9 +74,9 @@ function ownTextShape(element: Element): string {
 }
 
 /**
- * Bir DOM alt ağacının anonim yapısını satır satır verir: etiket, rol,
- * maskeli kimlik ve öznitelikler, sınıflar ve metnin maskeli biçimi.
- * Seçici doğrulamak içindir; gerçek metin, ad veya adres döndürmez.
+ * Returns the anonymous structure of a DOM subtree line by line: tag, role,
+ * masked ID and attributes, classes and the masked shape of the text.
+ * Meant for verifying selectors; it never returns real text, names or addresses.
  */
 export function describeStructure(root: Element, options: StructureOptions): string[] {
   const lines: string[] = [];
@@ -95,11 +95,11 @@ export function describeStructure(root: Element, options: StructureOptions): str
       return;
     }
     if (element.matches(options.collapse)) {
-      lines.push(`${indent}  … ${element.querySelectorAll('*').length} eleman (içi gösterilmiyor)`);
+      lines.push(`${indent}  … ${element.querySelectorAll('*').length} elements (contents not shown)`);
       return;
     }
     if (depth >= options.maxDepth && element.children.length > 0) {
-      lines.push(`${indent}  … ${element.children.length} alt eleman (derinlik sınırı)`);
+      lines.push(`${indent}  … ${element.children.length} child elements (depth limit)`);
       return;
     }
     for (const child of Array.from(element.children)) {
@@ -109,7 +109,7 @@ export function describeStructure(root: Element, options: StructureOptions): str
 
   visit(root, 0);
   if (lines.length >= options.maxLines) {
-    lines.push(`… satır sınırı (${options.maxLines})`);
+    lines.push(`… line limit (${options.maxLines})`);
   }
   return lines;
 }

@@ -1,4 +1,4 @@
-import { appError, err, ok, type RuntimeRequest, type RuntimeRequestType } from '@email-writer/contracts';
+import { appError, err, ok, type RuntimeRequest, type RuntimeRequestType } from '@writehand/contracts';
 
 import { createRequest, sendRequest, type RequestPayload, type RuntimeHandlers } from './runtime-messaging';
 

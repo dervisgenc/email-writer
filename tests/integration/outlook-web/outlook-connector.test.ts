@@ -1,5 +1,5 @@
-import type { ApplyRequest, ComposerRef, MailEvent } from '@email-writer/contracts';
-import type { OutlookWebConnection } from '@email-writer/outlook-web';
+import type { ApplyRequest, ComposerRef, MailEvent } from '@writehand/contracts';
+import type { OutlookWebConnection } from '@writehand/outlook-web';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { describeMailConnectorContract } from '../../contracts/mail-connector.contract';
@@ -13,7 +13,7 @@ import {
   typeInto,
 } from './outlook-page';
 
-describeMailConnectorContract('Outlook Web (sentetik örnek)', () => {
+describeMailConnectorContract('Outlook Web (synthetic fixture)', () => {
   loadFixture('conversation-inline-reply.html');
   const connection = createConnection();
   return {
@@ -27,7 +27,7 @@ describeMailConnectorContract('Outlook Web (sentetik örnek)', () => {
   };
 });
 
-describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
+describe('Outlook Web connector — reading the page and conversation', () => {
   let connection: OutlookWebConnection;
 
   beforeEach(() => {
@@ -39,19 +39,19 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     document.body.innerHTML = '';
   });
 
-  it('konuşmayı ve arama kutusu hariç yanıt taslağını tanır; mesaj gövdesi toplamaz', () => {
+  it('recognizes the conversation and the reply draft (but not the search box) without collecting message bodies', () => {
     const state = connection.connector.getPageState();
 
     expect(state.support).toBe('ready');
     expect(state.activeThread?.threadKey).toMatch(/^conv-/);
     expect(state.composers).toHaveLength(1);
     expect(state.composers[0]?.threadKey).toBe(state.activeThread?.threadKey);
-    // Hesap kapsamı opaktır; hesap adını veya adresini taşımaz.
+    // The account scope is opaque; it carries neither the account name nor the address.
     expect(state.scope?.accountScopeId).toMatch(/^acct-[0-9a-z]+$/);
     expect(JSON.stringify(state)).not.toContain('Deneme');
   });
 
-  it('tıklanan konuşmadaki açık mesajları gönderen, tarih ve bloklarıyla okur', async () => {
+  it('reads the expanded messages of the clicked conversation with sender, date and blocks', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const result = await connection.connector.readThread(thread, never);
     if (!result.ok) throw new Error(result.error.code);
@@ -59,7 +59,7 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
 
     expect(result.value.subject).toBe('Proje toplantısı');
     expect(result.value.messages).toHaveLength(2);
-    // Gönderenin adresi alınmaz; görünen tarih ayrıştırılmaz.
+    // The sender's address is not taken; the displayed date is not parsed.
     expect(first).toMatchObject({
       senderLabel: 'Mehmet Demir',
       sentAt: null,
@@ -68,12 +68,12 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     expect(first?.blocks.map((block) => block.kind)).toEqual(['body', 'signature']);
     expect(first?.blocks[0]?.text).toBe('Merhaba Ayşe,\n\nPerşembe 14:00 toplantısını teyit edebilir misin?');
 
-    // Tarih elemanı tanınmıyorsa tarih uydurulmaz.
+    // No date is made up when the date element is not recognized.
     expect(second).toMatchObject({ senderLabel: 'Ayşe Kaya', sentAt: null, sentAtText: null });
     expect(second?.blocks.map((block) => block.kind)).toEqual(['body', 'quote']);
   });
 
-  it('gizli metni, betikleri ve form değerlerini almaz; tablo ve listeleri okunur tutar', async () => {
+  it('skips hidden text, scripts and form values while keeping tables and lists readable', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const result = await connection.connector.readThread(thread, never);
     if (!result.ok) throw new Error(result.error.code);
@@ -88,7 +88,7 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     expect(body).not.toContain('color: red');
   });
 
-  it('kapalı mesajı okunmuş saymaz ve kapsamı açıkça raporlar', async () => {
+  it('does not count a collapsed message as read and reports the coverage explicitly', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const result = await connection.connector.readThread(thread, never);
     if (!result.ok) throw new Error(result.error.code);
@@ -100,22 +100,22 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
       knownUnreadableMessageCount: 1,
       reasons: ['unverified-history', 'collapsed-messages'],
     });
-    // İki açık mesaj var ve makinece okunur tarih yok: aktif mesaj tahmin edilmez.
+    // There are two expanded messages and no machine-readable date, so the active message is not guessed.
     expect(result.value.activeMessageKey).toBeNull();
   });
 
-  it('okuma iptal edilirse yarım sonuç dönmez', async () => {
+  it('returns no partial result when the read is cancelled', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const result = await connection.connector.readThread(thread, { aborted: true });
     expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: 'READ_CANCELLED' }) });
   });
 
-  it('konuşma değişince olay yayar ve eski konuşmayı okumaz', async () => {
+  it('emits an event when the conversation changes and no longer reads the old one', async () => {
     const events: MailEvent[] = [];
     connection.connector.subscribe((event) => events.push(event));
     const previous = connection.connector.getPageState().activeThread!;
 
-    // Outlook başka konuşmayı açınca listede seçim ve okuma bölmesi birlikte değişir.
+    // When Outlook opens another conversation, the list selection and the reading pane change together.
     document.querySelector('[data-convid="AAQkCONV1"]')?.setAttribute('aria-selected', 'false');
     document.querySelector('[data-convid="AAQkOTHER"]')?.setAttribute('aria-selected', 'true');
     document.getElementById('CONV_c1_SUBJECT')!.id = 'CONV_c2_SUBJECT';
@@ -128,12 +128,12 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     });
   });
 
-  it("ileti listesi kaydırılıp seçili satır DOM'dan çıkınca konuşma değişmiş sayılmaz", async () => {
+  it('does not count it as a conversation change when the message list scrolls and the selected row leaves the DOM', async () => {
     const events: MailEvent[] = [];
     connection.connector.subscribe((event) => events.push(event));
     const thread = connection.connector.getPageState().activeThread!;
 
-    // Sanal liste ekran dışındaki satırları kaldırır; okuma bölmesi aynı kalır.
+    // The virtual list removes off-screen rows; the reading pane stays the same.
     document.querySelector('[data-convid="AAQkCONV1"]')?.remove();
     await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -142,20 +142,20 @@ describe('Outlook Web bağlantısı — sayfa ve konuşma okuma', () => {
     expect((await connection.connector.readThread(thread, never)).ok).toBe(true);
   });
 
-  it('gelen mesajdaki seçimi, ait olduğu mesajın kimliğiyle verir', async () => {
+  it('returns a selection in a received message together with the ID of its message', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const snapshot = await connection.connector.readThread(thread, never);
     if (!snapshot.ok) throw new Error(snapshot.error.code);
     selectText(document.getElementById('UniqueMessageBody_2')!, 'Thursday works for me');
 
     const selection = await connection.connector.readSelectedMessageText(thread);
-    if (!selection.ok || selection.value === null) throw new Error('seçim yok');
+    if (!selection.ok || selection.value === null) throw new Error('no selection');
     expect(selection.value.text).toBe('Thursday works for me');
     expect(selection.value.messageKey).toBe(snapshot.value.messages[1]?.messageKey);
   });
 });
 
-describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
+describe('Outlook Web connector — reading and writing the draft', () => {
   let connection: OutlookWebConnection;
   let writer: ReturnType<typeof createDomWriter>;
   let composer: ComposerRef;
@@ -174,7 +174,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
   async function captureSelection(phrase: string, occurrence = 0) {
     selectText(editor(), phrase, occurrence);
     const selection = await connection.connector.captureDraftSelection(composer);
-    if (!selection.ok || selection.value === null) throw new Error('seçim yok');
+    if (!selection.ok || selection.value === null) throw new Error('no selection');
     return selection.value;
   }
 
@@ -195,7 +195,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     };
   }
 
-  it('kullanıcının yazdığı bölümü imza ve alıntıdan ayırır', async () => {
+  it('separates the user-written part from the signature and quote', async () => {
     const result = await connection.connector.readComposer(composer);
     if (!result.ok) throw new Error(result.error.code);
 
@@ -206,7 +206,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(result.value.containsRichContent).toBe(false);
   });
 
-  it('seçili bölümü değiştirir; öncesi, sonrası, imza ve alıntı aynı kalır', async () => {
+  it('replaces the selected part, leaving the text before and after, the signature and the quote unchanged', async () => {
     const selection = await captureSelection('toplantı odası');
     const outcome = await connection.connector.applyText(selectionRequest(selection, 'salon'));
 
@@ -216,15 +216,15 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(document.getElementById('divRplyFwdMsg')?.textContent).toContain('Ayşe Kaya');
   });
 
-  it('aynı kelime farklı yerlerde varsa yalnızca seçilen geçiş değişir', async () => {
-    // "toplantı" ikinci kez (küçük harfle) geçiyor; yalnızca o seçilir.
+  it('changes only the selected occurrence when the same word appears in several places', async () => {
+    // "toplantı" appears a second time (in lowercase); only that occurrence is selected.
     const selection = await captureSelection('toplantı', 0);
     await connection.connector.applyText(selectionRequest(selection, 'oda'));
 
     expect(editor().querySelector('div')?.textContent).toBe('Toplantı yarın olsun mu, oda odası hazır.');
   });
 
-  it('imzaya taşan seçim taslak seçimi olarak kabul edilmez', async () => {
+  it('does not accept a selection that runs into the signature as a draft selection', async () => {
     const range = document.createRange();
     range.setStart(editor().querySelector('div')!.firstChild!, 5);
     range.setEnd(document.getElementById('Signature')!.lastElementChild!.firstChild!, 3);
@@ -237,7 +237,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     });
   });
 
-  it('uygulama düğmesine iki kez basılırsa tek yazma yapılır', async () => {
+  it('writes once when the apply button is pressed twice', async () => {
     const selection = await captureSelection('toplantı odası');
     const request = selectionRequest(selection, 'salon');
     const [first, second] = await Promise.all([
@@ -249,7 +249,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(writer.calls).toBe(1);
   });
 
-  it('yazma doğrulanamazsa sonuç belirsizdir ve otomatik tekrar yapılmaz', async () => {
+  it('reports an unverifiable write as uncertain and does not retry automatically', async () => {
     const faulty = {
       id: 'faulty',
       replaceRange: (_editor: HTMLElement, range: Range) => {
@@ -271,7 +271,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     });
   });
 
-  it('editör değişikliği kabul etmezse güvenle reddeder', async () => {
+  it('rejects safely when the editor does not accept the change', async () => {
     connection.connector.dispose();
     connection = createConnection({ id: 'refusing', replaceRange: () => false, insertHtml: () => false });
     composer = connection.connector.getPageState().composers[0]!;
@@ -283,7 +283,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     });
   });
 
-  it('gövdeyi değiştirirken imza ve önceki yazışmayı korur', async () => {
+  it('keeps the signature and earlier correspondence when replacing the body', async () => {
     const snapshot = await connection.connector.readComposer(composer);
     if (!snapshot.ok) throw new Error(snapshot.error.code);
     const outcome = await connection.connector.applyText({
@@ -299,7 +299,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(document.getElementById('divRplyFwdMsg')).not.toBeNull();
   });
 
-  it('biçimli içeriği (tablo ve liste) gövdeye yazar, görünen metinle doğrular ve geri alınabilir bırakır', async () => {
+  it('writes rich content (table and list) to the body, verifies it against the visible text and keeps it undoable', async () => {
     const snapshot = await connection.connector.readComposer(composer);
     if (!snapshot.ok) throw new Error(snapshot.error.code);
     const outcome = await connection.connector.applyText({
@@ -321,7 +321,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(document.getElementById('divRplyFwdMsg')).not.toBeNull();
   });
 
-  it('Outlook odak geçince alıntıyı doldurursa yazma bundan sonra yapılır ve doğrulanır', async () => {
+  it('writes and verifies after Outlook fills in the quote on focus', async () => {
     const snapshot = await connection.connector.readComposer(composer);
     if (!snapshot.ok) throw new Error(snapshot.error.code);
     const quote = document.getElementById('divRplyFwdMsg')!;
@@ -343,7 +343,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(after.ok && after.value.editableText).toBe('Odak sonrası gövde.');
   });
 
-  it('Outlook yazmadan hemen sonra alıntının sonuna içerik eklerse yazma doğrulanır; imzanın başı değişirse doğrulanmaz', async () => {
+  it('verifies the write when Outlook appends content after the quote right after writing, but not when the start of the signature changes', async () => {
     const write = async (id: string, react: () => void) => {
       connection.connector.dispose();
       loadFixture('conversation-inline-reply.html');
@@ -380,7 +380,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(merged).toMatchObject({ status: 'uncertain' });
   });
 
-  it('cümle içindeki bir seçime biçimli içerik yazmaz', async () => {
+  it('does not write rich content into an in-sentence selection', async () => {
     const selection = await captureSelection('toplantı odası');
     const outcome = await connection.connector.applyText({
       ...selectionRequest(selection, 'salon'),
@@ -394,12 +394,12 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(writer.calls).toBe(0);
   });
 
-  it('imza veya önceki yazışma değişince sürüm artmaz; kullanıcının metni değişince artar', async () => {
+  it("does not bump the revision when the signature or earlier correspondence changes, but does when the user's text changes", async () => {
     const before = await connection.connector.readComposer(composer);
     if (!before.ok) throw new Error(before.error.code);
     document.getElementById('divRplyFwdMsg')?.append(document.createTextNode(' (Outlook ekledi)'));
     document.getElementById('Signature')?.append(document.createElement('div'));
-    // Outlook alıntıyı eklerken sondaki boş satırı da kaldırabilir.
+    // Outlook may also remove the trailing blank line while adding the quote.
     const blank = document.createElement('div');
     blank.append(document.createElement('br'));
     document.getElementById('Signature')?.before(blank);
@@ -408,7 +408,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     const quoted = await connection.connector.readComposer(composer);
     expect(quoted.ok && quoted.value.revision).toBe(before.value.revision);
 
-    // Outlook yazılan içeriği kendi yapısına göre yeniden düzenleyebilir (metin aynı).
+    // Outlook may restructure written content to fit its own layout (same text).
     const first = editor().querySelector('div')!;
     const wrapper = document.createElement('div');
     first.replaceWith(wrapper);
@@ -422,14 +422,14 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     const typed = await connection.connector.readComposer(composer);
     expect(typed.ok && typed.value.revision).toBe(before.value.revision + 1);
 
-    // Metin değişmese de resim veya tablo eklenmesi taslağı değiştirir.
+    // Adding an image or table changes the draft even when the text stays the same.
     first.append(document.createElement('img'));
     await new Promise((resolve) => setTimeout(resolve, 200));
     const withImage = await connection.connector.readComposer(composer);
     expect(withImage.ok && withImage.value.revision).toBe(before.value.revision + 2);
   });
 
-  it('DOM editörü yeniden oluşturursa eski seçim ve hedef kullanılamaz', async () => {
+  it('cannot use the old selection and target after the DOM recreates the editor', async () => {
     const selection = await captureSelection('toplantı odası');
     const old = editor();
     const replacement = old.cloneNode(true) as HTMLElement;
@@ -442,7 +442,7 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(replacement.textContent).toContain('toplantı odası');
   });
 
-  it('taslak kaldırılınca olay yayar', async () => {
+  it('emits an event when the draft is removed', async () => {
     const events: MailEvent[] = [];
     connection.connector.subscribe((event) => events.push(event));
     editor().closest('[id^="docking_InitVisiblePart"]')?.remove();
@@ -452,9 +452,9 @@ describe('Outlook Web bağlantısı — taslak okuma ve yazma', () => {
     expect(connection.connector.getPageState().composers).toEqual([]);
   });
 
-  it('eklentinin kendi arayüzündeki metin okunmaz ve editör sayılmaz', async () => {
+  it("neither reads text from the extension's own UI nor treats it as an editor", async () => {
     const host = document.createElement('div');
-    host.setAttribute('data-email-writer-ui', 'panel');
+    host.setAttribute('data-writehand-ui', 'panel');
     host.innerHTML = '<div contenteditable="true" role="textbox" aria-multiline="true">panel metni</div>';
     document.getElementById('UniqueMessageBody_1')?.append(host.cloneNode(true));
     document.body.append(host);

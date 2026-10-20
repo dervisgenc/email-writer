@@ -1,7 +1,7 @@
 /*
- * Eklentinin kendi sayfaları (ayarlar, karşılama sihirbazı): sayfa kabuğu, parçalı seçim,
- * anahtar düğmesi, komut kutusu, adım listesi ve yardımcı uygulama kartı. Renkler
- * tokens.css'teki Fluent değişkenlerinden gelir; açık/koyu tema aynı kurallarla çalışır.
+ * The extension's own pages (settings, welcome wizard): page shell, segmented control,
+ * switch, command box, step list and helper app card. Colors come from the Fluent
+ * variables in tokens.css, so light and dark themes share the same rules.
  */
 body {
   margin: 0;
@@ -48,7 +48,7 @@ body {
   font-size: 13px;
 }
 
-/* Parçalı seçim: birbirini dışlayan birkaç seçenek (tema, işletim sistemi). */
+/* Segmented control: a few mutually exclusive options (theme, operating system). */
 .ew-root .ew-segmented {
   display: inline-flex;
   flex-wrap: wrap;
@@ -82,7 +82,7 @@ body {
   outline-offset: 1px;
 }
 
-/* Açıklamalı açma/kapama satırı. */
+/* Toggle row with a description. */
 .ew-root .ew-switch-row {
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@ body {
   transform: translateX(20px);
 }
 
-/* Kopyalanabilir terminal komutu; uzun komut satır kaydırarak tamamen görünür, sayfa kaymaz. */
+/* Copyable terminal command; a long command wraps so it stays fully visible without page scroll. */
 .ew-root .ew-command {
   display: flex;
   align-items: stretch;
@@ -164,7 +164,7 @@ body {
   border-radius: 0;
 }
 
-/* Sihirbazın adımları. */
+/* Wizard steps. */
 .ew-root .ew-steps {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -231,7 +231,7 @@ body {
   white-space: nowrap;
 }
 
-/* Bir adımın ya da kartın sonucunu bildiren satır (bekleniyor / tamam / sorun). */
+/* A row reporting the outcome of a step or card (pending / done / problem). */
 .ew-root .ew-progress {
   display: flex;
   align-items: flex-start;
@@ -257,7 +257,7 @@ body {
   margin-top: 1px;
 }
 
-/* Madde listesi ve açılır ayrıntılar (kart içinde). */
+/* Bullet list and expandable details (inside a card). */
 .ew-root .ew-points {
   display: grid;
   gap: 10px;
@@ -306,7 +306,7 @@ body {
   padding-top: var(--ew-space-3);
 }
 
-/* İki sütunlu karşılaştırma (ör. ne yapar / ne yapmaz); dar ekranda alt alta. */
+/* Two-column comparison (e.g. what it does / does not do); stacked on narrow screens. */
 .ew-root .ew-split {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -321,7 +321,7 @@ body {
   color: var(--ew-color-danger);
 }
 
-/* Alıntılanan örnek metin ve sonucu. */
+/* A quoted sample text and its result. */
 .ew-root .ew-sample {
   margin: 0;
   padding: 10px 12px;
@@ -337,7 +337,7 @@ body {
   border-left-color: var(--ew-color-success);
 }
 
-/* Sihirbazın Geri / İleri düğmeleri. */
+/* Wizard Back / Next buttons. */
 .ew-root .ew-wizard-nav {
   display: flex;
   justify-content: flex-end;
@@ -350,7 +350,7 @@ body {
   text-decoration: none;
 }
 
-/* Yardımcı uygulama kartı. */
+/* Helper app card. */
 .ew-root .ew-helper__meta {
   display: grid;
   gap: 4px;

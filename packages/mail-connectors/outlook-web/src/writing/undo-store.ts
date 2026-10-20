@@ -1,27 +1,27 @@
-import type { ComposerRef } from '@email-writer/contracts';
+import type { ComposerRef } from '@writehand/contracts';
 
 /**
- * Geri alma kaydı bağlantı modülünün belleğinde kalır; depolamaya yazılmaz.
- * Taslak başına yalnızca son eklenti değişikliği tutulur.
+ * Undo records stay in the connector's memory and are never written to storage.
+ * Only the extension's last change is kept per draft.
  */
 export interface UndoRecord {
   readonly undoId: string;
   readonly applyOperationId: string;
   readonly composerRef: ComposerRef;
-  /** Uygulamadan sonraki editör sürümü; geri alma ancak bu sürümde yapılır. */
+  /** Editor revision after the apply; undo is only possible at this revision. */
   readonly revisionAfter: number;
-  /** Değişen bölümün düzenlenebilir metindeki başlangıcı. */
+  /** Start of the changed part within the editable text. */
   readonly start: number;
-  /** Uygulamadan sonra o bölümde bulunan metin. */
+  /** Text in that part after the apply. */
   readonly insertedText: string;
-  /** Uygulamadan önce o bölümde bulunan metin (düz metin olarak geri gelir). */
+  /** Text in that part before the apply (restored as plain text). */
   readonly previousText: string;
   readonly editableTextBefore: string;
   readonly protectedText: string;
 }
 
 export interface UndoStore {
-  /** Yeni kayıt aynı taslağın önceki kaydının yerini alır. */
+  /** A new record replaces the previous record for the same draft. */
   save(record: UndoRecord): void;
   find(undoId: string): UndoRecord | null;
   remove(undoId: string): void;

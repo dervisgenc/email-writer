@@ -13,7 +13,7 @@ import type { AbortSignalLike, Result } from './result';
 
 export type PageSupport = 'waiting' | 'ready' | 'unsupported';
 
-/** Sayfanın genel durumu. Mesaj gövdesi taşımaz. */
+/** Overall page state. Carries no message bodies. */
 export interface PageState {
   readonly support: PageSupport;
   readonly scope: MailScope | null;
@@ -34,9 +34,9 @@ export type MailEvent =
   | { readonly type: 'composer-removed'; readonly ref: ComposerRef }
   | {
       /**
-       * Aynı editörün ait olduğu konuşma sonradan anlaşıldı (ör. Outlook yanıtı
-       * konuşmaya geç bağladı). Editör, sürümü ve kayıtları aynı kalır; yalnızca
-       * kimlik kaydı yenilenir.
+       * The conversation an existing editor belongs to became known later (e.g. Outlook
+       * linked the reply to the conversation late). The editor, its revision and its
+       * records stay the same; only the identity record is refreshed.
        */
       readonly type: 'composer-rebound';
       readonly previous: ComposerRef;
@@ -49,14 +49,14 @@ export type MailEvent =
     };
 
 export interface ApplyRequest {
-  /** Aynı kimlikle ikinci kez yazma yapılmaz. */
+  /** A second write with the same ID is never performed. */
   readonly applyOperationId: string;
   readonly target: ApplyTarget;
   readonly text: string;
   /**
-   * Biçimli içerik (liste, tablo, grafik). Yalnızca taslağın tamamına veya boş
-   * taslağa yazarken verilir; `text` aynı içeriğin düz metin karşılığıdır.
-   * `visibleText`, yazmadan sonra editörde okunması beklenen metindir.
+   * Formatted content (lists, tables, charts). Given only when writing to the whole draft
+   * or to an empty draft; `text` is the plain-text equivalent of the same content.
+   * `visibleText` is the text the editor is expected to read back after the write.
    */
   readonly rich?: { readonly html: string; readonly visibleText: string };
 }
@@ -65,7 +65,7 @@ export type ApplyOutcome =
   | {
       readonly status: 'applied';
       readonly composerRevision: number;
-      /** Değişen bölüm kesin sınırlanamadıysa `null`; geri alma sunulmaz. */
+      /** `null` when the changed range could not be bounded exactly; undo is not offered. */
       readonly undoId: string | null;
     }
   | { readonly status: 'rejected'; readonly error: AppError }
@@ -77,39 +77,39 @@ export type UndoOutcome =
   | { readonly status: 'uncertain'; readonly error: AppError };
 
 /**
- * Her e-posta ortamının (Outlook Web, Gmail Web, Outlook masaüstü) uyguladığı
- * ortak bağlantı arayüzü. Uygulama bağlantıya seçici göndermez; anlamlı
- * işlemler ister. Okuma ve yazma işlemleri asenkrondur çünkü bazı ortamlar
- * (ör. Office.js) yalnızca asenkron erişim sunar.
+ * Common connector interface that every email environment (Outlook Web, Gmail Web,
+ * Outlook desktop) implements. The app never passes selectors to a connector; it asks
+ * for meaningful operations. Reads and writes are async because some environments
+ * (e.g. Office.js) offer only async access.
  */
 export interface MailConnector {
   readonly providerId: string;
 
-  /** Destek durumu, etkin konuşma ve görünen taslak referansları. */
+  /** Support state, active conversation and references to the visible drafts. */
   getPageState(): PageState;
 
-  /** Yalnızca istenen konuşmanın erişilebilir içeriğini okur. */
+  /** Reads only the accessible content of the requested conversation. */
   readThread(ref: ThreadRef, signal: AbortSignalLike): Promise<Result<ThreadSnapshot, AppError>>;
 
   readComposer(ref: ComposerRef): Promise<Result<ComposerSnapshot, AppError>>;
 
   /**
-   * Uygulamalar canlı seçimi ilk `await`ten önce, eşzamanlı olarak okumalıdır;
-   * aksi halde odak panele geçtiğinde seçim kaybolabilir.
+   * Implementations must read the live selection synchronously, before the first `await`;
+   * otherwise the selection can be lost once focus moves to the panel.
    */
   captureDraftSelection(ref: ComposerRef): Promise<Result<DraftSelection | null, AppError>>;
 
   readSelectedMessageText(ref: ThreadRef): Promise<Result<ReceivedMessageSelection | null, AppError>>;
 
-  /** Abonelikten çıkma fonksiyonu döndürür. */
+  /** Returns an unsubscribe function. */
   subscribe(listener: (event: MailEvent) => void): () => void;
 
-  /** Hedefi DOM'a yazmadan hemen önce tekrar doğrular ve yalnızca bir kez yazar. */
+  /** Revalidates the target right before writing to the DOM and writes only once. */
   applyText(request: ApplyRequest): Promise<ApplyOutcome>;
 
-  /** Yalnızca koşulları hâlâ geçerli olan son eklenti değişikliğini geri alır. */
+  /** Undoes only the latest extension change, and only while its conditions still hold. */
   undoChange(undoId: string): Promise<UndoOutcome>;
 
-  /** Gözlemcileri, seçim ve geri alma kayıtlarını, DOM bağlantılarını temizler. */
+  /** Clears observers, selection and undo records, and DOM references. */
   dispose(): void;
 }

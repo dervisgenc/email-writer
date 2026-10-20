@@ -1,8 +1,8 @@
-// Firefox duman testi (WebDriver BiDi). Playwright'ın eklenti desteği Chromium
-// ile sınırlı olduğu için Firefox paketi gerçek Firefox'ta ayrıca denenir.
-// Başsız Firefox açılır, test derlemesi geçici eklenti olarak yüklenir ve
-// sentetik Outlook örnek sayfasında seç → Düzelt → örnek sonuç → taslağa uygula
-// akışı denenir. Bu test gerçek Outlook sayfasının doğrulandığı anlamına gelmez.
+// Firefox smoke test (WebDriver BiDi). Playwright's extension support is limited
+// to Chromium, so the Firefox package is tried separately in a real Firefox.
+// A headless Firefox starts, the test build is loaded as a temporary add-on, and
+// the select → Revise → sample result → apply to draft flow is tried on the
+// synthetic Outlook fixture page. Passing it does not mean the real Outlook page is verified.
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +26,7 @@ async function waitFor(check, label, timeoutMs = 10_000) {
       return value;
     }
     if (Date.now() - started > timeoutMs) {
-      throw new Error(`Zaman aşımı: ${label}`);
+      throw new Error(`Timed out: ${label}`);
     }
     await sleep(200);
   }
@@ -49,40 +49,40 @@ function record(name, ok, detail = '') {
 let server;
 let firefox;
 let bidi;
-const profile = mkdtempSync(join(tmpdir(), 'email-writer-firefox-'));
-// Arayüz dili varsayılan olarak tarayıcı dilini izler; duman testi Türkçe metinleri doğrular.
+const profile = mkdtempSync(join(tmpdir(), 'writehand-firefox-'));
+// The UI language follows the browser language by default; the smoke test asserts the Turkish texts.
 writeFileSync(join(profile, 'user.js'), 'user_pref("intl.accept_languages", "tr-TR, tr");\n');
 
 try {
   if (!(await isServing())) {
     server = spawn(process.execPath, [resolve(root, 'scripts/serve-fixtures.mjs')], { stdio: 'ignore' });
-    await waitFor(isServing, 'örnek sayfa sunucusu');
+    await waitFor(isServing, 'fixture page server');
   }
 
   firefox = await launchFirefox({ profile, port: bidiPort, headless: true });
-  console.log(`Tarayıcı: ${firefoxVersion(firefox.firefox)}`);
+  console.log(`Browser: ${firefoxVersion(firefox.firefox)}`);
 
-  bidi = await waitFor(() => connectBidi(bidiPort).catch(() => null), 'WebDriver BiDi bağlantısı', 20_000);
+  bidi = await waitFor(() => connectBidi(bidiPort).catch(() => null), 'WebDriver BiDi connection', 20_000);
 
   await bidi.send('session.new', { capabilities: {} });
   const installed = await bidi.send('webExtension.install', {
     extensionData: { type: 'path', path: extensionPath },
   });
   record(
-    'Firefox MV3 test paketi geçici eklenti olarak yüklendi',
+    'Firefox MV3 test package loaded as a temporary add-on',
     Boolean(installed.extension),
     installed.extension,
   );
 
-  // İlk kurulumda eklenti karşılama sihirbazını kendi sekmesinde açar.
+  // On first install the extension opens the welcome wizard in its own tab.
   const welcome = await waitFor(async () => {
     const { contexts } = await bidi.send('browsingContext.getTree', {});
     return contexts.find((item) => /^moz-extension:\/\/[^/]+\/welcome\.html$/.test(item.url));
-  }, 'karşılama sihirbazı sekmesi').catch(() => null);
-  record('İlk kurulumda karşılama sihirbazı açıldı', welcome !== null, welcome?.url ?? '');
+  }, 'welcome wizard tab').catch(() => null);
+  record('Welcome wizard opened on first install', welcome !== null, welcome?.url ?? '');
 
   const tree = await bidi.send('browsingContext.getTree', {});
-  // Sihirbazın sekmesi değil, testin kendi sekmesi kullanılır.
+  // Use the test's own tab, not the wizard's.
   const context = tree.contexts.find((item) => !item.url.startsWith('moz-extension://')).context;
   await bidi.send('browsingContext.navigate', { context, url: fixtureUrl, wait: 'complete' });
 
@@ -99,13 +99,13 @@ try {
   };
 
   const launchers = await waitFor(async () => {
-    const count = await evaluate(`document.querySelectorAll('email-writer-launcher').length`);
+    const count = await evaluate(`document.querySelectorAll('writehand-launcher').length`);
     return count >= 2 ? count : 0;
-  }, 'başlatıcı düğmeler').catch(() => 0);
+  }, 'launcher buttons').catch(() => 0);
   record(
-    'Content script çalıştı; konuşma ve taslak başlatıcıları eklendi',
+    'Content script ran; conversation and draft launchers were added',
     launchers === 2,
-    `${launchers} başlatıcı`,
+    `${launchers} launchers`,
   );
 
   await evaluate(`(() => {
@@ -117,7 +117,7 @@ try {
     range.setEnd(text, start + 'toplantı odası'.length);
     getSelection().removeAllRanges();
     getSelection().addRange(range);
-    const host = [...document.querySelectorAll('email-writer-launcher')]
+    const host = [...document.querySelectorAll('writehand-launcher')]
       .find((element) => element.shadowRoot?.querySelector('.ew-compose-bar'));
     [...host.shadowRoot.querySelectorAll('.ew-compose-bar button')]
       .find((button) => button.textContent.trim() === 'Düzelt')
@@ -125,14 +125,14 @@ try {
     return true;
   })()`);
 
-  // "Düzelt" işlemi doğrudan yapar; sonuç taslağın yanındaki kartta görünür.
-  const cardQuery = `[...document.querySelectorAll('email-writer-launcher')].map((host) => host.shadowRoot?.querySelector('.ew-card')).find(Boolean)`;
+  // "Düzelt" (Revise) runs directly; the result appears in the card next to the draft.
+  const cardQuery = `[...document.querySelectorAll('writehand-launcher')].map((host) => host.shadowRoot?.querySelector('.ew-card')).find(Boolean)`;
   const preview = await waitFor(
     () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__source')?.value ?? ''`),
-    'sonuç kartı',
+    'result card',
   ).catch(() => '');
   record(
-    'Taslaktaki "Düzelt" düğmesi seçimi işledi; etiketli örnek sonuç kartta göründü',
+    'The draft "Düzelt" (Revise) button processed the selection; the labeled sample result appeared in the card',
     preview === 'Toplantıyı yarın yapabiliriz.',
     JSON.stringify(preview),
   );
@@ -143,25 +143,25 @@ try {
   const applied = await waitFor(async () => {
     const text = await evaluate(`document.querySelector('[data-fixture="reply-editor"] div').textContent`);
     return text.includes('Toplantıyı yarın yapabiliriz.') ? text : '';
-  }, 'taslağa yazma').catch(() => '');
+  }, 'writing to the draft').catch(() => '');
   const signature = await evaluate(
     `document.getElementById('Signature').textContent.includes('Deneme Kullanıcı')`,
   );
   record(
-    'Sonuç yalnızca seçili bölüme yazıldı; imza korundu',
+    'The result was written only to the selected part; the signature was kept',
     applied === 'Toplantı yarın olsun mu, Toplantıyı yarın yapabiliriz. hazır.' && signature,
     JSON.stringify(applied),
   );
 
-  // Biçimli içerik: taslağın tamamı düzeltilir, sonuç "Tablo yap" ile tabloya çevrilip yazılır.
+  // Rich content: the whole draft is revised, and "Tablo yap" (Make a table) turns the result into a table before writing it.
   await bidi.send('browsingContext.navigate', { context, url: fixtureUrl, wait: 'complete' });
   await waitFor(async () => {
-    const count = await evaluate(`document.querySelectorAll('email-writer-launcher').length`);
+    const count = await evaluate(`document.querySelectorAll('writehand-launcher').length`);
     return count >= 2 ? count : 0;
-  }, 'başlatıcı düğmeler');
+  }, 'launcher buttons');
   const clickIn = (selector, label) =>
     evaluate(`(() => {
-      const roots = [...document.querySelectorAll('email-writer-launcher')].map((host) => host.shadowRoot).filter(Boolean);
+      const roots = [...document.querySelectorAll('writehand-launcher')].map((host) => host.shadowRoot).filter(Boolean);
       const button = roots.flatMap((root) => [...root.querySelectorAll('${selector} button')])
         .find((element) => element.textContent.trim() === ${JSON.stringify(label)});
       button?.click();
@@ -171,17 +171,17 @@ try {
   await clickIn('.ew-compose-bar', 'Düzelt');
   await waitFor(
     () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__source')?.value ?? ''`),
-    'düzeltme sonucu',
+    'revision result',
   );
   await clickIn('.ew-card', 'Tablo yap');
   const previewTable = await waitFor(
     () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__paper table td')?.textContent ?? ''`),
-    'tablo önizlemesi',
+    'table preview',
   ).catch(() => '');
   await clickIn('.ew-card', 'Taslağa uygula');
   const written = await waitFor(
     () => evaluate(`document.querySelector('[data-fixture="reply-editor"] table td')?.textContent ?? ''`),
-    'tablonun taslağa yazılması',
+    'table written to the draft',
   ).catch(() => '');
   const signatureFirstLine = await evaluate(`document.querySelector('#Signature > div')?.textContent ?? ''`);
   const outcome = await waitFor(
@@ -189,10 +189,10 @@ try {
       evaluate(
         `[...(${cardQuery}?.querySelectorAll('[role=status], [role=alert]') ?? [])].map((node) => node.textContent.trim()).join(' / ')`,
       ),
-    'yazma sonucu',
+    'write outcome',
   ).catch(() => '');
   record(
-    'Biçimli sonuç tablo olarak önizlendi ve taslağa tablo olarak yazıldı; imza bozulmadı',
+    'The rich result was previewed and written to the draft as a table; the signature stayed intact',
     previewTable === 'Lisans' &&
       written === 'Lisans' &&
       signatureFirstLine === '--' &&
@@ -200,25 +200,25 @@ try {
     JSON.stringify({ previewTable, written, signatureFirstLine, outcome }),
   );
 } catch (error) {
-  record('Duman testi tamamlanamadı', false, error instanceof Error ? error.message : String(error));
+  record('The smoke test could not finish', false, error instanceof Error ? error.message : String(error));
 } finally {
   try {
     await bidi?.send('session.end', {});
   } catch {
-    // Oturum zaten kapanmış olabilir.
+    // The session may already be closed.
   }
   bidi?.close();
   firefox?.stop();
   server?.kill('SIGTERM');
   await sleep(300);
-  // Windows'ta kapanan Firefox'un alt süreçleri profil dosyalarını kısa bir süre daha tutabilir.
+  // On Windows, child processes of a closing Firefox may hold the profile files for a little longer.
   rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 }
 
 const failed = steps.filter((step) => !step.ok);
 console.log(
   failed.length === 0
-    ? '\nFirefox duman testi geçti.'
-    : `\nFirefox duman testinde ${failed.length} adım başarısız.`,
+    ? '\nFirefox smoke test passed.'
+    : `\nFirefox smoke test: ${failed.length} step(s) failed.`,
 );
 process.exit(failed.length === 0 ? 0 : 1);

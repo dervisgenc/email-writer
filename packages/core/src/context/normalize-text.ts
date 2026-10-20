@@ -1,9 +1,9 @@
 /**
- * Bağlam kopyası için biçim normalizasyonu: satır sonlarını tek biçime getirir,
- * satır sonundaki boşlukları ve art arda gelen boş satırları temizler.
- * Harflere, sayılara, adreslere ve paragraf sırasına dokunmaz.
+ * Format normalization for the context copy: unifies line endings and removes trailing
+ * whitespace and consecutive blank lines. Letters, numbers, addresses and paragraph order
+ * are left untouched.
  *
- * Taslak seçim indislerine uygulanmaz; yalnızca bağlam kopyası içindir.
+ * Never applied to draft selection indices; it is for the context copy only.
  */
 export function normalizeContextText(text: string): string {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
@@ -26,9 +26,9 @@ export function normalizeContextText(text: string): string {
 }
 
 /**
- * Yalnızca eşitlik karşılaştırması için satır anahtarları üretir: Unicode
- * biçimini birleştirir, satır içi boşluk farklarını yok sayar ve boş satırları
- * atar. Sonuç metne uygulanmaz.
+ * Produces line keys for equality comparison only: normalizes the Unicode form, ignores
+ * whitespace differences within lines and drops blank lines. The result is never applied
+ * to the text.
  */
 export function toComparisonLines(text: string): string[] {
   return normalizeContextText(text.normalize('NFC'))

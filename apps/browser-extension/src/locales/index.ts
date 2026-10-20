@@ -4,7 +4,7 @@ import {
   UI_LANGUAGES,
   type UiLanguage,
   type UiLanguagePreference,
-} from '@email-writer/contracts';
+} from '@writehand/contracts';
 
 import { de } from './de';
 import { en } from './en';
@@ -15,7 +15,7 @@ import { tr } from './tr';
 
 const TEXTS: Readonly<Record<UiLanguage, ExtensionText>> = { tr, en, de, fr, es };
 
-/** Ayardaki tercih (`auto` dahil) ve tarayıcı dillerine göre arayüz dili. */
+/** The UI language for the stored preference (including `auto`) and the browser languages. */
 export function uiLanguageFor(
   preference: UiLanguagePreference,
   browserLanguages: readonly string[] = globalThis.navigator?.languages ?? [],
@@ -30,8 +30,8 @@ export function textFor(preference: UiLanguagePreference): ExtensionText {
 type ManifestMessages = Record<'extName' | 'extDescription', { readonly message: string }>;
 
 /**
- * Manifestteki ad ve açıklamanın çevirileri (`_locales/<dil>/messages.json`). Tarayıcı
- * bunları kendi diline göre seçer; derleme bu dosyaları buradan üretir.
+ * Translations of the manifest name and description (`_locales/<language>/messages.json`).
+ * The browser picks them by its own language; the build generates these files from here.
  */
 export function manifestMessages(): Record<UiLanguage, ManifestMessages> {
   const messages = {} as Record<UiLanguage, ManifestMessages>;

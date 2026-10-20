@@ -1,8 +1,8 @@
 import type { ContextCoverage, ThreadRef } from './mail';
 
 /**
- * Bu belgedeki "context", kullanıcının işlemde kullanmayı seçtiği mesajların
- * düzenli veri paketidir. Prompt, özet veya AI çıktısı değildir.
+ * In this file, "context" is the structured data package of the messages the user chose
+ * to use in an action. It is not a prompt, a summary or AI output.
  */
 
 export interface ContextMessage {
@@ -10,14 +10,14 @@ export interface ContextMessage {
   readonly senderLabel: string | null;
   readonly sentAt: string | null;
   readonly sentAtText: string | null;
-  /** Mesajın okunduğu konuşmanın konusu. */
+  /** Subject of the conversation the message was read from. */
   readonly subject: string | null;
   /**
-   * `current`: açık konuşmadan veya aynı konulu bir konuşmadan (varsayılan
-   * olarak bağlamdadır). `other`: kullanıcının başka bir konuşmadan eklediği.
+   * `current`: from the open conversation or one with the same subject (in context by
+   * default). `other`: added by the user from another conversation.
    */
   readonly conversation: 'current' | 'other';
-  /** Metin, kullanıcının bağlam denetleyicisinde yaptığı düzenlemedir. */
+  /** The text is the user's edit from the context panel. */
   readonly edited: boolean;
   readonly text: string;
 }
@@ -37,7 +37,7 @@ export interface ContextSnapshot {
   readonly contextId: string;
   readonly threadRef: ThreadRef;
   readonly threadRevision: number;
-  /** Yanıt verilecek mesaj bağlamda varsa kimliği; yoksa `null`. */
+  /** Key of the message being replied to if it is in the context; otherwise `null`. */
   readonly activeMessageKey: string | null;
   readonly ordering: ContextOrdering;
   readonly messages: readonly ContextMessage[];
@@ -48,35 +48,35 @@ export interface ContextSnapshot {
 }
 
 /**
- * Kullanıcının bağlam denetleyicisindeki seçimi, varsayılan kurala göre
- * istisnalar olarak tutulur. Varsayılan: açık konuşmadaki ve aynı konulu
- * mesajlar bağlamdadır, başka konuşmalardan okunan mesajlar değildir. Böylece
- * sonradan okunan ilgili mesajlar da kendiliğinden bağlama girer.
+ * The user's choice in the context panel, stored as exceptions to the default rule.
+ * Default: messages in the open conversation and with the same subject are in context;
+ * messages read from other conversations are not. This way related messages read later
+ * join the context automatically.
  */
 export interface ContextSelection {
-  /** Varsayılan olarak bağlamda olmayıp kullanıcının eklediği mesajlar. */
+  /** Messages outside the default context that the user added. */
   readonly included: readonly string[];
-  /** Kullanıcının bağlamdan çıkardığı mesajlar. */
+  /** Messages the user removed from the context. */
   readonly excluded: readonly string[];
 }
 
 export const DEFAULT_CONTEXT_SELECTION: ContextSelection = Object.freeze({ included: [], excluded: [] });
 
-/** Kullanıcının bağlam denetleyicisinde düzenlediği mesaj metni; orijinal mesaj değişmez. */
+/** Message text the user edited in the context panel; the original message is unchanged. */
 export interface ContextEdit {
   readonly messageKey: string;
   readonly text: string;
 }
 
-/** Otomatik çıkarılan bir imza veya alıntı bloğunu geri dahil etmek için. */
+/** Brings back a signature or quote block that was removed automatically. */
 export interface BlockRef {
   readonly messageKey: string;
   readonly blockIndex: number;
 }
 
 /**
- * Bağlamın kapsamını açıklayan bilgilendirme kayıtları. Bunlar hata değildir;
- * işlemi engelleyen durumlar `AppError` ile ayrıca ifade edilir.
+ * Informational records that describe the context's coverage. They are not errors;
+ * conditions that block an action are expressed separately with `AppError`.
  */
 export type ContextNotice =
   | { readonly kind: 'message-count'; readonly count: number }

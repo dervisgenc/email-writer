@@ -1,5 +1,5 @@
 {
-  "name": "@email-writer/ai-companion",
+  "name": "@writehand/ai-companion",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -10,9 +10,9 @@
     "install-host": "node scripts/install-host.mjs"
   },
   "dependencies": {
-    "@email-writer/ai-claude-code": "workspace:*",
-    "@email-writer/ai-openai": "workspace:*",
-    "@email-writer/contracts": "workspace:*",
+    "@writehand/ai-claude-code": "workspace:*",
+    "@writehand/ai-openai": "workspace:*",
+    "@writehand/contracts": "workspace:*",
     "proper-lockfile": "^4.1.2",
     "zod": "^4.6.7"
   },

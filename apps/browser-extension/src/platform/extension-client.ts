@@ -1,4 +1,4 @@
-import type { AiCommand, AiInput, SettingsChanges } from '@email-writer/contracts';
+import type { AiCommand, AiInput, SettingsChanges } from '@writehand/contracts';
 import { MatchPattern } from '#imports';
 
 import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from '../bootstrap/supported-sites';
@@ -6,8 +6,8 @@ import { sendToBackground, sendToTab } from './extension-browser';
 import { createRequest, sendRequest } from './runtime-messaging';
 
 /**
- * Eklenti ekranlarının (araç çubuğu penceresi, ayarlar) arka plan koduna ve
- * etkin sekmenin content script'ine gönderdiği istekler.
+ * Requests that the extension's screens (toolbar popup, settings) send to the
+ * background and to the active tab's content script.
  */
 const requestId = () => crypto.randomUUID();
 
@@ -20,7 +20,7 @@ export function fetchAiSummary() {
 export function runAiCommand(command: AiCommand) {
   return sendRequest(sendToBackground, createRequest('AI_COMMAND', command, requestId()));
 }
-/** Eklenti sayfasından üretim (karşılama sihirbazındaki deneme). */
+/** Generation from an extension page (the welcome wizard's trial run). */
 export function generateText(input: AiInput) {
   return sendRequest(
     sendToBackground,
@@ -77,7 +77,7 @@ const supportedPatterns = () => {
   return patterns.map((pattern) => new MatchPattern(pattern));
 };
 
-/** Sekme adresi yalnızca desteklenen sitelerde tarayıcı tarafından verilir. */
+/** The browser exposes the tab URL only on supported sites. */
 export function isSupportedUrl(url: string | undefined): boolean {
   return url !== undefined && supportedPatterns().some((pattern) => pattern.includes(url));
 }

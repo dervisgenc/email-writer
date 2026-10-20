@@ -1,19 +1,19 @@
-import type { ApplyRequest } from '@email-writer/contracts';
+import type { ApplyRequest } from '@writehand/contracts';
 import {
   isRichDocument,
   parseEmailMarkdown,
   renderEmailHtml,
   renderPlainText,
   renderVisibleText,
-} from '@email-writer/email-format';
+} from '@writehand/email-format';
 
-/** Panoya veya taslağa giden içerik: her zaman düz metin, biçimliyse HTML de. */
+/** Content sent to the clipboard or the draft: always plain text, plus HTML when formatted. */
 export interface ClipboardContent {
   readonly text: string;
   readonly html: string | null;
 }
 
-/** Önizleme metninin (sınırlı Markdown) panoya kopyalanacak hâli. */
+/** The preview text (limited Markdown) in the form copied to the clipboard. */
 export function clipboardContent(previewText: string): ClipboardContent {
   const document = parseEmailMarkdown(previewText);
   return {
@@ -23,9 +23,9 @@ export function clipboardContent(previewText: string): ClipboardContent {
 }
 
 /**
- * Yazma isteğini hedefe göre hazırlar. Cümle içindeki bir seçim düz metin olarak
- * olduğu gibi yazılır; taslağın tamamına yazarken Markdown işaretleri temizlenir ve
- * biçimli içerik (liste, tablo, grafik) HTML olarak verilir.
+ * Prepares the write request for its target. A selection within a sentence is written
+ * as-is as plain text; when writing the whole draft, Markdown markers are stripped and
+ * formatted content (lists, tables, charts) is supplied as HTML.
  */
 export function withRichContent(request: ApplyRequest): ApplyRequest {
   if (request.target.mode === 'replace-selection') return request;

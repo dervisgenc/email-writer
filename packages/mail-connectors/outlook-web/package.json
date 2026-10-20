@@ -1,9 +1,9 @@
 {
-  "name": "@email-writer/outlook-web",
+  "name": "@writehand/outlook-web",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Outlook Web sayfasını okuma, izleme ve taslağa kontrollü yazma bağlantısı",
+  "description": "Outlook Web connector: reads and observes the page and writes to drafts in a controlled way",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -11,6 +11,6 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@email-writer/contracts": "workspace:*"
+    "@writehand/contracts": "workspace:*"
   }
 }

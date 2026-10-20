@@ -1,19 +1,19 @@
-import type { MailEvent, ThreadSnapshot } from '@email-writer/contracts';
-import type { OutlookWebConnection } from '@email-writer/outlook-web';
+import type { MailEvent, ThreadSnapshot } from '@writehand/contracts';
+import type { OutlookWebConnection } from '@writehand/outlook-web';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createConnection, loadFixture, never } from './outlook-page';
 
 /**
- * Gerçek Outlook yapısının anonim örneği: okuma bölmesinde yalnızca seçili
- * mesaj gösteriliyor (15 Ekim 2026, Firefox, iş hesabı, İngilizce arayüz).
+ * Anonymized sample of the real Outlook structure: the reading pane shows only
+ * the selected message (October 15, 2026, Firefox, work account, English UI).
  */
-describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
+describe('Outlook Web — selected message view (real structure)', () => {
   let connection: OutlookWebConnection;
 
   const readActiveThread = async (): Promise<ThreadSnapshot> => {
     const thread = connection.connector.getPageState().activeThread;
-    if (thread === null) throw new Error('Açık konuşma bulunamadı.');
+    if (thread === null) throw new Error('No open conversation found.');
     const result = await connection.connector.readThread(thread, never);
     if (!result.ok) throw new Error(result.error.code);
     return result.value;
@@ -28,7 +28,7 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     document.body.innerHTML = '';
   });
 
-  it('seçili satırın konuşma kimliğiyle açık mesajı tanır', () => {
+  it("recognizes the open message by the selected row's conversation ID", () => {
     const state = connection.connector.getPageState();
 
     expect(state.support).toBe('ready');
@@ -36,14 +36,14 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     expect(state.composers).toEqual([]);
   });
 
-  it('konuyu, gönderenin görünen adını ve görünen tarihi başlıktan okur', async () => {
+  it("reads the subject, the sender's display name and the displayed date from the header", async () => {
     const snapshot = await readActiveThread();
     const [message] = snapshot.messages;
 
     expect(snapshot.subject).toBe('RE: Teklif revizyonu');
     expect(snapshot.messages).toHaveLength(1);
     expect(snapshot.activeMessageKey).toBe(message?.messageKey);
-    // Adres atılır; tarih ayrıştırılmaz.
+    // The address is dropped; the date is not parsed.
     expect(message).toMatchObject({
       senderLabel: 'Deniz Yılmaz',
       sentAt: null,
@@ -52,13 +52,13 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     expect(message?.senderLabel).not.toContain('@');
   });
 
-  it('gövdeyi ve önceki yazışmayı ayırır; boş tablo hücresi ve Outlook düğmeleri metne karışmaz', async () => {
+  it('separates the body from the earlier correspondence, keeping empty table cells and Outlook buttons out of the text', async () => {
     const [message] = (await readActiveThread()).messages;
     const [body, quote] = message?.blocks ?? [];
 
     expect(message?.blocks.map((block) => block.kind)).toEqual(['body', 'quote']);
     expect(body?.text).toBe(
-      // Tablodan sonraki <br> tarayıcıda olduğu gibi bir boş satır bırakır.
+      // The <br> after the table leaves one blank line, as in the browser.
       'External Sender: This e-mail originated outside the organization. Do not open links unless you recognize the sender.\n\n' +
         'Merhaba Ece,\n\n' +
         'Revize teklifi ekte paylaşıyorum. Toplam tutar 48.500 TL.\n\n' +
@@ -72,7 +72,7 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     }
   });
 
-  it('başlıkta gönderen yoksa alıcıyı veya alıntıdaki adresi gönderen saymaz', async () => {
+  it('does not take a recipient or a quoted address as the sender when the header has no sender', async () => {
     document.getElementById('MSG_Itm0001_FROM')?.remove();
 
     const [message] = (await readActiveThread()).messages;
@@ -81,7 +81,7 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     expect(message?.sentAtText).toBe('Wed 15-Oct-26 9:12 AM');
   });
 
-  it('gönderen yalnızca adresle görünüyorsa adı bilinmiyor sayar; adresi ad olarak vermez', async () => {
+  it('treats the name as unknown when the sender shows only an address, instead of using the address as the name', async () => {
     document.getElementById('MSG_Itm0001_FROM')!.textContent = 'no-reply@example.test';
 
     const [message] = (await readActiveThread()).messages;
@@ -89,8 +89,8 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     expect(message?.senderLabel).toBeNull();
   });
 
-  it('"adına gönderilmiş" iletide yazarı (son kişi kartı) alır; gönderen hesabın adresini almaz', async () => {
-    // Gerçek yapı: [gönderen hesap kartı] "on behalf of" [yazar kartı]
+  it('takes the author (the last persona card) of an "on behalf of" message, not the sending account address', async () => {
+    // Real structure: [sending account card] "on behalf of" [author card]
     const persona = (text: string) => {
       const card = document.createElement('span');
       card.setAttribute('data-lpc-hover-target-id', 'lpc-react-target-9');
@@ -114,14 +114,14 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
     expect(message?.senderLabel).toBe('Deniz Yılmaz');
   });
 
-  it('mesaj kimliği başlığı ve gövdeyi birlikte taşıyan kapsayıcıya bağlıdır; okumalar arasında değişmez', async () => {
+  it('ties the message ID to the container holding both header and body, so it stays the same across reads', async () => {
     const first = await readActiveThread();
     const second = await readActiveThread();
 
     expect(second.messages[0]?.messageKey).toBe(first.messages[0]?.messageKey);
   });
 
-  it('Outlook mesajı yeniden çizse de (başka mesaja gidip dönünce) aynı ileti aynı kimliği alır', async () => {
+  it('gives the same message the same ID even when Outlook re-renders it (after visiting another message and coming back)', async () => {
     const first = await readActiveThread();
     const container = document.querySelector('[data-fixture="message-container"]')!;
     container.replaceWith(container.cloneNode(true));
@@ -134,10 +134,10 @@ describe('Outlook Web — seçili mesaj görünümü (gerçek yapı)', () => {
 });
 
 /**
- * Gerçek yapı: seçili mesaj görünümünde "Reply"a basınca Outlook okuma
- * bölmesindeki mesajı kaldırır ve yerine yanıt editörünü koyar.
+ * Real structure: in the selected message view, clicking "Reply" makes Outlook
+ * remove the message from the reading pane and put the reply editor in its place.
  */
-describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerçek yapı)', () => {
+describe('Outlook Web — reading pane turning into the reply editor (real structure)', () => {
   let connection: OutlookWebConnection;
 
   beforeEach(() => {
@@ -149,7 +149,7 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     document.body.innerHTML = '';
   });
 
-  it('konuşma değişmiş sayılmaz; editör o konuşmanın yanıtıdır ve konuşma düğmesi yerini araç çubuğuna bırakır', async () => {
+  it('does not count as a conversation change; the editor is a reply to that conversation and the conversation button gives way to the toolbar', async () => {
     const before = connection.connector.getPageState();
     const events: string[] = [];
     connection.connector.subscribe((event) => events.push(event.type));
@@ -165,7 +165,7 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     expect(connection.locateLauncherAnchors().map((anchor) => anchor.target.kind)).toEqual(['composer']);
   });
 
-  it('okuma, yanıtlanan mesajı (gösterilirken kaydedilen) ve konuyu verir; mesaj gövdesi sayfada olmadığı için okunmaz', async () => {
+  it('reports the replied-to message (recorded while shown) and the subject, but no message body since it is no longer on the page', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const shown = await connection.connector.readThread(thread, never);
     if (!shown.ok) throw new Error(shown.error.code);
@@ -183,7 +183,7 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     expect(replying.value.subject).toBe('RE: Teklif revizyonu');
   });
 
-  it('Outlook editörü boş açıp alıntıyı sonra doldursa da konuşma korunur ve taslak sonunda yanıt olarak bağlanır', async () => {
+  it('keeps the conversation and finally binds the draft as a reply even when Outlook opens the editor empty and fills in the quote later', async () => {
     const thread = connection.connector.getPageState().activeThread!;
     const events: MailEvent[] = [];
     connection.connector.subscribe((event) => events.push(event));
@@ -198,29 +198,29 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     if (!before.ok) throw new Error(before.error.code);
     const [earlyAnchor] = connection.locateLauncherAnchors();
 
-    // Outlook alıntıyı doldurur.
+    // Outlook fills in the quote.
     const quote = document.createElement('div');
     quote.id = 'divRplyFwdMsg';
     quote.textContent = 'From: Deniz Yılmaz';
     document.querySelector('[data-fixture="reply-editor"]')!.append(quote);
-    // Editörün içi önce editör izleyicisinde birleştirilir, sonra sayfa yeniden değerlendirilir.
+    // Changes inside the editor are first batched by the editor watcher, then the page is re-evaluated.
     await settle(400);
 
     const late = connection.connector.getPageState().composers[0]!;
     expect(late).toEqual({ ...early, threadKey: thread.threadKey });
     const types = events.map((event) => event.type);
     expect(types).not.toContain('active-thread-changed');
-    // Aynı editördür: kaldırılıp yeniden eklenmez, açık çalışma "taslak kapandı" saymaz.
+    // It is the same editor: it is not removed and re-added, so open work does not count as "draft closed".
     expect(types.filter((type) => type === 'composer-removed' || type === 'composer-added')).toEqual([
       'composer-added',
     ]);
     expect(events).toContainEqual({ type: 'composer-rebound', previous: early, ref: late });
-    // Araç çubuğu (ve içindeki kart) yeniden kurulmaz; yalnızca hedefi yanıt olur.
+    // The toolbar (and the card in it) is not rebuilt; only its target becomes the reply.
     expect(connection.locateLauncherAnchors()).toEqual([
       { ...earlyAnchor, target: { kind: 'composer', composer: late } },
     ]);
-    // Kullanıcının bölgesi değişmedi: sürüm aynı kalır, eski kimlikle de aynı editöre
-    // ulaşılır ve işlem başlamadan önce hazırlanan sonuç yazılabilir.
+    // The user's region did not change: the revision stays the same, the old ref still reaches
+    // the same editor, and a result prepared beforehand can still be written.
     const read = await connection.connector.readComposer(early);
     expect(read.ok && read.value).toMatchObject({ ref: late, revision: before.value.revision });
     const outcome = await connection.connector.applyText({
@@ -232,12 +232,12 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
     expect(document.getElementById('divRplyFwdMsg')?.textContent).toBe('From: Deniz Yılmaz');
   });
 
-  it('listede başka bir satır seçiliyken açılan yanıt taslağı (ör. Taslaklar klasörü) son konuşmaya bağlanmaz', () => {
+  it('does not bind a reply draft opened while another list row is selected (e.g. the Drafts folder) to the last conversation', () => {
     loadFixture('selected-message-reply-compose.html');
-    // Taslaklar klasörüne geçilip başka bir satır seçilmiş gibi.
+    // As if the user switched to the Drafts folder and selected another row.
     const row = document.querySelector('[data-convid="AAQkConvFirst"]')!;
     row.setAttribute('data-convid', 'AAQkDraftOther');
-    // Gözlemci değişikliği birleştirene kadar beklemeden durum okunur.
+    // The state is read without waiting for the observer to batch the change.
     const fresh = createConnection();
     expect(fresh.connector.getPageState().activeThread).toBeNull();
     expect(fresh.connector.getPageState().composers[0]?.threadKey).toBeNull();
@@ -245,7 +245,7 @@ describe('Outlook Web — okuma bölmesi yanıt editörüne dönüşünce (gerç
   });
 });
 
-/** Sayfa gözlemcisinin değişiklikleri birleştirip işlemesi için bekler. */
+/** Waits for the page observer to batch and process the changes. */
 function settle(ms = 200): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
