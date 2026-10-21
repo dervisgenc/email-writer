@@ -1,64 +1,47 @@
 import { z } from 'zod';
 
-import { ERROR_CODES } from './errors';
-import { aiCommandSchema, aiInputSchema, aiStatusSchema, aiSummarySchema } from './ai';
+import { aiCommandSchema, aiStatusSchema, aiSummarySchema } from './ai';
 import { hostInfoSchema, hostUpdateCheckSchema, hostUpdateResultSchema } from './host';
+import {
+  cancellationRequestSchema,
+  cancellationResultSchema,
+  emptyPayloadSchema,
+  generationRequestSchema,
+  generationResultSchema,
+  requestSchema,
+} from './protocol';
 import { settingsChangesSchema, settingsSchema } from './settings';
 
 /**
- * Schema-validated messages between runtime contexts. AI_GENERATE carries only the text
- * the user chose for generation. Account and helper app management (AI_COMMAND, HOST_*) is
- * limited to extension pages; OPEN_PANEL and OPEN_OPTIONS cannot write or start a
- * generation directly. AI_* and HOST_* requests are forwarded to the local helper app in
- * the same envelope; for the envelope version and helper app compatibility, see `host.ts`.
+ * Schema-validated messages between the extension's runtime contexts. AI_GENERATE carries
+ * only the text the user chose for generation. Connection management (AI_COMMAND, HOST_*) is
+ * limited to extension pages; OPEN_PANEL and OPEN_OPTIONS cannot write or start a generation
+ * directly. The background answers AI_* requests itself, with the user's API key or through
+ * the helper app (`host-protocol.ts`), and forwards HOST_* requests to the helper app.
  */
-export const PROTOCOL_VERSION = 1 as const;
-
-const envelope = {
-  protocolVersion: z.literal(PROTOCOL_VERSION),
-  requestId: z.string().min(1).max(64),
-};
-
-const emptyPayload = z.object({}).strict();
-
 export const runtimeRequestSchema = z.discriminatedUnion('type', [
-  z.object({ ...envelope, type: z.literal('AI_STATUS'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('AI_SUMMARY'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('AI_COMMAND'), payload: aiCommandSchema }).strict(),
-  z
-    .object({
-      ...envelope,
-      type: z.literal('AI_GENERATE'),
-      payload: z.object({ generationId: z.string().uuid(), input: aiInputSchema }).strict(),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelope,
-      type: z.literal('AI_CANCEL'),
-      payload: z.object({ generationId: z.string().uuid() }).strict(),
-    })
-    .strict(),
-  z.object({ ...envelope, type: z.literal('HOST_INFO'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('HOST_UPDATE_CHECK'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('HOST_UPDATE'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('OPEN_OPTIONS'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('GET_PAGE_STATUS'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('OPEN_PANEL'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('GET_SELECTOR_REPORT'), payload: emptyPayload }).strict(),
-  z.object({ ...envelope, type: z.literal('GET_SETTINGS'), payload: emptyPayload }).strict(),
-  z
-    .object({
-      ...envelope,
-      type: z.literal('PATCH_SETTINGS'),
-      payload: z
-        .object({
-          expectedRevision: z.number().int().positive(),
-          changes: settingsChangesSchema,
-        })
-        .strict(),
-    })
-    .strict(),
+  requestSchema('AI_STATUS', emptyPayloadSchema),
+  requestSchema('AI_SUMMARY', emptyPayloadSchema),
+  requestSchema('AI_COMMAND', aiCommandSchema),
+  requestSchema('AI_GENERATE', generationRequestSchema),
+  requestSchema('AI_CANCEL', cancellationRequestSchema),
+  requestSchema('HOST_INFO', emptyPayloadSchema),
+  requestSchema('HOST_UPDATE_CHECK', emptyPayloadSchema),
+  requestSchema('HOST_UPDATE', emptyPayloadSchema),
+  requestSchema('OPEN_OPTIONS', emptyPayloadSchema),
+  requestSchema('GET_PAGE_STATUS', emptyPayloadSchema),
+  requestSchema('OPEN_PANEL', emptyPayloadSchema),
+  requestSchema('GET_SELECTOR_REPORT', emptyPayloadSchema),
+  requestSchema('GET_SETTINGS', emptyPayloadSchema),
+  requestSchema(
+    'PATCH_SETTINGS',
+    z
+      .object({
+        expectedRevision: z.number().int().positive(),
+        changes: settingsChangesSchema,
+      })
+      .strict(),
+  ),
 ]);
 
 export type RuntimeRequest = z.infer<typeof runtimeRequestSchema>;
@@ -132,8 +115,8 @@ export const RUNTIME_RESPONSE_PAYLOADS = {
   AI_STATUS: aiStatusSchema,
   AI_SUMMARY: aiSummarySchema,
   AI_COMMAND: aiStatusSchema,
-  AI_GENERATE: z.object({ text: z.string().min(1).max(30_000) }).strict(),
-  AI_CANCEL: z.object({ cancelled: z.boolean() }).strict(),
+  AI_GENERATE: generationResultSchema,
+  AI_CANCEL: cancellationResultSchema,
   HOST_INFO: hostInfoSchema,
   HOST_UPDATE_CHECK: hostUpdateCheckSchema,
   HOST_UPDATE: hostUpdateResultSchema,
@@ -148,24 +131,3 @@ export const RUNTIME_RESPONSE_PAYLOADS = {
 export type RuntimeResponsePayload<T extends RuntimeRequestType> = z.infer<
   (typeof RUNTIME_RESPONSE_PAYLOADS)[T]
 >;
-
-export const runtimeErrorSchema = z.object({ code: z.enum(ERROR_CODES) }).strict();
-
-export const runtimeResponseEnvelopeSchema = z.discriminatedUnion('ok', [
-  z
-    .object({
-      ...envelope,
-      ok: z.literal(true),
-      payload: z.unknown(),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelope,
-      ok: z.literal(false),
-      error: runtimeErrorSchema,
-    })
-    .strict(),
-]);
-
-export type RuntimeResponseEnvelope = z.infer<typeof runtimeResponseEnvelopeSchema>;

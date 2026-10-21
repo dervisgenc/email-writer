@@ -1,4 +1,4 @@
-import { FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@writehand/contracts';
+import { API_PROVIDER_PERMISSIONS, FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@writehand/contracts';
 import { defineConfig } from 'wxt';
 
 import { version } from '../../package.json';
@@ -10,9 +10,10 @@ import { manifestMessages } from './src/locales';
  * (background script) from the same source. WXT defaults to MV2 for Firefox,
  * so the commands pass `--mv3` explicitly (see package.json).
  *
- * Permissions are deliberately narrow: `storage`, optional `nativeMessaging`, and static
- * content script matches for the supported Outlook addresses. `<all_urls>`, `tabs`,
- * `scripting`, `activeTab`, `cookies`, `webRequest` and `clipboardRead` are not requested.
+ * Permissions are deliberately narrow: `storage`, optional `nativeMessaging`, optional access
+ * to the API key providers' API origins, and static content script matches for the supported
+ * Outlook addresses. `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`
+ * and `clipboardRead` are not requested.
  */
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
@@ -28,6 +29,8 @@ export default defineConfig({
     permissions: ['storage'],
     // The helper app permission is not requested at install; the welcome wizard asks for it with a reason.
     optional_permissions: ['nativeMessaging'],
+    // Each API key provider's origin is asked for when the user connects a key for it.
+    optional_host_permissions: [...API_PROVIDER_PERMISSIONS],
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {
@@ -35,7 +38,8 @@ export default defineConfig({
               id: FIREFOX_EXTENSION_ID,
               // The built-in data collection declaration arrived in Firefox 140.
               strict_min_version: '140.0',
-              // Selected text is sent to OpenAI only when the user requests a generation.
+              // Selected text goes to the chosen AI provider only when the user requests a generation;
+              // API keys and the helper app's sign-in are authentication information.
               data_collection_permissions: { required: ['personalCommunications', 'authenticationInfo'] },
             },
             gecko_android: { strict_min_version: '142.0' },

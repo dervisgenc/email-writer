@@ -251,9 +251,9 @@ export const en: ExtensionText = {
       AI_NOT_ELIGIBLE:
         'OpenAI denied ChatGPT plan usage for this account (subscription_sharing_user_not_eligible). If your Plus/Pro subscription is active, contact OpenAI support with this code.',
       AI_ACCESS_DENIED:
-        'OpenAI denied access to this request. Check app permissions, connection configuration or regional restrictions; this error alone does not establish subscription eligibility.',
+        'The AI provider denied access to this request. Check app permissions, connection configuration or regional restrictions; for a ChatGPT plan, this error alone does not establish subscription eligibility.',
       AI_LIMIT_REACHED:
-        'Usage limit reached. For ChatGPT, open Manage usage; on a Claude plan, try again when your limit resets; for API keys, check your OpenAI API limits.',
+        'Usage limit reached. For ChatGPT, open Manage usage; on a Claude plan, try again when your limit resets; for an API key, wait a moment or check your limits and credits with the provider.',
       AI_UNAVAILABLE: 'The AI service is currently unavailable. Your connection is kept; try again later.',
       AI_NETWORK: 'Could not reach the AI service. Check your internet connection and try again.',
       AI_MODEL_UNAVAILABLE: 'The selected model is unavailable. Refresh models in AI settings.',
@@ -262,6 +262,13 @@ export const en: ExtensionText = {
       AI_REVOKE_UNCONFIRMED:
         'Signed out locally; OpenAI revocation could not be confirmed. Disconnect the app in ChatGPT settings.',
       AI_BUSY: 'An AI connection operation is in progress. Wait for it or cancel sign-in.',
+      AI_KEY_INVALID:
+        'The provider did not accept this API key. Check that you copied it completely and that it is still active, or create a new one.',
+      AI_PROVIDER_ACCESS_REQUIRED: `${PRODUCT_NAME} needs your permission to connect to the provider. Select Connect key again and allow access when the browser asks.`,
+      AI_KEY_STORAGE_FAILED:
+        'This browser could not store or read the key securely, so nothing was saved. Check that the browser keeps site data for extensions, then try again.',
+      AI_REQUEST_TOO_LARGE:
+        'This request is larger than the provider allows for this model or plan. Remove some context messages, shorten the text or choose another model.',
       AI_CLAUDE_NOT_INSTALLED:
         'Claude Code was not found. Install Claude Code, then run the helper app’s install command again.',
       AI_CLAUDE_NOT_LOGGED_IN:
@@ -295,7 +302,7 @@ export const en: ExtensionText = {
     openSettings: 'Settings',
     siteAccessMissing: 'Site access has not been granted for this site.',
     developmentBuild: 'Development build',
-    setupNeeded: 'The helper app is not connected yet.',
+    setupNeeded: `Choose how ${PRODUCT_NAME} connects to an AI provider to start writing.`,
     finishSetup: 'Finish setup',
   },
   options: {
@@ -349,7 +356,8 @@ export const en: ExtensionText = {
     privacyPoints: [
       'Your preferences are stored only on this device.',
       'Emails you open are kept in memory only while the page is open, to suggest context; they are never written to disk.',
-      'Text is sent to the AI provider you chose (OpenAI or Anthropic) only when you select Revise, Translate or Write reply.',
+      'Text is sent to the AI provider you chose (OpenAI, Anthropic, Groq or OpenRouter) only when you select Revise, Translate or Write reply.',
+      'An API key you connect is stored encrypted in this browser and sent only to its provider.',
       'Results appear as a preview first and are never written to your draft without your approval.',
       `${PRODUCT_NAME} never sends email; sending is always up to you.`,
       'While update checks are on, the helper app asks GitHub for the latest version number at most once a day; the request contains no email or account details. You can turn it off on the helper app card.',

@@ -1,4 +1,4 @@
-import type { AiMode } from '@writehand/contracts';
+import type { AiMode, ApiProvider } from '@writehand/contracts';
 
 /** One section of the connection guide. Text wrapped in `...` is shown as code. */
 export interface AiGuideItem {
@@ -7,6 +7,7 @@ export interface AiGuideItem {
   readonly requirements: readonly string[];
   readonly steps: readonly string[];
   readonly notes: readonly string[];
+  /** Label of the official setup page's link (Claude Code); API key providers are linked by name. */
   readonly linkLabel?: string;
 }
 
@@ -33,6 +34,10 @@ export interface AiText {
   /** Method card badges: recommended (ChatGPT) and experimental (Claude). */
   readonly recommended: string;
   readonly experimental: string;
+  /** On the ChatGPT and Claude cards: these methods run in the helper app. */
+  readonly needsHelper: string;
+  /** Shown in place of a helper app method's settings while the helper app is not connected. */
+  readonly helperRequired: string;
   readonly statusReady: string;
   readonly statusSetup: string;
   readonly statusAction: string;
@@ -64,17 +69,31 @@ export interface AiText {
   readonly generationUnavailable: string;
   readonly planDisabled: string;
   readonly planNote: string;
-  readonly apiNote: string;
+  readonly apiNote: (provider: string) => string;
   readonly claudeNote: string;
   readonly claudeAccount: string;
   readonly claudeNotInstalled: string;
   readonly claudeNotLoggedIn: string;
   readonly claudeApiBilling: string;
   readonly claudePrivacy: string;
-  readonly apiKeyLabel: string;
+  readonly provider: string;
+  /** Short description below the provider choice. */
+  readonly providerHints: Readonly<Record<ApiProvider, string>>;
+  /** Variables are provider names, which are never translated. */
+  readonly apiKeyLabel: (provider: string) => string;
+  readonly createKey: (provider: string) => string;
   readonly saveKey: string;
   readonly removeKey: string;
-  readonly keySaved: string;
+  readonly keySaved: (provider: string) => string;
+  readonly replaceKeyHint: string;
+  /** The pasted key has another provider's format; it is not sent. */
+  readonly keyFromOtherProvider: (provider: string) => string;
+  readonly accessNeeded: (provider: string) => string;
+  readonly grantAccess: string;
+  /** Model groups when the provider marks free models. */
+  readonly freeModels: string;
+  readonly paidModels: string;
+  readonly apiPrivacy: (provider: string) => string;
   readonly manageUsage: string;
   readonly connectionHelp: string;
   readonly welcome: string;
@@ -82,7 +101,7 @@ export interface AiText {
   readonly gotIt: string;
   readonly privacy: string;
   readonly usePlan: string;
-  readonly useApi: string;
+  readonly useApi: (provider: string) => string;
   readonly useClaude: string;
   readonly openSettings: string;
   readonly notReady: string;

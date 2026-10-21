@@ -3,7 +3,7 @@ import type { HelperText } from '@writehand/ui';
 export const helperTr: HelperText = {
   title: 'Yardımcı uygulama',
   description:
-    'Bilgisayarınızdaki bu küçük program ChatGPT, OpenAI veya Claude bağlantısını kurar ve oturum bilgilerinizi korur.',
+    'Bilgisayarınızdaki bu küçük program ChatGPT veya Claude üyeliğinizi bağlar ve oturum bilgilerinizi korur. API anahtarları onsuz çalışır.',
   states: {
     checking: 'Denetleniyor…',
     permission: 'İzin gerekli',
@@ -31,7 +31,7 @@ export const helperTr: HelperText = {
   openWizard: 'Kurulum sihirbazını aç',
   uninstallTitle: 'Nasıl kaldırılır?',
   uninstallBody: (flag) =>
-    `Bu komut yardımcı uygulamayı bilgisayardan ve bütün tarayıcılardan kaldırır. ChatGPT oturumlarını kapatıp kayıtlı anahtarları da silmek için sonuna ${flag} ekleyin.`,
+    `Bu komut yardımcı uygulamayı bilgisayardan ve bütün tarayıcılardan kaldırır. ChatGPT oturumlarını kapatıp kayıtlı giriş bilgilerini de silmek için sonuna ${flag} ekleyin.`,
   copy: 'Kopyala',
   copied: 'Kopyalandı',
 };

@@ -1,35 +1,25 @@
-import { appError, err, ok, type RuntimeRequest, type RuntimeRequestType } from '@writehand/contracts';
+import { appError, err, ok } from '@writehand/contracts';
 
-import { createRequest, sendRequest, type RequestPayload, type RuntimeHandlers } from './runtime-messaging';
+import type { AiConnection } from './ai-connection';
+import type { HelperClient } from './helper-client';
+import type { RuntimeHandlers } from './runtime-messaging';
 
 export function createAiHandlers(options: {
-  sendNative: (request: RuntimeRequest) => Promise<unknown>;
+  connection: AiConnection;
+  helper: HelperClient;
   openOptions: () => Promise<void>;
 }): RuntimeHandlers {
+  const { connection, helper } = options;
   const owners = new Map<string, string>();
-  const native = <T extends RuntimeRequestType>(type: T, payload: RequestPayload<T>) =>
-    sendRequest(
-      (raw) => options.sendNative(raw as RuntimeRequest),
-      createRequest(type, payload, crypto.randomUUID()),
-    );
   return {
-    AI_STATUS: () => native('AI_STATUS', {}),
-    AI_COMMAND: (command) => native('AI_COMMAND', command),
-    AI_SUMMARY: async () => {
-      const result = await native('AI_STATUS', {});
-      return result.ok
-        ? ok({
-            mode: result.value.mode,
-            ready: result.value.ready,
-            selectedModel: result.value.selectedModel,
-          })
-        : result;
-    },
+    AI_STATUS: async () => ok(await connection.status()),
+    AI_COMMAND: (command) => connection.command(command),
+    AI_SUMMARY: async () => ok(await connection.summary()),
     AI_GENERATE: async (payload, sender) => {
       if (owners.has(payload.generationId)) return err(appError('MESSAGE_REJECTED'));
       owners.set(payload.generationId, `${sender.tab?.id}:${sender.url}`);
       try {
-        return await native('AI_GENERATE', payload);
+        return await connection.generate(payload.generationId, payload.input);
       } finally {
         owners.delete(payload.generationId);
       }
@@ -37,11 +27,11 @@ export function createAiHandlers(options: {
     AI_CANCEL: (payload, sender) => {
       if (owners.get(payload.generationId) !== `${sender.tab?.id}:${sender.url}`)
         return Promise.resolve(ok({ cancelled: false }));
-      return native('AI_CANCEL', payload);
+      return connection.cancel(payload.generationId);
     },
-    HOST_INFO: () => native('HOST_INFO', {}),
-    HOST_UPDATE_CHECK: () => native('HOST_UPDATE_CHECK', {}),
-    HOST_UPDATE: () => native('HOST_UPDATE', {}),
+    HOST_INFO: () => helper.info(),
+    HOST_UPDATE_CHECK: () => helper.checkUpdate(),
+    HOST_UPDATE: () => helper.update(),
     OPEN_OPTIONS: async () => {
       await options.openOptions();
       return ok({ opened: true });

@@ -1,64 +1,47 @@
 <script setup lang="ts">
-import {
-  DEFAULT_SETTINGS,
-  HELPER_DELETE_DATA_OPTION,
-  helperInstallCommand,
-  helperUninstallCommand,
-  HOST_OPERATING_SYSTEM_NAMES,
-  HOST_OPERATING_SYSTEMS,
-  REPOSITORY_URL,
-  type HostOperatingSystem,
-  type Settings,
-} from '@writehand/contracts';
-import { AppIcon, CommandBox, ExtensionPage, provideUiText, StepList } from '@writehand/ui';
+import { DEFAULT_SETTINGS, REPOSITORY_URL, type Settings } from '@writehand/contracts';
+import { AppIcon, ExtensionPage, provideUiText, StepList } from '@writehand/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 
 import { OUTLOOK_WEB_START } from '../../src/bootstrap/supported-sites';
-import { useHelper } from '../../src/composables/use-helper';
 import { textFor, uiLanguageFor } from '../../src/locales';
 import AiSettings from '../../src/pages/AiSettings.vue';
-import { copyText } from '../../src/platform/clipboard';
+import HelperInstall from '../../src/pages/HelperInstall.vue';
 import {
   brandIconUrl,
-  extensionId,
   onSettingsStorageChanged,
   openOptionsPage,
-  operatingSystem,
 } from '../../src/platform/extension-browser';
 import { fetchSettings, generateText } from '../../src/platform/extension-client';
 import { parseStoredSettings, SETTINGS_STORAGE_KEY } from '../../src/platform/settings-store';
 
 /**
- * Welcome wizard: why the helper app is needed, its one-command install, the connection
- * method, and a trial run on a made-up email. Opens on first install; can be reopened from settings.
+ * Welcome wizard: the two ways to connect, setting up the chosen method (with the helper app's
+ * one-command install when the method needs it) and a trial run on a made-up email. Opens on
+ * first install; can be reopened from settings.
  */
 const settings = shallowRef<Settings>(DEFAULT_SETTINGS);
 const text = computed(() => textFor(settings.value.uiLanguage));
 const welcome = computed(() => text.value.welcome);
 provideUiText(computed(() => text.value.ui));
-const ids = { system: useId(), intro: useId(), install: useId(), tryIt: useId() };
+const ids = { intro: useId(), tryIt: useId() };
+const LAST_STEP = 2;
 
 const step = ref(0);
 const furthest = ref(0);
 watch(step, (value) => (furthest.value = Math.max(furthest.value, value)));
-const helper = useHelper();
-const system = ref<HostOperatingSystem>('linux');
 const aiReady = ref(false);
-const copied = ref<string | null>(null);
 const trial = ref<
   | { readonly state: 'idle' | 'running' }
   | { readonly state: 'done'; readonly result: string }
   | { readonly state: 'failed'; readonly error: string }
 >({ state: 'idle' });
 
-const connected = computed(() => helper.view.value.kind === 'connected');
 const done = computed(() =>
-  [furthest.value > 0, connected.value, aiReady.value, trial.value.state === 'done'].flatMap(
-    (complete, index) => (complete ? [index] : []),
+  [furthest.value > 0, aiReady.value, trial.value.state === 'done'].flatMap((complete, index) =>
+    complete ? [index] : [],
   ),
 );
-const installCommand = computed(() => helperInstallCommand(system.value, extensionId()));
-const uninstallCommand = computed(() => helperUninstallCommand(system.value));
 
 watchEffect(() => {
   document.documentElement.lang = uiLanguageFor(settings.value.uiLanguage);
@@ -72,14 +55,8 @@ onMounted(async () => {
   stopWatching = onSettingsStorageChanged(SETTINGS_STORAGE_KEY, (raw) => {
     settings.value = parseStoredSettings(raw).settings;
   });
-  system.value = await operatingSystem();
-  await helper.refresh();
 });
 onUnmounted(() => stopWatching?.());
-
-async function copy(command: string) {
-  if ((await copyText({ text: command, html: null })).ok) copied.value = command;
-}
 
 async function tryRevision() {
   trial.value = { state: 'running' };
@@ -124,12 +101,21 @@ async function tryRevision() {
           <p class="ew-settings-card__description">{{ welcome.intro.lead }}</p>
         </div>
       </header>
-      <ul class="ew-points">
-        <li v-for="reason in welcome.intro.reasons" :key="reason">
-          <AppIcon name="check" :size="16" />
-          <span>{{ reason }}</span>
-        </li>
-      </ul>
+      <div class="ew-split">
+        <div
+          v-for="option in [welcome.intro.apiKey, welcome.intro.plan]"
+          :key="option.title"
+          class="ew-split__column"
+        >
+          <h3 class="ew-ai-guide__label">{{ option.title }}</h3>
+          <ul class="ew-points">
+            <li v-for="point in option.points" :key="point">
+              <AppIcon name="check" :size="16" />
+              <span>{{ point }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
       <a class="ew-ai-guide__link" :href="REPOSITORY_URL" target="_blank" rel="noopener noreferrer">
         {{ welcome.intro.source }}
         <AppIcon name="external" :size="14" />
@@ -156,99 +142,9 @@ async function tryRevision() {
       </div>
     </section>
 
-    <section v-else-if="step === 1" class="ew-settings-card" :aria-labelledby="ids.install">
-      <header class="ew-settings-card__header">
-        <span class="ew-settings-card__icon"><AppIcon name="laptop" :size="18" /></span>
-        <div class="ew-settings-card__heading">
-          <h2 :id="ids.install" class="ew-settings-card__title">{{ welcome.install.title }}</h2>
-          <p class="ew-settings-card__description">{{ welcome.install.lead }}</p>
-        </div>
-      </header>
-      <div v-if="helper.view.value.kind === 'permission'" class="ew-progress" data-tone="warning">
-        <AppIcon name="info" :size="16" />
-        <span class="ew-alert__body">
-          {{ text.ui.helper.permissionBody }}
-          <button type="button" class="ew-btn ew-btn--primary ew-btn--small" @click="helper.grant">
-            {{ text.ui.helper.grant }}
-          </button>
-        </span>
-      </div>
-      <div class="ew-ai-settings__field">
-        <span :id="ids.system" class="ew-label">{{ welcome.install.system }}</span>
-        <div class="ew-segmented" role="radiogroup" :aria-labelledby="ids.system">
-          <label
-            v-for="os in HOST_OPERATING_SYSTEMS"
-            :key="os"
-            class="ew-segmented__option"
-            :data-checked="system === os"
-          >
-            <input
-              type="radio"
-              class="ew-visually-hidden"
-              :name="ids.system"
-              :value="os"
-              :checked="system === os"
-              @change="system = os"
-            />
-            {{ HOST_OPERATING_SYSTEM_NAMES[os] }}
-          </label>
-        </div>
-      </div>
-      <CommandBox
-        :command="installCommand"
-        :label="welcome.install.command"
-        :copy-label="text.ui.helper.copy"
-        :copied-label="text.ui.helper.copied"
-        :copied="copied === installCommand"
-        @copy="copy"
-      />
-      <p class="ew-muted">{{ welcome.install.terminal[system] }}</p>
-      <p
-        class="ew-progress"
-        :data-tone="connected ? 'success' : helper.view.value.kind === 'outdated' ? 'warning' : undefined"
-        role="status"
-      >
-        <template v-if="helper.view.value.kind === 'connected'">
-          <AppIcon name="check" :size="16" />
-          <span>{{ welcome.install.connected(helper.view.value.info.version) }}</span>
-        </template>
-        <template v-else-if="helper.view.value.kind === 'outdated'">
-          <AppIcon name="warning" :size="16" />
-          <span>{{ text.ui.helper.outdatedBody }}</span>
-        </template>
-        <template v-else>
-          <span class="ew-spinner" aria-hidden="true" />
-          <span>{{ welcome.install.waiting }}</span>
-        </template>
-      </p>
-      <details class="ew-disclosure">
-        <summary><AppIcon name="chevronRight" :size="14" />{{ welcome.install.whatTitle }}</summary>
-        <div class="ew-disclosure__body">
-          <ul class="ew-points">
-            <li v-for="item in welcome.install.what" :key="item">
-              <AppIcon name="check" :size="16" />
-              <span>{{ item }}</span>
-            </li>
-          </ul>
-        </div>
-      </details>
-      <details class="ew-disclosure">
-        <summary><AppIcon name="chevronRight" :size="14" />{{ text.ui.helper.uninstallTitle }}</summary>
-        <div class="ew-disclosure__body">
-          <p class="ew-muted">{{ text.ui.helper.uninstallBody(HELPER_DELETE_DATA_OPTION[system]) }}</p>
-          <CommandBox
-            :command="uninstallCommand"
-            :label="text.ui.helper.uninstallTitle"
-            :copy-label="text.ui.helper.copy"
-            :copied-label="text.ui.helper.copied"
-            :copied="copied === uninstallCommand"
-            @copy="copy"
-          />
-        </div>
-      </details>
-    </section>
-
-    <AiSettings v-else-if="step === 2" :text="text.ui" :guide="false" @ready="aiReady = $event" />
+    <AiSettings v-else-if="step === 1" :text="text.ui" :guide="false" @ready="aiReady = $event">
+      <template #helper><HelperInstall :text="text" /></template>
+    </AiSettings>
 
     <section v-else class="ew-settings-card" :aria-labelledby="ids.tryIt">
       <header class="ew-settings-card__header">
@@ -312,7 +208,7 @@ async function tryRevision() {
       <button v-if="step > 0" type="button" class="ew-btn" @click="step--">
         {{ welcome.back }}
       </button>
-      <button v-if="step < 3" type="button" class="ew-btn ew-btn--primary" @click="step++">
+      <button v-if="step < LAST_STEP" type="button" class="ew-btn ew-btn--primary" @click="step++">
         {{ welcome.next }}
       </button>
     </nav>

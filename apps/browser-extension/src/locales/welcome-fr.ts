@@ -4,26 +4,37 @@ import type { WelcomeText } from './extension-text';
 
 export const welcomeFr: WelcomeText = {
   title: `Bienvenue dans ${PRODUCT_NAME}`,
-  subtitle: 'Prêt en quatre étapes courtes',
+  subtitle: 'Prêt en trois étapes courtes',
   stepsLabel: 'Étapes de configuration',
-  steps: ['Bienvenue', 'Application', 'Connexion', 'Essai'],
+  steps: ['Bienvenue', 'Connexion', 'Essai'],
   back: 'Retour',
   next: 'Continuer',
   intro: {
-    title: 'Pourquoi une application d’assistance ?',
-    lead: `${PRODUCT_NAME} fonctionne dans Outlook sur le web. Une petite application d’assistance sur votre ordinateur fait ce qu’une extension de navigateur ne peut pas faire seule.`,
-    reasons: [
-      'La connexion avec ChatGPT exige une adresse de retour sur votre ordinateur, qu’une extension ne peut pas fournir.',
-      'Vos informations de connexion et vos clés API restent protégées sur votre ordinateur, pas dans le navigateur.',
-      'Elle est open source : vous pouvez lire chaque ligne de son code.',
-    ],
+    title: 'Deux façons de se connecter',
+    lead: `${PRODUCT_NAME} fonctionne dans Outlook sur le web et rédige avec le fournisseur d’IA de votre choix. Choisissez ce qui vous convient à l’étape suivante ; vous pourrez changer à tout moment.`,
+    apiKey: {
+      title: 'Votre propre clé API',
+      points: [
+        'Fonctionne directement dans le navigateur ; rien à installer.',
+        'Groq et OpenRouter proposent des modèles gratuits ; OpenAI se paie à l’usage.',
+        'La clé est enregistrée chiffrée dans ce navigateur et envoyée uniquement à son fournisseur.',
+      ],
+    },
+    plan: {
+      title: 'Votre forfait ChatGPT ou Claude',
+      points: [
+        'Utilise l’abonnement que vous avez déjà : ChatGPT Plus ou Pro, ou Claude via Claude Code.',
+        'Nécessite une petite application d’assistance sur cet ordinateur, installée en une commande et sans droits d’administrateur.',
+        'Votre connexion reste sur cet ordinateur, hors du navigateur. L’application d’assistance est open source.',
+      ],
+    },
     source: 'Code source sur GitHub',
-    doesTitle: 'Ce qu’elle fait',
+    doesTitle: `Ce que fait ${PRODUCT_NAME}`,
     does: [
       'Envoie le texte que vous choisissez au fournisseur que vous choisissez, uniquement à votre demande.',
-      'Conserve votre connexion à ChatGPT, OpenAI ou Claude.',
+      'Affiche chaque résultat d’abord en aperçu ; votre brouillon ne change qu’avec votre accord.',
     ],
-    doesNotTitle: 'Ce qu’elle ne fait jamais',
+    doesNotTitle: `Ce que ${PRODUCT_NAME} ne fait jamais`,
     doesNot: [
       'Envoyer des e-mails.',
       'Lire votre boîte aux lettres en arrière-plan.',
@@ -32,7 +43,7 @@ export const welcomeFr: WelcomeText = {
   },
   install: {
     title: 'Installer l’application d’assistance',
-    lead: 'Une seule commande l’installe pour votre compte utilisateur. Aucun droit d’administrateur n’est nécessaire.',
+    lead: 'Cette méthode nécessite une petite application d’assistance sur cet ordinateur. Une seule commande l’installe pour votre compte utilisateur ; aucun droit d’administrateur n’est nécessaire.',
     system: 'Votre système',
     command: 'Commande d’installation',
     terminal: {

@@ -14,6 +14,13 @@ const outputs = {
 const ALLOWED_PERMISSIONS = ['storage'];
 // Talking to the local helper app is an optional permission; the welcome wizard requests it.
 const OPTIONAL_PERMISSIONS = ['nativeMessaging'];
+// The API key providers' API origins, asked for when the user connects a key. Must match
+// API_PROVIDER_PERMISSIONS in packages/contracts/src/api-providers.ts.
+const OPTIONAL_HOST_PERMISSIONS = [
+  'https://api.groq.com/*',
+  'https://openrouter.ai/*',
+  'https://api.openai.com/*',
+];
 const FORBIDDEN_PERMISSIONS = [
   '<all_urls>',
   'tabs',
@@ -76,6 +83,14 @@ for (const [browser, directory] of Object.entries(outputs)) {
   }
   if (JSON.stringify(manifest.optional_permissions ?? []) !== JSON.stringify(OPTIONAL_PERMISSIONS)) {
     fail(browser, `unexpected optional permissions: ${JSON.stringify(manifest.optional_permissions)}`);
+  }
+  if (
+    JSON.stringify(manifest.optional_host_permissions ?? []) !== JSON.stringify(OPTIONAL_HOST_PERMISSIONS)
+  ) {
+    fail(
+      browser,
+      `unexpected optional host permissions: ${JSON.stringify(manifest.optional_host_permissions)}`,
+    );
   }
   const allPermissions = [
     ...permissions,

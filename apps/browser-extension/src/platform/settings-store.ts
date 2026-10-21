@@ -11,8 +11,8 @@ import {
 
 export const SETTINGS_STORAGE_KEY = 'settings';
 
-/** The narrow slice of browser storage the settings store needs. */
-export interface SettingsStorageArea {
+/** The narrow slice of browser storage (`storage.local`) the extension's stores need. */
+export interface StorageArea {
   get(key: string): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
 }
@@ -103,7 +103,7 @@ export interface SettingsStore {
   ensureInitialized(): Promise<StoredSettings>;
 }
 
-export function createSettingsStore(area: SettingsStorageArea): SettingsStore {
+export function createSettingsStore(area: StorageArea): SettingsStore {
   let queue: Promise<unknown> = Promise.resolve();
 
   const enqueue = <T>(task: () => Promise<T>): Promise<T> => {

@@ -4,24 +4,35 @@ import type { WelcomeText } from './extension-text';
 
 export const welcomeEs: WelcomeText = {
   title: `Te damos la bienvenida a ${PRODUCT_NAME}`,
-  subtitle: 'Listo en cuatro pasos cortos',
+  subtitle: 'Listo en tres pasos cortos',
   stepsLabel: 'Pasos de configuración',
-  steps: ['Bienvenida', 'Aplicación', 'Conexión', 'Pruébalo'],
+  steps: ['Bienvenida', 'Conexión', 'Pruébalo'],
   back: 'Atrás',
   next: 'Continuar',
   intro: {
-    title: '¿Por qué una aplicación auxiliar?',
-    lead: `${PRODUCT_NAME} funciona dentro de Outlook en la Web. Una pequeña aplicación auxiliar en tu equipo hace lo que una extensión del navegador no puede hacer por sí sola.`,
-    reasons: [
-      'Iniciar sesión con ChatGPT requiere una dirección de retorno en tu equipo, que una extensión no puede proporcionar.',
-      'Tus datos de inicio de sesión y claves de API quedan protegidos en tu equipo, no en el navegador.',
-      'Es de código abierto: puedes leer cada línea de su código.',
-    ],
+    title: 'Dos formas de conectarte',
+    lead: `${PRODUCT_NAME} funciona dentro de Outlook en la Web y escribe con el proveedor de IA que elijas. Elige lo que te convenga en el siguiente paso; puedes cambiarlo cuando quieras.`,
+    apiKey: {
+      title: 'Tu propia clave de API',
+      points: [
+        'Funciona directamente en el navegador; no hay nada que instalar.',
+        'Groq y OpenRouter ofrecen modelos gratuitos; OpenAI es de pago por uso.',
+        'La clave se guarda cifrada en este navegador y solo se envía a su proveedor.',
+      ],
+    },
+    plan: {
+      title: 'Tu plan de ChatGPT o Claude',
+      points: [
+        'Usa la suscripción que ya tienes: ChatGPT Plus o Pro, o Claude a través de Claude Code.',
+        'Necesita una pequeña aplicación auxiliar en este equipo, instalada con un comando y sin permisos de administrador.',
+        'Tu inicio de sesión se queda en este equipo, fuera del navegador. La aplicación auxiliar es de código abierto.',
+      ],
+    },
     source: 'Código fuente en GitHub',
     doesTitle: 'Qué hace',
     does: [
       'Envía el texto que eliges al proveedor que eliges, solo cuando lo pides.',
-      'Mantiene tu conexión con ChatGPT, OpenAI o Claude.',
+      'Muestra cada resultado primero como vista previa; tu borrador solo cambia cuando lo apruebas.',
     ],
     doesNotTitle: 'Qué no hace nunca',
     doesNot: [
@@ -32,7 +43,7 @@ export const welcomeEs: WelcomeText = {
   },
   install: {
     title: 'Instala la aplicación auxiliar',
-    lead: 'Un solo comando la instala para tu cuenta de usuario. No necesitas permisos de administrador.',
+    lead: 'Este método necesita una pequeña aplicación auxiliar en este equipo. Un solo comando la instala para tu cuenta de usuario; no necesitas permisos de administrador.',
     system: 'Tu sistema',
     command: 'Comando de instalación',
     terminal: {

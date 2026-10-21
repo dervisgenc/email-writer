@@ -12,11 +12,11 @@ import {
 } from '@writehand/ai-openai';
 import {
   aiAccountLabelSchema,
-  type AiCommand,
   type AiInput,
   type AiModel,
-  type AiStatus,
   type ErrorCode,
+  type HelperCommand,
+  type HelperStatus,
 } from '@writehand/contracts';
 
 import type { CredentialState, CredentialStore } from './credential-store';
@@ -54,15 +54,10 @@ export function createAiService(deps: {
   const stopRequests = () => {
     for (const abort of running.values()) abort.abort();
   };
-  /** OpenAI credentials; the Claude Code method never passes through here. */
+  /** The active ChatGPT account's credentials; the Claude Code method never passes through here. */
   const credential = async () => {
     const result = await deps.store.update(async (state) => {
       if (state.mode === 'claude-code') return null;
-      if (state.mode === 'api-key') {
-        return state.apiKey
-          ? { token: state.apiKey, key: 'api-key', mode: state.mode, model: state.apiModel }
-          : null;
-      }
       const account = state.accounts.find((item) => item.clientId === state.activeAccountId);
       if (!account?.credentials) return null;
       if (account.credentials.expiresAt < Date.now() + 60_000) {
@@ -86,12 +81,7 @@ export function createAiService(deps: {
         }
       }
       if (!account.credentials.scopes.includes(PLAN_SCOPE)) throw new AiFailure('AI_PLAN_REQUIRED');
-      return {
-        token: account.credentials.accessToken,
-        key: account.clientId,
-        mode: 'chatgpt' as const,
-        model: account.model,
-      };
+      return { token: account.credentials.accessToken, key: account.clientId, model: account.model };
     });
     if (result === null) throw new AiFailure('AI_NOT_CONNECTED');
     return result;
@@ -102,23 +92,18 @@ export function createAiService(deps: {
     catalogKey = null;
     const auth = await credential();
     catalogAttemptKey = auth.key;
-    const available = await deps.provider.listModels(auth.token, auth.mode);
+    const available = await deps.provider.listModels(auth.token, 'chatgpt');
     if (available.length === 0) throw new AiFailure('AI_MODEL_UNAVAILABLE');
     await deps.store.update((state) => {
       // Do not install a catalog fetched for an account that is no longer selected.
-      if (state.mode !== auth.mode || (auth.mode === 'chatgpt' && state.activeAccountId !== auth.key)) return;
+      if (state.mode !== 'chatgpt' || state.activeAccountId !== auth.key) return;
       models = available;
       catalogKey = auth.key;
-      const model = available.some((item) => item.id === auth.model)
-        ? auth.model
-        : auth.mode === 'chatgpt'
-          ? (available[0]?.id ?? null)
-          : null;
-      if (state.mode === 'api-key') state.apiModel = model;
-      else {
-        const account = state.accounts.find((item) => item.clientId === auth.key);
-        if (account) account.model = model;
-      }
+      const account = state.accounts.find((item) => item.clientId === auth.key);
+      if (account)
+        account.model = available.some((item) => item.id === auth.model)
+          ? auth.model
+          : (available[0]?.id ?? null);
     });
   };
   const refreshQuietly = async () => {
@@ -136,10 +121,7 @@ export function createAiService(deps: {
     return {
       active,
       key: state.mode === 'chatgpt' ? state.activeAccountId : state.mode,
-      connected:
-        state.mode === 'api-key'
-          ? state.apiKey !== null
-          : state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE),
+      connected: state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE),
     };
   };
 
@@ -149,21 +131,17 @@ export function createAiService(deps: {
       ? (state.claudeModel as string)
       : DEFAULT_CLAUDE_CODE_MODEL;
 
-  const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): AiStatus => {
+  const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): HelperStatus => {
     const { active, key, connected } = usage(state);
     const claudeMode = state.mode === 'claude-code';
-    const selectedModel = claudeMode
-      ? claudeModelOf(state)
-      : state.mode === 'api-key'
-        ? state.apiModel
-        : (active?.model ?? null);
+    const selectedModel = claudeMode ? claudeModelOf(state) : (active?.model ?? null);
     // Claude Code resolves model aliases itself; there is no account catalog to load.
     const available = claudeMode ? [...deps.claude.models] : key === catalogKey ? models : [];
     const usable = claudeMode
       ? claude?.installed === true && claude.loggedIn
       : connected && key === catalogKey;
     // An installation that cannot be started safely is explained through the error field.
-    let claudeCode: AiStatus['claudeCode'] = null;
+    let claudeCode: HelperStatus['claudeCode'] = null;
     let claudeProblem: ErrorCode | null = null;
     if (claudeMode && claude) {
       const { problem, ...view } = claude;
@@ -181,7 +159,6 @@ export function createAiService(deps: {
         planEnabled: account.credentials?.scopes.includes(PLAN_SCOPE) ?? false,
       })),
       activeAccountId: state.activeAccountId,
-      apiKeyConfigured: state.apiKey !== null,
       models: available,
       selectedModel,
       ready: usable && !signIn.pending() && available.some((model) => model.id === selectedModel),
@@ -193,7 +170,7 @@ export function createAiService(deps: {
     };
   };
 
-  const status = async (): Promise<AiStatus> => {
+  const status = async (): Promise<HelperStatus> => {
     const state = await deps.store.read();
     if (state.mode === 'claude-code') return describe(state, await claudeStatus());
     const { key, connected } = usage(state);
@@ -239,7 +216,7 @@ export function createAiService(deps: {
 
   return {
     status,
-    async command(command: AiCommand): Promise<AiStatus> {
+    async command(command: HelperCommand): Promise<HelperStatus> {
       if (command.action === 'cancel-sign-in') {
         signIn.cancel();
         return status();
@@ -308,33 +285,11 @@ export function createAiService(deps: {
             if (!models.some((model) => model.id === command.model))
               throw new AiFailure('AI_MODEL_UNAVAILABLE');
             await deps.store.update((state) => {
-              if (state.mode === 'api-key') state.apiModel = command.model;
-              else {
-                const account = state.accounts.find((item) => item.clientId === state.activeAccountId);
-                if (account) account.model = command.model;
-              }
+              const account = state.accounts.find((item) => item.clientId === state.activeAccountId);
+              if (account) account.model = command.model;
             });
             break;
           }
-          case 'save-api-key': {
-            const available = await deps.provider.listModels(command.apiKey, 'api-key');
-            await deps.store.update((state) => {
-              state.apiKey = command.apiKey;
-              state.mode = 'api-key';
-              state.apiModel = null;
-            });
-            models = available;
-            catalogKey = 'api-key';
-            break;
-          }
-          case 'clear-api-key':
-            await deps.store.update((state) => {
-              state.apiKey = null;
-              state.apiModel = null;
-            });
-            models = [];
-            catalogKey = null;
-            break;
           case 'rename-account':
             await deps.store.update((state) => {
               const account = state.accounts.find((item) => item.clientId === command.accountId);

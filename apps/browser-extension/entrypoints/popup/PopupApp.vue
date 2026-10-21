@@ -2,7 +2,6 @@
 import type { SelectorReport, Theme } from '@writehand/contracts';
 import { computed, onMounted, ref } from 'vue';
 
-import { useHelper } from '../../src/composables/use-helper';
 import type { ExtensionText, PopupStatusKey } from '../../src/locales';
 import {
   activeTab,
@@ -11,6 +10,7 @@ import {
   openWelcomePage,
 } from '../../src/platform/extension-browser';
 import {
+  fetchAiSummary,
   fetchSelectorReport,
   isSupportedUrl,
   queryPageStatus,
@@ -29,14 +29,15 @@ const siteAccessMissing = ref(false);
 const tabId = ref<number | null>(null);
 const selectorReport = ref<SelectorReport['entries']>([]);
 const isDevelopment = import.meta.env.MODE !== 'production';
-// If the helper app is not connected, the user is sent to the wizard to finish setup.
-const helper = useHelper();
-const setupNeeded = computed(() => !['checking', 'connected'].includes(helper.view.value.kind));
+// Until a connection method can generate, the user is sent to the wizard to finish setup.
+const setupNeeded = ref(false);
 
 const statusText = computed(() => props.text.popup.statuses[status.value]);
 
 onMounted(async () => {
-  void helper.refresh();
+  void fetchAiSummary().then((summary) => {
+    setupNeeded.value = summary.ok && !summary.value.ready;
+  });
   const tab = await activeTab();
   if (tab === null || !isSupportedUrl(tab.url)) {
     status.value = 'not-mail-site';

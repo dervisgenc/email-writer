@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION, type RuntimeRequest } from '@writehand/contracts';
+import { PROTOCOL_VERSION, type HostRequest } from '@writehand/contracts';
 
 export interface NativePort {
   postMessage(message: unknown): void;
@@ -8,7 +8,7 @@ export interface NativePort {
 }
 
 /** Generation may take up to two minutes; an update downloads a program of about 50 MB. */
-const REQUEST_TIMEOUTS: Partial<Record<RuntimeRequest['type'], number>> = {
+const REQUEST_TIMEOUTS: Partial<Record<HostRequest['type'], number>> = {
   AI_GENERATE: 130_000,
   HOST_UPDATE: 600_000,
 };
@@ -58,7 +58,7 @@ export function createNativeClient(connect: () => NativePort) {
     return connection;
   };
   return {
-    send(request: RuntimeRequest): Promise<unknown> {
+    send(request: HostRequest): Promise<unknown> {
       return new Promise((resolve) => {
         try {
           const connection = getPort();

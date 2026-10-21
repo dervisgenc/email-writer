@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { lock } from 'proper-lockfile';
-import { AI_MODES } from '@writehand/contracts';
+import { AI_MODES, HELPER_AI_MODES } from '@writehand/contracts';
 import { z } from 'zod';
 
 const credentialsSchema = z
@@ -26,7 +26,12 @@ const accountSchema = z
     welcomed: z.boolean(),
   })
   .strict();
-const stateSchema = z
+/**
+ * The file format. Helper app 0.1.0 also kept an OpenAI API key here (`api-key` mode); API keys
+ * now live in the browser extension. The two fields are still written, always empty, so that
+ * an earlier helper app can read the file after a downgrade.
+ */
+const fileSchema = z
   .object({
     version: z.literal(1),
     hostId: z.string(),
@@ -39,9 +44,18 @@ const stateSchema = z
     claudeModel: z.string().nullable().optional(),
   })
   .strict();
+const stateSchema = fileSchema
+  .omit({ apiKey: true, apiModel: true })
+  .extend({ mode: z.enum(HELPER_AI_MODES) })
+  .strict();
 export type Credentials = z.infer<typeof credentialsSchema>;
 export type Account = z.infer<typeof accountSchema>;
 export type CredentialState = z.infer<typeof stateSchema>;
+
+/** A key saved by helper app 0.1.0 is dropped: nothing in the helper app uses it any more. */
+function fromFile({ apiKey: _apiKey, apiModel: _apiModel, mode, ...state }: z.infer<typeof fileSchema>) {
+  return { ...state, mode: mode === 'api-key' ? ('chatgpt' as const) : mode };
+}
 
 export interface CredentialStore {
   read(): Promise<CredentialState>;
@@ -92,7 +106,7 @@ export function createCredentialStore(
   };
   const readState = async (): Promise<CredentialState> => {
     try {
-      return stateSchema.parse(JSON.parse(await readFile(file, 'utf8')));
+      return fromFile(fileSchema.parse(JSON.parse(await readFile(file, 'utf8'))));
     } catch (error) {
       if (errorCode(error) !== 'ENOENT') throw error;
       return {
@@ -101,8 +115,6 @@ export function createCredentialStore(
         accounts: [],
         activeAccountId: null,
         mode: 'chatgpt',
-        apiKey: null,
-        apiModel: null,
       };
     }
   };
@@ -116,7 +128,8 @@ export function createCredentialStore(
     try {
       const state = await readState();
       const result = await operation(state);
-      await writeFile(temporary, JSON.stringify(stateSchema.parse(state)), { mode: 0o600, flag: 'wx' });
+      const contents = { ...stateSchema.parse(state), apiKey: null, apiModel: null };
+      await writeFile(temporary, JSON.stringify(fileSchema.parse(contents)), { mode: 0o600, flag: 'wx' });
       await replaceFile(temporary, file);
       return result;
     } finally {

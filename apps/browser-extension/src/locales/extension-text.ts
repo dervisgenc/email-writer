@@ -63,18 +63,27 @@ export interface ExtensionText {
   readonly welcome: WelcomeText;
 }
 
-/** Welcome wizard: installing the helper app, choosing a method and a trial run. */
+/** One way to connect, as the wizard's first step compares them. */
+export interface ConnectionOptionText {
+  readonly title: string;
+  readonly points: readonly string[];
+}
+
+/** Welcome wizard: choosing and setting up a connection method (with the helper app if needed) and a trial run. */
 export interface WelcomeText {
   readonly title: string;
   readonly subtitle: string;
   readonly stepsLabel: string;
-  readonly steps: readonly [string, string, string, string];
+  readonly steps: readonly [string, string, string];
   readonly back: string;
   readonly next: string;
   readonly intro: {
     readonly title: string;
     readonly lead: string;
-    readonly reasons: readonly string[];
+    /** The API key method, which works in the browser alone. */
+    readonly apiKey: ConnectionOptionText;
+    /** The ChatGPT and Claude plans, which need the helper app. */
+    readonly plan: ConnectionOptionText;
     readonly source: string;
     readonly doesTitle: string;
     readonly does: readonly string[];

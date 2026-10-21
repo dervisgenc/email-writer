@@ -111,8 +111,11 @@ export async function installFakeHost(worker: Worker, options: { installed: bool
   }, options.installed);
 }
 
-/** Fakes the optional `nativeMessaging` permission in the page, since Playwright cannot accept the browser's permission prompt. */
-export async function fakeNativeMessagingPermission(page: Page, granted = false): Promise<void> {
+/**
+ * Fakes the optional permissions in the page (native messaging, access to an API key provider),
+ * since Playwright cannot accept the browser's permission prompt.
+ */
+export async function fakePermissions(page: Page, granted = false): Promise<void> {
   await page.addInitScript((initial) => {
     let allowed = initial;
     const permissions = (globalThis as unknown as { chrome: { permissions: Record<string, unknown> } }).chrome
@@ -120,4 +123,44 @@ export async function fakeNativeMessagingPermission(page: Page, granted = false)
     permissions.contains = async () => allowed;
     permissions.request = async () => (allowed = true);
   }, granted);
+}
+
+/**
+ * Groq's API in the background: the model list and a streamed answer, recording every request
+ * without its body. The browser's permission for the provider is reported as granted.
+ */
+export async function installFakeGroq(worker: Worker): Promise<void> {
+  await worker.evaluate(() => {
+    const requests: { url: string; authorization: string | null }[] = [];
+    (globalThis as unknown as { fakeGroq: { requests: typeof requests } }).fakeGroq = { requests };
+    const answer =
+      'Hi Sam,\n\nThanks for your message. I can send the report on Thursday, but I need the latest numbers from your team first. Could you share them by Wednesday?\n\nBest,\nAlex';
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      requests.push({ url, authorization: new Headers(init?.headers).get('Authorization') });
+      if (url.endsWith('/models'))
+        return new Response(
+          JSON.stringify({
+            data: [
+              { id: 'llama-3.3-70b-versatile', active: true },
+              { id: 'openai/gpt-oss-120b', active: true },
+              { id: 'whisper-large-v3', active: true },
+            ],
+          }),
+        );
+      if (url.endsWith('/chat/completions')) {
+        const events = [
+          { choices: [{ delta: { content: answer }, finish_reason: null }] },
+          { choices: [{ delta: {}, finish_reason: 'stop' }] },
+        ];
+        return new Response(
+          events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('') + 'data: [DONE]\n\n',
+        );
+      }
+      return new Response('{}', { status: 404 });
+    };
+    const permissions = (globalThis as unknown as { chrome: { permissions: Record<string, unknown> } }).chrome
+      .permissions;
+    permissions.contains = async () => true;
+  });
 }

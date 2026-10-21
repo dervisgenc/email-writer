@@ -9,7 +9,7 @@ import { OWN_UI_SELECTOR } from '../src/bootstrap/mail-provider';
 import { OUTLOOK_WEB_MATCHES } from '../src/bootstrap/supported-sites';
 import { reportDiagnostic } from '../src/platform/diagnostics';
 import { createConnectedProcessor } from '../src/platform/connected-processor';
-import { localSettingsArea, sendToBackground } from '../src/platform/extension-browser';
+import { localStorageArea, sendToBackground } from '../src/platform/extension-browser';
 import { createSettingsStore } from '../src/platform/settings-store';
 
 /**
@@ -19,7 +19,7 @@ import { createSettingsStore } from '../src/platform/settings-store';
  */
 async function loadTextProcessor(): Promise<TextProcessor | null> {
   if (import.meta.env.MODE !== 'test') {
-    const settings = createSettingsStore(localSettingsArea);
+    const settings = createSettingsStore(localStorageArea);
     return createConnectedProcessor(sendToBackground, async () => ({
       standingInstructions: (await settings.read()).settings.writingInstructions,
     }));

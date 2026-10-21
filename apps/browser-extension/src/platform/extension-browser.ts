@@ -1,14 +1,19 @@
 import { browser } from '#imports';
-import { NATIVE_HOST_NAME, type HostOperatingSystem } from '@writehand/contracts';
+import {
+  API_PROVIDER_DETAILS,
+  NATIVE_HOST_NAME,
+  type ApiProvider,
+  type HostOperatingSystem,
+} from '@writehand/contracts';
 
 import type { MessageSender } from './runtime-messaging';
-import type { SettingsStorageArea } from './settings-store';
+import type { StorageArea } from './settings-store';
 
 /**
  * The only place that touches browser extension APIs. Browser-specific differences
  * are adapted here, so `if Firefox` checks do not spread into business rules.
  */
-export const localSettingsArea: SettingsStorageArea = {
+export const localStorageArea: StorageArea = {
   get: (key) => browser.storage.local.get(key),
   set: (items) => browser.storage.local.set(items),
 };
@@ -73,6 +78,25 @@ export async function hasNativeMessagingPermission(): Promise<boolean> {
 /** Opens the browser permission prompt; must be called inside a user click, before any await. */
 export function requestNativeMessagingPermission(): Promise<boolean> {
   return browser.permissions.request({ permissions: ['nativeMessaging'] }).catch(() => false);
+}
+
+/**
+ * Each API key provider's origin is an optional host permission, asked for when the user
+ * connects a key for it. Without it the extension cannot reach the provider at all.
+ */
+export async function hasProviderAccess(provider: ApiProvider): Promise<boolean> {
+  try {
+    return await browser.permissions.contains({ origins: [API_PROVIDER_DETAILS[provider].permission] });
+  } catch {
+    return false;
+  }
+}
+
+/** Opens the browser permission prompt; must be called inside a user click, before any await. */
+export function requestProviderAccess(provider: ApiProvider): Promise<boolean> {
+  return browser.permissions
+    .request({ origins: [API_PROVIDER_DETAILS[provider].permission] })
+    .catch(() => false);
 }
 
 export function connectAiHost() {

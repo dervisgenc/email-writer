@@ -4,18 +4,20 @@ import type { AiText } from '@writehand/ui';
 export const aiEn: AiText = {
   title: 'AI connection',
   description:
-    'Write emails using your ChatGPT plan, your own OpenAI API key or Claude Code on this computer.',
+    'Write emails with your own API key from Groq, OpenRouter or OpenAI, your ChatGPT plan or Claude Code on this computer.',
   chatgpt: 'ChatGPT plan',
-  apiKey: 'OpenAI API key',
+  apiKey: 'API key',
   claudeCode: 'Claude plan',
   methodHints: {
     chatgpt: 'With your Plus or Pro plan',
-    'api-key': 'Pay as you go',
+    'api-key': 'Groq, OpenRouter or OpenAI; free models available',
     'claude-code': 'With Claude Code on this computer',
   },
   methodLabel: 'Connection method',
   recommended: 'Recommended',
   experimental: 'Experimental',
+  needsHelper: 'Needs the helper app',
+  helperRequired: `This method runs in the ${PRODUCT_NAME} helper app, which is not connected yet. Install it with the setup wizard, or choose API key, which works without it.`,
   statusReady: 'Ready',
   statusSetup: 'Setup needed',
   statusAction: 'Connection needed',
@@ -48,22 +50,25 @@ export const aiEn: AiText = {
         ],
       },
       'api-key': {
-        title: 'OpenAI API key',
-        summary: 'Generates with your own OpenAI Platform account; you pay for what you use.',
+        title: 'API key',
+        summary:
+          'Generates with your own key from Groq, OpenRouter or OpenAI, directly from this browser. No helper app is needed.',
         requirements: [
-          'An OpenAI Platform account and an API key.',
-          `The ${PRODUCT_NAME} helper app on this computer.`,
+          'An API key from Groq, OpenRouter or OpenAI. Groq’s free plan and OpenRouter’s free models need no payment method.',
         ],
         steps: [
-          'Create an API key on OpenAI Platform.',
-          'Choose OpenAI API key as the method, paste the key and select “Connect key”.',
-          'Choose a model from the list.',
+          'Choose API key as the method, then the provider.',
+          'Create a key on the provider’s website (links below) and paste it.',
+          'Select “Connect key” and allow the browser to connect to the provider.',
+          'Choose a model. With Groq, OpenAI’s free open-weight model openai/gpt-oss-120b is selected for you.',
         ],
         notes: [
-          'API usage is separate from a ChatGPT subscription and is billed by OpenAI.',
-          'The key is stored only in the helper app on this computer and is never sent back to the browser.',
+          'Groq’s free plan has rate limits per minute and per day. A long conversation can exceed them; remove some context messages or try again later.',
+          'On OpenRouter, free models are listed first. Your OpenRouter privacy settings decide which providers may receive your text; some free models are only offered by providers that may keep prompts.',
+          'Paid usage is billed by the provider, separately from any ChatGPT or Claude subscription. OpenAI models are always paid, so you choose the model yourself.',
+          'The key is stored encrypted in this browser and sent only to its provider. It is never shown again; to change it, connect a new key.',
+          'Anyone who can use your browser profile can generate text with the saved key. Prefer a key with a spending limit and remove it on shared computers.',
         ],
-        linkLabel: 'Create an API key',
       },
       'claude-code': {
         title: 'Claude plan',
@@ -91,14 +96,15 @@ export const aiEn: AiText = {
     },
     helper: {
       title: 'What is the helper app?',
-      summary: 'A small app on your computer that every method needs.',
+      summary:
+        'A small app on your computer that the ChatGPT and Claude plans need; API keys work without it.',
       requirements: ['macOS, Linux or Windows. No other software is needed.'],
       steps: [
         'Open the setup wizard from Settings → Helper app and run the one-line command it shows.',
         'The helper app appears as connected within a few seconds; then choose a method here.',
       ],
       notes: [
-        'Sign-in details and API keys are kept in a protected file only you can access, not in the browser.',
+        'ChatGPT sign-in details are kept in a protected file only you can access, not in the browser.',
         'The helper app runs only when you ask for text; it never reads or sends email in the background.',
       ],
     },
@@ -138,8 +144,8 @@ export const aiEn: AiText = {
     'Account verified; generation is not authorized. Plan usage requires an eligible Plus/Pro account and permission to use its plan. Signing in with a free account does not grant generation access.',
   planNote:
     'Eligible Plus and Pro accounts can use their plan allowance. Availability depends on your account, workspace and OpenAI access.',
-  apiNote:
-    'API usage is billed separately by OpenAI. It is independent of your ChatGPT subscription; this method is never selected automatically.',
+  apiNote: (provider) =>
+    `Your key is stored encrypted in this browser and sent only to ${provider}. Paid usage is billed by ${provider}, separately from any ChatGPT or Claude subscription.`,
   claudeNote: `Claude Code installed on this computer runs with your own Claude account; usage counts against your Claude plan limits. ${PRODUCT_NAME} does not access or store your Claude credentials. Sign in and out through Claude Code.`,
   claudeAccount: 'Claude Code account',
   claudeNotInstalled:
@@ -150,10 +156,27 @@ export const aiEn: AiText = {
     'Claude Code is signed in with a method other than a Claude subscription, such as an API key; usage is billed to that account.',
   claudePrivacy:
     'When you request generation, your text, instructions and selected context are sent to Anthropic through Claude Code. Claude Code runs without tools, cannot access your files and keeps no session transcript. Pro and Max plans are governed by Anthropic’s consumer terms: unless you turned off model training in your Claude privacy settings, content may be used for training. Team and Enterprise plans are governed by commercial terms.',
-  apiKeyLabel: 'API key',
+  provider: 'Provider',
+  providerHints: {
+    groq: 'Fast, with free models such as OpenAI’s GPT-OSS on its free plan.',
+    openrouter: 'Hundreds of models from many providers; some are free.',
+    openai: 'GPT models from OpenAI; pay as you go.',
+  },
+  apiKeyLabel: (provider) => `${provider} API key`,
+  createKey: (provider) => `Create a ${provider} API key`,
   saveKey: 'Connect key',
   removeKey: 'Remove key',
-  keySaved: 'API key saved in the helper app.',
+  keySaved: (provider) => `${provider} key saved, encrypted in this browser.`,
+  replaceKeyHint: 'To use another key, paste it and select Connect key; it replaces the saved one.',
+  keyFromOtherProvider: (provider) =>
+    `This looks like a ${provider} key, so it was not sent. Choose ${provider} above, or paste a key for the selected provider.`,
+  accessNeeded: (provider) =>
+    `The browser does not let ${PRODUCT_NAME} connect to ${provider}. Allow access to use the saved key.`,
+  grantAccess: 'Allow access',
+  freeModels: 'Free models',
+  paidModels: 'Paid models',
+  apiPrivacy: (provider) =>
+    `When you request generation, your text, instructions and selected context are sent from this browser directly to ${provider}, under ${provider}’s terms. The key never leaves this browser except to authenticate with ${provider}.`,
   manageUsage: 'Manage usage',
   connectionHelp:
     'Manage this connection in ChatGPT Settings → Security and login → Sign in with ChatGPT. It does not appear in Plugins. Work accounts are also subject to organization policy and plan eligibility.',
@@ -163,7 +186,7 @@ export const aiEn: AiText = {
   privacy:
     'When you request generation, your text, instructions and selected context are sent to OpenAI. The extension does not save them to disk. It cannot access your ChatGPT conversation history.',
   usePlan: 'Using ChatGPT plan',
-  useApi: 'Using OpenAI API',
+  useApi: (provider) => `Using ${provider} API key`,
   useClaude: 'Using Claude plan',
   openSettings: 'AI settings',
   notReady: 'Connect an AI account to generate text',

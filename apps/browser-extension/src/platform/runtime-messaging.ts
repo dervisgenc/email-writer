@@ -14,6 +14,7 @@ import {
   type RuntimeResponseEnvelope,
   type RuntimeResponsePayload,
 } from '@writehand/contracts';
+import type { ZodType } from 'zod';
 
 type RequestOf<T extends RuntimeRequestType> = Extract<RuntimeRequest, { type: T }>;
 export type RequestPayload<T extends RuntimeRequestType> = RequestOf<T>['payload'];
@@ -38,6 +39,22 @@ export function createRequest<T extends RuntimeRequestType>(
 }
 
 /**
+ * Validates a response envelope: it must answer `requestId` and carry a payload of `schema`.
+ * Shared by the extension's own messages and the helper app's native messages.
+ */
+export function readResponse(raw: unknown, requestId: string, schema: ZodType): Result<unknown, AppError> {
+  const envelope = runtimeResponseEnvelopeSchema.safeParse(raw);
+  if (!envelope.success || envelope.data.requestId !== requestId) {
+    return err(appError('MESSAGE_REJECTED'));
+  }
+  if (!envelope.data.ok) {
+    return err(appError(envelope.data.error.code));
+  }
+  const payload = schema.safeParse(envelope.data.payload);
+  return payload.success ? ok(payload.data) : err(appError('MESSAGE_REJECTED'));
+}
+
+/**
  * Sends a request and validates the response schema. The browser message channel
  * is passed as `transport` (runtime or a specific tab).
  */
@@ -51,20 +68,11 @@ export async function sendRequest<T extends RuntimeRequestType>(
   } catch {
     return err(appError('CONTENT_SCRIPT_UNREACHABLE'));
   }
-  const envelope = runtimeResponseEnvelopeSchema.safeParse(raw);
-  if (!envelope.success || envelope.data.requestId !== request.requestId) {
-    return err(appError('MESSAGE_REJECTED'));
-  }
-  if (!envelope.data.ok) {
-    return err(appError(envelope.data.error.code));
-  }
-  const schema = RUNTIME_RESPONSE_PAYLOADS[request.type];
-  const payload = schema.safeParse(envelope.data.payload);
-  if (!payload.success) {
-    return err(appError('MESSAGE_REJECTED'));
-  }
-  // The response was validated against the schema for the request's type.
-  return ok(payload.data as RuntimeResponsePayload<T>);
+  // The schema is the one for the request's type, so the payload has that type's response shape.
+  return readResponse(raw, request.requestId, RUNTIME_RESPONSE_PAYLOADS[request.type]) as Result<
+    RuntimeResponsePayload<T>,
+    AppError
+  >;
 }
 
 export type RuntimeHandlers = {

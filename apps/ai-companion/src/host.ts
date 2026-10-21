@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createClaudeCodeProvider, findClaudeBinary } from '@writehand/ai-claude-code';
 import { createOpenAiOAuth, createOpenAiProvider, failureCode } from '@writehand/ai-openai';
-import { PROTOCOL_VERSION, runtimeRequestSchema } from '@writehand/contracts';
+import { hostRequestSchema, PROTOCOL_VERSION } from '@writehand/contracts';
 
 import { createAiService } from './ai-service';
 import { createCredentialStore } from './credential-store';
@@ -44,7 +44,7 @@ export function runHost(platform: HostPlatform, config: HostConfig): void {
 
   let inFlight = 0;
   async function handle(raw: unknown): Promise<void> {
-    const parsed = runtimeRequestSchema.safeParse(raw);
+    const parsed = hostRequestSchema.safeParse(raw);
     if (!parsed.success) {
       const rejection = rejectionFor(raw, PROTOCOL_VERSION);
       if (rejection !== null) process.stdout.write(encodeNativeMessage(rejection));
@@ -93,8 +93,6 @@ export function runHost(platform: HostPlatform, config: HostConfig): void {
             development: config.development,
           };
           break;
-        default:
-          return;
       }
       process.stdout.write(encodeNativeMessage({ ...base, ok: true, payload }));
     } catch (caught) {

@@ -34,6 +34,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm verify:packages"
   },
   "devDependencies": {
+    "@writehand/ai-chat-completions": "workspace:*",
     "@writehand/ai-claude-code": "workspace:*",
     "@writehand/ai-openai": "workspace:*",
     "@writehand/email-format": "workspace:*",

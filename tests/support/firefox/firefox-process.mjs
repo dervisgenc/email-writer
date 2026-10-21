@@ -69,11 +69,21 @@ export async function isPortInUse(port) {
 /**
  * Starts Firefox with a separate profile and BiDi port.
  * `stop()` closes only the Firefox started with this profile.
+ * `systemAccess` lets BiDi run scripts in the extension's own pages (`moz-extension://`); use it
+ * only with a throwaway profile, never with one that holds a real sign-in.
  */
-export async function launchFirefox({ profile, port, headless = false, urls = [], timeoutMs = 30_000 }) {
+export async function launchFirefox({
+  profile,
+  port,
+  headless = false,
+  systemAccess = false,
+  urls = [],
+  timeoutMs = 30_000,
+}) {
   const firefox = resolveFirefox();
   const args = [
     ...(headless ? ['--headless'] : []),
+    ...(systemAccess ? ['--remote-allow-system-access'] : []),
     '--no-remote',
     '--profile',
     profile,

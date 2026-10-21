@@ -15,7 +15,15 @@ const INTERNAL_PACKAGES = [
   '@writehand/outlook-web',
   '@writehand/ai-openai',
   '@writehand/ai-claude-code',
+  '@writehand/ai-chat-completions',
   '@writehand/email-format',
+];
+
+/** Every AI provider package; none of them imports another. */
+const AI_PROVIDER_PACKAGES = [
+  '@writehand/ai-openai',
+  '@writehand/ai-claude-code',
+  '@writehand/ai-chat-completions',
 ];
 
 const deepImportBan = {
@@ -250,7 +258,11 @@ export default tseslint.config(
   },
   {
     // Provider packages do not know each other; shared instructions and types live in contracts.
-    files: ['packages/ai-openai/src/**/*.ts', 'packages/ai-claude-code/src/**/*.ts'],
+    files: [
+      'packages/ai-openai/src/**/*.ts',
+      'packages/ai-claude-code/src/**/*.ts',
+      'packages/ai-chat-completions/src/**/*.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -263,12 +275,44 @@ export default tseslint.config(
               '@writehand/core',
               '@writehand/ui',
               '@writehand/outlook-web',
-              '@writehand/ai-openai',
-              '@writehand/ai-claude-code',
+              ...AI_PROVIDER_PACKAGES,
             ],
             'AI provider packages depend only on contracts.',
           ),
           patterns: [deepImportBan],
+        },
+      ],
+    },
+  },
+  {
+    // Providers the extension's background uses directly: web APIs only, so they run in the
+    // browser and in Node.js alike.
+    files: [
+      'packages/ai-chat-completions/src/**/*.ts',
+      'packages/ai-openai/src/{api-key,responses,errors,prompt}.ts',
+    ],
+    rules: {
+      'no-restricted-globals': ['error', ...browserGlobals, 'process', 'Buffer'],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: restrictImports(
+            [
+              'vue',
+              'wxt',
+              '#imports',
+              'jose',
+              '@writehand/core',
+              '@writehand/ui',
+              '@writehand/outlook-web',
+              ...AI_PROVIDER_PACKAGES,
+            ],
+            'The browser-safe providers depend only on contracts and zod.',
+          ),
+          patterns: [
+            deepImportBan,
+            { group: ['node:*'], message: 'The extension background has no Node.js modules.' },
+          ],
         },
       ],
     },

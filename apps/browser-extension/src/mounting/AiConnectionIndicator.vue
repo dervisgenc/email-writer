@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CHATGPT_USAGE_URL } from '@writehand/contracts';
+import { API_PROVIDER_DETAILS, CHATGPT_USAGE_URL } from '@writehand/contracts';
 import { useUiText } from '@writehand/ui';
 import { computed } from 'vue';
 
@@ -12,13 +12,10 @@ const connection = enabled ? useAiSummary() : null;
 const summary = computed(() => connection?.summary.value ?? null);
 const label = computed(() => {
   if (!connection?.checked.value) return text.value.ai.checking;
-  if (!summary.value?.ready) return text.value.ai.notReady;
-  const labels = {
-    chatgpt: text.value.ai.usePlan,
-    'api-key': text.value.ai.useApi,
-    'claude-code': text.value.ai.useClaude,
-  };
-  return labels[summary.value.mode];
+  const current = summary.value;
+  if (!current?.ready) return text.value.ai.notReady;
+  if (current.mode === 'api-key') return text.value.ai.useApi(API_PROVIDER_DETAILS[current.provider].name);
+  return current.mode === 'chatgpt' ? text.value.ai.usePlan : text.value.ai.useClaude;
 });
 </script>
 

@@ -60,8 +60,6 @@ const initial = (): CredentialState => ({
   ],
   activeAccountId: 'oaiapp_one',
   mode: 'chatgpt',
-  apiKey: 'private-api-key',
-  apiModel: null,
 });
 const claudeSignedIn: ClaudeCodeStatus = {
   installed: true,
@@ -175,7 +173,7 @@ describe('AI service and protected storage', () => {
     expect(deps.provider.listModels).not.toHaveBeenCalled();
   });
 
-  it('does not infer without plan permission, even when an API key is saved', async () => {
+  it('does not infer without plan permission', async () => {
     const state = initial();
     state.accounts[0]!.credentials!.scopes = ['openid'];
     const deps = dependencies(memoryStore(state));
@@ -235,7 +233,6 @@ describe('AI service and protected storage', () => {
       });
       expect(status.accounts.map((account) => account.id)).toEqual(['oaiapp_other']);
       expect(state.hostId).toBe('urn:uuid:host');
-      expect(state.apiKey).toBe('private-api-key');
       await expect(service.generate('after-removal', input)).rejects.toThrow('AI_NOT_CONNECTED');
     },
   );
@@ -812,12 +809,27 @@ describe('Claude Code method', () => {
   it('reads credential files written before Claude Code support', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(directory);
-    const legacy: Record<string, unknown> = { ...initial() };
+    const legacy: Record<string, unknown> = { ...initial(), apiKey: null, apiModel: null };
     delete legacy.claudeModel;
     await writeFile(join(directory, 'credentials.json'), JSON.stringify(legacy), { mode: 0o600 });
 
     const state = await createCredentialStore(directory).read();
     expect(state.mode).toBe('chatgpt');
     expect(state.claudeModel).toBeUndefined();
+  });
+
+  it('drops the OpenAI API key that helper app 0.1.0 kept, in a file 0.1.0 can still read', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
+    temporary.push(directory);
+    const file = join(directory, 'credentials.json');
+    const legacy = { ...initial(), mode: 'api-key', apiKey: 'sk-private-legacy-key', apiModel: 'gpt-test' };
+    await writeFile(file, JSON.stringify(legacy), { mode: 0o600 });
+
+    const store = createCredentialStore(directory);
+    // The key now belongs in the extension; the helper app falls back to its default method.
+    expect(await store.read()).toMatchObject({ mode: 'chatgpt', activeAccountId: 'oaiapp_one' });
+    const written = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
+    expect(written).toMatchObject({ version: 1, mode: 'chatgpt', apiKey: null, apiModel: null });
+    expect(JSON.stringify(written)).not.toContain('sk-private-legacy-key');
   });
 });
