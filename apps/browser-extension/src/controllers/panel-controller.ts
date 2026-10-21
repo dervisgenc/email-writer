@@ -168,7 +168,15 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
       }
       return;
     }
+    const previousOperation = store.getState().form.operation;
     store.dispatch({ type: 'mail-event', event });
+    if (
+      event.type === 'composer-rebound' &&
+      previousOperation === 'compose' &&
+      store.getState().form.operation === 'reply'
+    ) {
+      void readThreadIfNeeded();
+    }
   });
 
   return {
@@ -200,11 +208,14 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
     },
 
     async runQuickAction(composer, action) {
-      followThread(threadOfComposer(composer), action.operation);
+      // Write belongs to this editor. A stale toolbar label must not suppress reply context.
+      const operation =
+        action.operation === 'compose' && composer.threadKey !== null ? 'reply' : action.operation;
+      followThread(threadOfComposer(composer), operation);
       const language = action.operation === 'translate' ? action.language : null;
       store.dispatch({
         type: 'form-changed',
-        changes: { operation: action.operation, ...(language === null ? {} : { targetLanguage: language }) },
+        changes: { operation, ...(language === null ? {} : { targetLanguage: language }) },
       });
       setSurface({ kind: 'inline', composerKey: composer.composerKey });
       // Capture the selection before focus moves to the card and before the first await.
@@ -212,11 +223,23 @@ export function createPanelController(deps: PanelControllerDependencies): PanelC
       if (loaded !== 'loaded') {
         return;
       }
+      // The quote may arrive during the asynchronous source read, before the session
+      // has a binding to receive composer-rebound. Reconcile the returned snapshot too.
+      const { binding } = store.getState();
+      if (
+        operation === 'compose' &&
+        (binding.kind === 'draft' || binding.kind === 'draft-selection') &&
+        binding.composerRef.threadKey !== null
+      ) {
+        store.dispatch({
+          type: 'mail-event',
+          event: { type: 'composer-rebound', previous: composer, ref: binding.composerRef },
+        });
+      }
       await readThreadIfNeeded();
       // The card waits for an instruction (reply, new email) or a language (translate without one).
       const awaitsInput =
-        isInstructionOperation(action.operation) ||
-        (action.operation === 'translate' && action.language === null);
+        isInstructionOperation(operation) || (action.operation === 'translate' && action.language === null);
       if (!awaitsInput) {
         await actions.prepare();
       }

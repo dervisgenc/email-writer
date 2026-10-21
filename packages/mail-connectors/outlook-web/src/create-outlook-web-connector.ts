@@ -110,7 +110,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
   const startedAt = now().getTime();
   const classify = createOutlookClassifier(ownUiSelector);
   const registry = createIdentityRegistry(createId);
-  const threads = createActiveThreadTracker(document, registry);
+  const threads = createActiveThreadTracker(document, registry, ownUiSelector);
   const selections = createSelectionRegistry();
   const undo = createUndoStore();
   const attempts: WriteDependencies['attempts'] = new Map();
@@ -149,7 +149,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       ref: {
         scope: registry.scope(),
         composerKey: registry.keyFor(editor, 'composer'),
-        threadKey: isReply ? (threadRef?.threadKey ?? null) : null,
+        threadKey: isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null,
       },
       isReply,
     };
@@ -167,7 +167,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
         // The editor's contents are outside the page observer. Outlook fills in the reply
         // quote after opening the editor (the revision does not change), so a draft counted
         // as a new message may have turned into a reply.
-        if (!binding.isReply && queryFirst(editor, 'quoteStart') !== null) {
+        if (binding.ref.threadKey === null && queryFirst(editor, 'quoteStart') !== null) {
           observer.request();
         }
       },
@@ -240,7 +240,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     }
     for (const { editor, isReply } of found) {
       const key = registry.keyFor(editor, 'composer');
-      const threadKey = isReply ? (threadRef?.threadKey ?? null) : null;
+      const threadKey = isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null;
       const tracked = composers.get(key);
       if (tracked !== undefined) {
         tracked.binding.isReply = isReply;

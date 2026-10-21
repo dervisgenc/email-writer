@@ -233,15 +233,105 @@ describe('Outlook Web — reading pane turning into the reply editor (real struc
   });
 
   it('does not bind a reply draft opened while another list row is selected (e.g. the Drafts folder) to the last conversation', () => {
+    const previous = connection.connector.getPageState().activeThread;
     loadFixture('selected-message-reply-compose.html');
     // As if the user switched to the Drafts folder and selected another row.
     const row = document.querySelector('[data-convid="AAQkConvFirst"]')!;
     row.setAttribute('data-convid', 'AAQkDraftOther');
     // The state is read without waiting for the observer to batch the change.
     const fresh = createConnection();
-    expect(fresh.connector.getPageState().activeThread).toBeNull();
-    expect(fresh.connector.getPageState().composers[0]?.threadKey).toBeNull();
+    const state = fresh.connector.getPageState();
+    expect(state.activeThread?.threadKey).toMatch(/^thread-quote-/);
+    expect(state.activeThread?.threadKey).not.toBe(previous?.threadKey);
+    expect(state.composers[0]?.threadKey).toBe(state.activeThread?.threadKey);
     fresh.connector.dispose();
+  });
+
+  it('recovers only the quoted context when started with a reply already open', async () => {
+    connection.connector.dispose();
+    loadFixture('selected-message-reply-compose.html');
+    const editor = document.querySelector('[data-fixture="reply-editor"]')!;
+    editor.querySelector('.elementToProof')!.textContent = 'Private unfinished draft';
+    const signature = document.createElement('div');
+    signature.id = 'Signature';
+    signature.textContent = 'Private signature';
+    editor.insertBefore(signature, editor.querySelector('#appendonsend'));
+    // Some Outlook variants keep a role=document wrapper inside the quoted mail.
+    editor.querySelector('p')!.setAttribute('role', 'document');
+    connection = createConnection();
+    const state = connection.connector.getPageState();
+    expect(state.activeThread?.threadKey).toMatch(/^thread-quote-/);
+    expect(state.composers[0]?.threadKey).toBe(state.activeThread?.threadKey);
+    const result = await connection.connector.readThread(state.activeThread!, never);
+    if (!result.ok) throw new Error(result.error.code);
+    expect(result.value.messages).toHaveLength(1);
+    expect(result.value.activeMessageKey).toBe(result.value.messages[0]?.messageKey);
+    expect(result.value.subject).toBeNull();
+    expect(result.value.messages[0]?.senderLabel).toBeNull();
+    expect(result.value.coverage.status).toBe('partial');
+    const text = result.value.messages[0]!.blocks.map((block) => block.text).join('\n');
+    expect(text).toContain('Revize teklifi ekte paylaşıyorum.');
+    expect(text).not.toContain('Private unfinished draft');
+    expect(text).not.toContain('Private signature');
+    expect((await connection.connector.readComposer(state.composers[0]!)).ok).toBe(true);
+  });
+
+  it('does not infer a conversation for a new message from the selected inbox row', () => {
+    connection.connector.dispose();
+    loadFixture('selected-message-reply-compose.html');
+    document.querySelector('[data-fixture="reply-editor"]')!.replaceChildren(document.createElement('br'));
+    connection = createConnection();
+    expect(connection.connector.getPageState().activeThread).toBeNull();
+    expect(connection.connector.getPageState().composers[0]?.threadKey).toBeNull();
+  });
+
+  it('does not attach a second quoted editor outside the reading pane to the recovered conversation', () => {
+    connection.connector.dispose();
+    loadFixture('selected-message-reply-compose.html');
+    const second = document.querySelector('[data-fixture="reply-editor"]')!.cloneNode(true);
+    document.body.append(second);
+    connection = createConnection();
+    const state = connection.connector.getPageState();
+    expect(state.composers).toHaveLength(2);
+    expect(state.composers[0]?.threadKey).toBe(state.activeThread?.threadKey);
+    expect(state.composers[1]?.threadKey).toBeNull();
+  });
+
+  it('does not guess a conversation when the reading pane contains two quoted editors', () => {
+    connection.connector.dispose();
+    loadFixture('selected-message-reply-compose.html');
+    const second = document.querySelector('[data-fixture="reply-editor"]')!.cloneNode(true);
+    document.getElementById('ReadingPaneContainerId')!.append(second);
+    connection = createConnection();
+    expect(connection.connector.getPageState().activeThread).toBeNull();
+    expect(
+      connection.connector.getPageState().composers.every((composer) => composer.threadKey === null),
+    ).toBe(true);
+  });
+
+  it('waits for quoted content when a draft initially contains only an empty quote marker', async () => {
+    connection.connector.dispose();
+    loadFixture('selected-message-reply-compose.html');
+    const editor = document.querySelector('[data-fixture="reply-editor"]')!;
+    const marker = document.createElement('div');
+    marker.id = 'appendonsend';
+    editor.replaceChildren(document.createTextNode('Private draft'), marker);
+    connection = createConnection();
+    expect(connection.connector.getPageState().activeThread).toBeNull();
+    expect(connection.connector.getPageState().composers[0]?.threadKey).toBeNull();
+
+    const header = document.createElement('div');
+    header.id = 'divRplyFwdMsg';
+    header.textContent = 'From: Alex';
+    editor.append(header, document.createTextNode('The service is unavailable.'));
+    await settle(400);
+    const state = connection.connector.getPageState();
+    expect(state.activeThread?.threadKey).toMatch(/^thread-quote-/);
+    expect(state.composers[0]?.threadKey).toBe(state.activeThread?.threadKey);
+    const result = await connection.connector.readThread(state.activeThread!, never);
+    if (!result.ok) throw new Error(result.error.code);
+    expect(result.value.messages[0]?.blocks[0]?.text).toContain('The service is unavailable.');
+    expect(result.value.messages[0]?.blocks[0]?.text).not.toContain('Private draft');
   });
 });
 

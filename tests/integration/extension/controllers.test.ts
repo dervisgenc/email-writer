@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from '@writehand/contracts';
+import { aiInputSchema, buildTaskPrompt, DEFAULT_SETTINGS, toAiInput } from '@writehand/contracts';
 import { createSession, deriveCapabilities } from '@writehand/core';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -374,6 +374,74 @@ describe('Panel flow (with a fake connector)', () => {
     store.dispatch({ type: 'form-changed', changes: { instruction: 'Ekibe perşembe toplantısı öner' } });
     await current.actions.prepare();
     expect(view().preview?.text).toMatch(/Perşembe 14:00/);
+    expect(store.getState().action?.context).toBeNull();
+  });
+
+  it('routes Write on a bound reply editor through conversation context all the way to the provider prompt', async () => {
+    current = setup();
+    const { panel, store, connector, actions } = current;
+    connector.selection = null;
+    connector.threadSnapshot = thread(
+      [message('english', 0, [body('The service is still unavailable. Could we discuss the next steps?')])],
+      { activeMessageKey: 'english', subject: 'Service review' },
+    );
+
+    await panel.runQuickAction(connector.composer, { operation: 'compose' });
+    store.dispatch({ type: 'form-changed', changes: { instruction: 'sorunu çözmek için toplantı öner' } });
+    await actions.prepare();
+    const action = store.getState().action!;
+    expect(action.operation).toBe('reply');
+    const input = aiInputSchema.parse(toAiInput(action, { standingInstructions: '' }));
+    expect(input.messages).toContainEqual(
+      expect.objectContaining({
+        text: 'The service is still unavailable. Could we discuss the next steps?',
+        replyTarget: true,
+      }),
+    );
+    const prompt = buildTaskPrompt(input);
+    expect(prompt.user).toContain('<instruction>\nsorunu çözmek için toplantı öner\n</instruction>');
+    expect(prompt.user).toContain('reply_target="true"');
+    expect(prompt.system).toContain('The language of the main authored text of the reply_target message');
+  });
+
+  it('keeps writing input but discards a context-free result when a late quote identifies the editor as a reply', async () => {
+    current = setup();
+    const { panel, store, connector, actions } = current;
+    const replyComposer = connector.composer;
+    connector.composer = { ...replyComposer, threadKey: null };
+    await panel.runQuickAction(connector.composer, { operation: 'compose' });
+    const instruction = 'sorunu çözmek için toplantı öner';
+    store.dispatch({ type: 'form-changed', changes: { instruction } });
+    await actions.prepare();
+    expect(store.getState().preview).not.toBeNull();
+    const previous = connector.composer;
+    connector.composer = replyComposer;
+    connector.emit({ type: 'composer-rebound', previous, ref: replyComposer });
+    await tick();
+    expect(store.getState().form).toMatchObject({ operation: 'reply', instruction });
+    expect(store.getState().preview).toBeNull();
+    expect(store.getState().context?.messages.length).toBeGreaterThan(0);
+    await actions.prepare();
+    expect(store.getState().action).toMatchObject({ operation: 'reply', instruction });
+    expect(store.getState().action?.context).not.toBeNull();
+  });
+
+  it('uses reply context if the conversation becomes known while the draft is being read', async () => {
+    current = setup();
+    const { panel, store, connector } = current;
+    connector.selection = null;
+    const replyComposer = connector.composer;
+    connector.composer = { ...replyComposer, threadKey: null };
+    const readComposer = connector.readComposer.bind(connector);
+    connector.readComposer = async () => {
+      const previous = connector.composer;
+      connector.composer = replyComposer;
+      connector.emit({ type: 'composer-rebound', previous, ref: replyComposer });
+      return readComposer(replyComposer);
+    };
+    await panel.runQuickAction(connector.composer, { operation: 'compose' });
+    expect(store.getState().form.operation).toBe('reply');
+    expect(store.getState().context?.messages.length).toBeGreaterThan(0);
   });
 
   it('takes the context and replied-to message from previously opened messages when the reading pane turns into the reply editor', async () => {

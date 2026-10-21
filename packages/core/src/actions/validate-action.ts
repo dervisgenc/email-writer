@@ -77,7 +77,7 @@ export function validateAction(draft: ActionDraft): AppError[] {
       }
       break;
     case 'compose':
-      // New email: needs an instruction, which also sets the language; no conversation context is needed.
+      // New email: needs writing input; conversation context is optional.
       validateInstruction(draft, errors);
       break;
     case 'reply':

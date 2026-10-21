@@ -4,6 +4,11 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ## [Unreleased]
 
+### Fixed
+
+- Write and reply prompts now distinguish directions from rough email text, preserve who is requesting what, and prefer the conversation's language unless the user explicitly chooses another language.
+- Recover context from recognized quotes when Outlook already has a reply draft open. Keep that context local to its editor, exclude the editable draft and signature, and invalidate a context-free result if a late quote identifies the draft as a reply.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

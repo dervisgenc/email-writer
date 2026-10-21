@@ -1,5 +1,6 @@
 import type { IdentityRegistry } from '../identity/identity-registry';
 import { labelText, messageContainerOf, messageKeyOf } from '../reading/message-header';
+import { locateQuotedReply } from './locate-quoted-reply';
 import { locateThread, messageBodies, selectedRowConversationId, type LocatedThread } from './locate-thread';
 import { queryAll, queryFirst } from './selectors';
 
@@ -36,6 +37,7 @@ function readingPaneHasEditor(pane: HTMLElement): boolean {
 export function createActiveThreadTracker(
   document: Document,
   registry: IdentityRegistry,
+  ownUiSelector: string,
 ): ActiveThreadTracker {
   let shown: ShownThread | null = null;
   let parked = false;
@@ -65,11 +67,11 @@ export function createActiveThreadTracker(
       const pane = queryFirst(document, 'readingPane');
       if (shown === null || pane === null || !readingPaneHasEditor(pane)) {
         parked = false;
-        return null;
+        return locateQuotedReply(document, registry, ownUiSelector);
       }
       const sameRow = shown.selectedRow !== null && selectedRowConversationId(document) === shown.selectedRow;
       if (!parked && !sameRow) {
-        return null;
+        return locateQuotedReply(document, registry, ownUiSelector);
       }
       parked = true;
       return {

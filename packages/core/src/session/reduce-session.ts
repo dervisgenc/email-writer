@@ -185,8 +185,25 @@ function reduceMailEvent(state: SessionState, event: MailEvent): SessionState {
       if (composer === null || !isSameComposer(composer, event.previous)) {
         return state;
       }
-      // The same editor was linked to the conversation later; the work stays valid under the new ref.
-      return rebindComposer(state, event.ref);
+      const rebound = rebindComposer(state, event.ref);
+      if (
+        state.thread === null &&
+        event.ref.threadKey !== null &&
+        state.form.operation === 'compose' &&
+        state.phase.status !== 'applying'
+      ) {
+        // A late quote proves this Write session is a reply. Keep the user's input,
+        // but invalidate any generation made without the conversation.
+        return rest({
+          ...rebound,
+          thread: { scope: event.ref.scope, threadKey: event.ref.threadKey },
+          form: { ...state.form, operation: 'reply' },
+          formRevision: state.formRevision + 1,
+          action: null,
+          preview: null,
+        });
+      }
+      return rebound;
     }
 
     case 'composer-added':

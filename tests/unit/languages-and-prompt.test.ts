@@ -5,6 +5,7 @@ import {
   resolveUiLanguage,
   type AiInput,
 } from '@writehand/contracts';
+import { buildEmailRequest } from '@writehand/ai-openai';
 import { describe, expect, it } from 'vitest';
 
 const reply: AiInput = {
@@ -54,6 +55,72 @@ describe('Target language', () => {
 });
 
 describe('Task prompt', () => {
+  const englishConversation: AiInput['messages'] = [
+    {
+      text: 'The service is unavailable. Please let us know how we can resolve this issue.',
+      sender: 'Alex',
+      subject: 'Service review',
+      sentAt: null,
+      replyTarget: true,
+    },
+  ];
+
+  it.each(['reply', 'compose'] as const)(
+    'gives %s a conversation-first language policy and accepts instructions, rough text and mixed input',
+    (operation) => {
+      for (const instruction of [
+        'sorunu çözmek için toplantı öner',
+        'merhaba fiyat indirimi yapılmasını istiyoruz',
+        'Daha kibar yaz: merhaba fiyat indirimi istiyoruz',
+        'Türkçe yanıtla ve toplantı öner',
+      ]) {
+        const input: AiInput = { ...reply, operation, instruction, messages: englishConversation };
+        const prompt = buildTaskPrompt(input);
+        expect(prompt.user).toContain(`<instruction>\n${instruction}\n</instruction>`);
+        expect(prompt.user).toContain(englishConversation[0]!.text);
+        expect(prompt.system).toContain('writing directions, draft content, notes or a combination');
+        expect(prompt.system).toContain('Preserve who is responsible for each action');
+        expect(prompt.system).not.toContain(instruction);
+        expect(prompt.system).toContain('1. An explicit output-language request in <instruction>');
+        expect(prompt.system).toContain('The language of the main authored text of the reply_target');
+        expect(prompt.system).not.toContain('compose: write in the language of <instruction>');
+        const request = buildEmailRequest(input, 'test-model');
+        expect(request.instructions).toBe(prompt.system);
+        expect(request.input).toEqual([{ role: 'user', content: prompt.user }]);
+      }
+    },
+  );
+
+  it('falls back to the draft and writing input for a new message without conversation', () => {
+    const prompt = buildTaskPrompt({
+      ...reply,
+      operation: 'compose',
+      messages: [],
+      source: 'Hello, we would like to discuss the proposal.',
+      instruction: 'toplantı öner',
+    });
+    expect(prompt.user).not.toContain('<conversation');
+    expect(prompt.user).toContain('<draft>\nHello, we would like to discuss the proposal.\n</draft>');
+    expect(prompt.system).toContain('Without usable conversation text, use the language of <draft>');
+  });
+
+  it('does not mix writing language rules into revision, translation or refinement', () => {
+    for (const operation of ['revise', 'translate'] as const) {
+      const prompt = buildTaskPrompt({ ...reply, operation, source: 'Hello', targetLanguage: 'de' });
+      expect(prompt.system).not.toContain('# Writing intent');
+      expect(prompt.system).not.toContain('Choose the output language in this order');
+      expect(prompt.system).toContain(
+        operation === 'revise' ? 'Keep the language of <source>.' : 'Write in output_language.',
+      );
+    }
+    const prompt = buildTaskPrompt({
+      ...reply,
+      refinement: { previous: 'Hello', instruction: 'Make it shorter.' },
+    });
+    expect(prompt.system).not.toContain('Choose the output language in this order');
+    expect(prompt.system).toContain('unless <refinement> explicitly requests a different output language');
+  });
+
   it('passes the task, standing preferences and conversation as tagged data, with an automatic output language for replies', () => {
     const { system, user } = buildTaskPrompt(reply);
 

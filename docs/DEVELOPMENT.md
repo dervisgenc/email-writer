@@ -155,6 +155,8 @@ The same session is shown on two surfaces (`PanelSurface`): the side panel and t
 
 1. **Compose toolbar** (`ComposeToolbar`) floats in the bottom-right corner of the visible part of each draft, also when the editor is taller than the screen. Buttons: **Write reply** (reply drafts) or **Write** (new messages, `compose`), **Revise**, **Translate** with a language menu, and the panel button.
    - A draft counts as a reply if it contains a quote marker (`#divRplyFwdMsg` and similar) or was opened under a conversation. When the reading pane shows only the selected message, Outlook replaces it with the editor on **Reply**; the conversation is then "parked" (`discovery/track-active-thread.ts`) and the context comes from the opened-message history.
+   - If no earlier conversation can be identified, one quoted editor in the reading pane provides a local fallback (`discovery/locate-quoted-reply.ts`). Only its recognized quote is read; the editable draft and pre-quote signature are excluded. The quoted chain stays in one context item, with unknown sender/date/subject and partial coverage. The selected inbox row is not used to guess the draft's conversation, and a second editor is not attached to it.
+   - If a late quote links an open **Write** session to a conversation, it becomes **Write reply** without losing the instruction or source text. Any result generated without that context is discarded; the user generates again with the conversation.
    - **Revise** and **Translate** run immediately (`PanelController.runQuickAction`): the selection is the source, otherwise the draft body if it can be separated safely. The result appears in the card (`InlineAssistant`).
    - **Write reply** waits for an instruction; the context is read in advance.
 2. **Reading pane button** (**Draft reply**) opens the panel in reply mode.
@@ -182,6 +184,14 @@ The same session is shown on two surfaces (`PanelSurface`): the side panel and t
 - Message text in the context can be edited in the panel (`ContextEdit`); the original email is not changed and **Restore original** removes the edit.
 - While the user is not working on a result, newly read content refreshes the context silently (`thread-refreshed`). With a preview open, the preview is kept and a stale-context notice is shown.
 - Only the context the user selected is sent to the provider, and only when they request a generation.
+
+### Writing prompt
+
+`packages/contracts/src/ai-prompt.ts` builds the shared task prompt for OpenAI and Claude. Write accepts directions, rough email text, notes or a mixture; the model is instructed to express the user's intent to the recipient without reversing the request or inventing commitments.
+
+For writing, an explicit output language in the current instruction takes precedence, followed by an explicit standing language preference, then the replied-to message's authored language (or relevant conversation). Without usable conversation text, the draft's language is used before the instruction's language. The language in which the user gives directions is not an explicit output-language request. Revision preserves the source language; translation uses its selected target; refinement preserves the previous result's language unless explicitly asked to translate.
+
+Automated tests verify context selection, routing and the prompt passed to providers. They do not prove generated prose quality. Run the synthetic writing scenarios in [Manual testing](./MANUAL_TESTING.md#writing-quality) against each supported connection and record the model used.
 
 ### Appearance
 

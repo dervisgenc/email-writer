@@ -66,6 +66,36 @@ export async function readThread(
   let budget = READ_LIMITS.maxTextLength;
   const messages: MessageSnapshot[] = [];
 
+  const quoteEditor = located.replyView?.quoteEditor;
+  const quoteKey = located.replyView?.replyingTo;
+  if (quoteEditor !== undefined && quoteKey != null) {
+    await deps.yieldToBrowser();
+    if (signal.aborted) return err(appError('READ_CANCELLED'));
+    if (!quoteEditor.isConnected || !isCurrent()) return err(appError('THREAD_CHANGED'));
+    const extraction = extractTextBlocks(quoteEditor, { classify: deps.classify, maxLength: budget });
+    if (extraction.truncated) {
+      skippedByLimit += 1;
+    } else {
+      // Only the recognized quote crosses the context boundary. The user's draft and
+      // signature are not conversation messages. Keep the quoted chain together:
+      // localized From/Sent headers are not reliable message or identity delimiters.
+      const blocks = extraction.blocks
+        .filter((block) => block.kind === 'quote' && block.text.trim() !== '')
+        .map(({ text }) => ({ kind: 'unknown' as const, certainty: 'uncertain' as const, text }));
+      if (blocks.length > 0) {
+        budget -= blocks.reduce((total, block) => total + block.text.length, 0);
+        messages.push({
+          messageKey: quoteKey,
+          senderLabel: null,
+          sentAt: null,
+          sentAtText: null,
+          displayOrder: 0,
+          blocks,
+        });
+      }
+    }
+  }
+
   for (const [index, body] of readable.entries()) {
     await deps.yieldToBrowser();
     if (signal.aborted) {

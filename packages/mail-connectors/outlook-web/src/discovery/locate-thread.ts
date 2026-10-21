@@ -1,5 +1,5 @@
 import { opaqueHash, type IdentityRegistry } from '../identity/identity-registry';
-import { CONVERSATION_SUBJECT_ID, queryAll, queryFirst, URL_ITEM_ID } from './selectors';
+import { closest, CONVERSATION_SUBJECT_ID, queryAll, queryFirst, URL_ITEM_ID } from './selectors';
 
 export interface LocatedThread {
   readonly root: HTMLElement;
@@ -12,12 +12,17 @@ export interface LocatedThread {
    * message body is not on the page; the replied-to message and subject were
    * recorded while the message was shown.
    */
-  readonly replyView?: { readonly replyingTo: string | null; readonly subject: string | null };
+  readonly replyView?: {
+    readonly replyingTo: string | null;
+    readonly subject: string | null;
+    /** A quote-only fallback when the original message was not observed before the draft opened. */
+    readonly quoteEditor?: HTMLElement;
+  };
 }
 
 /** Bodies in the reading pane; for nested matches the innermost (most specific) element is kept. */
 export function messageBodies(root: ParentNode): HTMLElement[] {
-  const all = queryAll(root, 'messageBody');
+  const all = queryAll(root, 'messageBody').filter((body) => closest(body, 'composeEditor') === null);
   return all.filter((element) => !all.some((other) => other !== element && element.contains(other)));
 }
 
