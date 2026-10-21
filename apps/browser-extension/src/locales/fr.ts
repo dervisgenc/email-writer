@@ -261,7 +261,7 @@ export const fr: ExtensionText = {
         'La réponse d’identité d’OpenAI n’a pas pu être vérifiée de façon sûre. Le compte n’a pas été connecté (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'La connexion ChatGPT a été annulée.',
       AI_POLICY_DENIED:
-        'Une stratégie de l’organisation bloque cette connexion ChatGPT. Demandez à l’administrateur de votre espace de travail de vérifier l’accès à « Sign in with ChatGPT » et l’éligibilité du forfait ; l’autorisation Plugins seule ne suffit pas.',
+        'Une stratégie de l’organisation bloque « Sign in with ChatGPT » pour cette application. Les espaces de travail ChatGPT Business n’ont actuellement aucun paramètre pour l’autoriser ; utilisez plutôt « Se connecter via Codex ». Avec Enterprise et Edu, un administrateur global peut approuver l’application dans l’OpenAI Admin Console, sous External access.',
       AI_WORKSPACE_MISMATCH:
         'Cette connexion appartient à un autre compte ou espace de travail ChatGPT. Continuez avec le compte qui l’a créée ou choisissez « Ajouter un autre compte ou espace de travail ».',
       AI_ACCOUNT_NAME_TAKEN: 'Une autre connexion utilise déjà ce nom. Choisissez un nom distinct.',
@@ -272,7 +272,9 @@ export const fr: ExtensionText = {
       AI_ACCESS_DENIED:
         'OpenAI a refusé l’accès à cette requête. Vérifiez les autorisations de l’application, la configuration de la connexion ou les restrictions régionales ; cette erreur seule ne prouve rien sur l’éligibilité de l’abonnement.',
       AI_LIMIT_REACHED:
-        'Limite d’utilisation atteinte. Pour ChatGPT, ouvrez « Gérer l’utilisation » ; avec un forfait Claude, réessayez quand votre limite est réinitialisée ; pour une clé API, vérifiez vos limites d’API OpenAI.',
+        'Limite d’utilisation atteinte. Pour ChatGPT, ouvrez « Gérer l’utilisation » pour voir quand elle est réinitialisée ; les espaces de travail peuvent aussi continuer avec des crédits. Avec un forfait Claude, réessayez quand votre limite est réinitialisée ; pour une clé API, vérifiez vos limites d’API OpenAI.',
+      AI_CREDITS_EXHAUSTED:
+        'Plus aucun crédit. Pour un espace de travail ChatGPT, ses propriétaires peuvent ajouter des crédits ou relever la limite de dépenses dans les paramètres de facturation ; avec une clé API, vérifiez votre facturation OpenAI Platform.',
       AI_UNAVAILABLE:
         'Le service d’IA est actuellement indisponible. Votre connexion est conservée ; réessayez plus tard.',
       AI_NETWORK: 'Impossible de joindre le service d’IA. Vérifiez votre connexion Internet et réessayez.',

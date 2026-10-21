@@ -9,7 +9,7 @@ export const aiEn: AiText = {
   apiKey: 'OpenAI API key',
   claudeCode: 'Claude plan',
   methodHints: {
-    chatgpt: 'With your Plus or Pro plan',
+    chatgpt: 'With your Plus, Pro or Business plan',
     'api-key': 'Pay as you go',
     'claude-code': 'With Claude Code on this computer',
   },
@@ -30,20 +30,22 @@ export const aiEn: AiText = {
     methods: {
       chatgpt: {
         title: 'ChatGPT plan',
-        summary: 'Generates with the usage included in your ChatGPT Plus or Pro plan.',
+        summary: 'Generates with the usage included in your ChatGPT plan.',
         requirements: [
-          'A ChatGPT Plus or Pro subscription. Free accounts do not support plan usage.',
+          'A ChatGPT Plus or Pro subscription, or a Business, Enterprise or Edu workspace. Free accounts do not support plan usage.',
           `The ${PRODUCT_NAME} helper app on this computer.`,
         ],
         steps: [
           'Choose ChatGPT plan as the method.',
           'Select “Continue with ChatGPT”. In the page that opens, choose your account and allow access.',
+          'For a Business, Enterprise or Edu workspace, select “Sign in through Codex” instead and choose the workspace.',
           'Come back to this page; the account shows “Connected · Ready to generate text”. Then choose a model.',
         ],
         notes: [
           'Usage counts against your ChatGPT plan limits. You can follow it in ChatGPT → Settings → Usage.',
           'If you just upgraded your plan, it may take a few minutes to become active.',
-          'OpenAI currently supports only Plus and Pro plans. On work accounts (Business, Enterprise), an organization policy may block the connection.',
+          'Continue with ChatGPT currently serves Plus and Pro plans; on work accounts an organization policy blocks it. Sign in through Codex uses the sign-in of OpenAI’s Codex app instead. It is experimental: OpenAI does not document it for other apps and may change it.',
+          'With Sign in through Codex, usage counts against your plan’s limits, which ChatGPT shares with Codex and other work features. On Business workspaces, credits can keep you going once the weekly limit is reached; workspace owners add them in the workspace billing settings.',
           'You can remove access at any time in ChatGPT → Settings → Security and login → Sign in with ChatGPT.',
         ],
       },
@@ -104,6 +106,12 @@ export const aiEn: AiText = {
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Sign in through Codex',
+  codexHint:
+    'For ChatGPT Business, Enterprise and Edu workspaces. Uses the sign-in of OpenAI’s Codex app; Codex does not need to be installed. Experimental.',
+  codexSignIn: 'Codex sign-in',
+  codexConnectionHelp:
+    'This connection uses the Codex sign-in. Usage counts against your plan’s limits shared with Codex; on Business workspaces, credits can keep you going once they run out. You can end the session by removing the account here.',
   addAccount: 'Add a different account or workspace',
   reconnect: 'Reconnect',
   disconnect: 'Disconnect',
@@ -137,7 +145,7 @@ export const aiEn: AiText = {
   planDisabled:
     'Account verified; generation is not authorized. Plan usage requires an eligible Plus/Pro account and permission to use its plan. Signing in with a free account does not grant generation access.',
   planNote:
-    'Eligible Plus and Pro accounts can use their plan allowance. Availability depends on your account, workspace and OpenAI access.',
+    'Eligible Plus and Pro accounts can use their plan allowance with Continue with ChatGPT. For Business, Enterprise and Edu workspaces, use Sign in through Codex.',
   apiNote:
     'API usage is billed separately by OpenAI. It is independent of your ChatGPT subscription; this method is never selected automatically.',
   claudeNote: `Claude Code installed on this computer runs with your own Claude account; usage counts against your Claude plan limits. ${PRODUCT_NAME} does not access or store your Claude credentials. Sign in and out through Claude Code.`,

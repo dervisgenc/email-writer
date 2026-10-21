@@ -37,7 +37,7 @@ Your preferences (interface language, translation languages, tone, standing inst
 
 ### Sign-in details and API keys
 
-- **ChatGPT plan:** when you sign in with ChatGPT, the helper app receives sign-in tokens from OpenAI on your computer.
+- **ChatGPT plan:** when you sign in with ChatGPT or through Codex, the helper app receives sign-in tokens from OpenAI on your computer. With the Codex sign-in, requests go to OpenAI's ChatGPT service (`chatgpt.com`) instead of the OpenAI API.
 - **OpenAI API key:** the key you enter is passed to the helper app.
 
 The helper app stores these in a file that only your user account can read (`~/.config/writehand` on macOS and Linux, `%LOCALAPPDATA%\writehand` on Windows). They are never stored in the browser and never sent back to the extension. They are sent only to OpenAI, to authenticate your requests.
@@ -66,7 +66,7 @@ While update checks are turned on (the default), the helper app asks GitHub at m
 ## Deleting your data
 
 - Remove the extension from your browser to delete its settings.
-- Uninstall the helper app with `--delete-data` (macOS and Linux) or `-DeleteData` (Windows) to delete stored sign-in tokens and API keys; see the [README](./README.md#install). You can also revoke Writehand's access in your ChatGPT settings under **Security and login**.
+- Uninstall the helper app with `--delete-data` (macOS and Linux) or `-DeleteData` (Windows) to delete stored sign-in tokens and API keys; see the [README](./README.md#install). You can also revoke Writehand's access in your ChatGPT settings under **Security and login**; a Codex sign-in is ended by removing the account in Writehand.
 - Data that a provider has already received is subject to that provider's retention policy.
 
 ## Changes and contact

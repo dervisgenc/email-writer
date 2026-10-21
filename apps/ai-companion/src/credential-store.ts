@@ -17,6 +17,12 @@ const credentialsSchema = z
 const accountSchema = z
   .object({
     clientId: z.string(),
+    /**
+     * Added with the Codex sign-in. Codex sign-ins share one client, so each gets its own ID
+     * and keeps the ChatGPT account (workspace) its tokens belong to. Sign in with ChatGPT
+     * registrations have none: their client ID identifies them.
+     */
+    codex: z.object({ id: z.string(), workspaceId: z.string() }).strict().optional(),
     subject: z.string().nullable(),
     email: z.string().nullable(),
     label: z.string(),

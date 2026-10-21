@@ -268,7 +268,7 @@ export const de: ExtensionText = {
         'Die Identitätsantwort von OpenAI ließ sich nicht sicher prüfen. Das Konto wurde nicht verbunden (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'Die ChatGPT-Anmeldung wurde abgebrochen.',
       AI_POLICY_DENIED:
-        'Eine Organisationsrichtlinie blockiert diese ChatGPT-Verbindung. Bitten Sie die Administration Ihres Arbeitsbereichs, den Zugriff auf „Sign in with ChatGPT“ und die Planberechtigung zu prüfen; die Plugins-Berechtigung allein genügt nicht.',
+        'Eine Organisationsrichtlinie blockiert „Sign in with ChatGPT“ für diese App. ChatGPT-Business-Arbeitsbereiche haben derzeit keine Einstellung, um es zu erlauben; verwenden Sie stattdessen „Über Codex anmelden“. Bei Enterprise und Edu kann eine globale Administration die App in der OpenAI Admin Console unter „External access“ genehmigen.',
       AI_WORKSPACE_MISMATCH:
         'Diese Verbindung gehört zu einem anderen ChatGPT-Konto oder Arbeitsbereich. Fahren Sie mit dem Konto fort, das sie erstellt hat, oder wählen Sie „Anderes Konto oder anderen Arbeitsbereich hinzufügen“.',
       AI_ACCOUNT_NAME_TAKEN:
@@ -280,7 +280,9 @@ export const de: ExtensionText = {
       AI_ACCESS_DENIED:
         'OpenAI hat den Zugriff auf diese Anfrage verweigert. Prüfen Sie App-Berechtigungen, Verbindungseinstellungen oder regionale Einschränkungen; dieser Fehler allein sagt nichts über die Abo-Berechtigung aus.',
       AI_LIMIT_REACHED:
-        'Nutzungsgrenze erreicht. Bei ChatGPT öffnen Sie „Nutzung verwalten“; beim Claude-Plan versuchen Sie es nach dem Zurücksetzen der Grenze erneut; bei API-Schlüsseln prüfen Sie Ihre OpenAI-API-Limits.',
+        'Nutzungsgrenze erreicht. Bei ChatGPT sehen Sie unter „Nutzung verwalten“, wann sie zurückgesetzt wird; Arbeitsbereiche können auch mit Credits weitermachen. Beim Claude-Plan versuchen Sie es nach dem Zurücksetzen der Grenze erneut; bei API-Schlüsseln prüfen Sie Ihre OpenAI-API-Limits.',
+      AI_CREDITS_EXHAUSTED:
+        'Keine Credits mehr. In einem ChatGPT-Arbeitsbereich können dessen Inhaber in den Abrechnungseinstellungen Credits hinzufügen oder das Ausgabenlimit erhöhen; bei einem API-Schlüssel prüfen Sie die Abrechnung auf OpenAI Platform.',
       AI_UNAVAILABLE:
         'Der KI-Dienst ist derzeit nicht verfügbar. Ihre Verbindung bleibt bestehen; versuchen Sie es später erneut.',
       AI_NETWORK:

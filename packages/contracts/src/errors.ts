@@ -43,6 +43,8 @@ export const ERROR_CODES = [
   'AI_NOT_ELIGIBLE',
   'AI_ACCESS_DENIED',
   'AI_LIMIT_REACHED',
+  /** The ChatGPT workspace or the OpenAI API account has no credits left; a plan limit has not been reached. */
+  'AI_CREDITS_EXHAUSTED',
   'AI_UNAVAILABLE',
   'AI_NETWORK',
   'AI_MODEL_UNAVAILABLE',

@@ -133,7 +133,7 @@ Users choose a method in **Settings → AI connection** (or in the welcome wizar
 
 | Method | Label | Billing | Requirements |
 | --- | --- | --- | --- |
-| ChatGPT plan | Recommended | Usage included in the user's ChatGPT plan | An eligible ChatGPT Plus or Pro account |
+| ChatGPT plan | Recommended | Usage included in the user's ChatGPT plan; work workspaces can add credits once a limit is reached | An eligible ChatGPT Plus or Pro account, or a Business, Enterprise or Edu workspace through the Codex sign-in |
 | OpenAI API key | | Pay as you go on the user's OpenAI Platform account | An API key |
 | Claude plan | Experimental | Usage from the user's Claude plan, shared with their Claude Code usage | Claude Code installed and signed in on the same computer |
 
@@ -147,7 +147,8 @@ A failure in one method never switches to another automatically, and failed requ
 
 Access rules:
 
-- Signing in alone does not grant generation: the token response must include the `chatgpt.tokens.use.direct` scope, and usage is subject to the account's and workspace's access. A free account can sign in but cannot generate with plan usage. Business plans and other work plans are not assumed to be eligible, and being an administrator does not change an organization's policy. See OpenAI's [Sign in with ChatGPT](https://learn.chatgpt.com/docs/sign-in-with-chatgpt) and [open-source token sharing](https://developers.openai.com/siwc/token-sharing-open-source) documentation.
+- Signing in alone does not grant generation: the token response must include the `chatgpt.tokens.use.direct` scope, and usage is subject to the account's and workspace's access. A free account can sign in but cannot generate with plan usage. See OpenAI's [Sign in with ChatGPT](https://learn.chatgpt.com/docs/sign-in-with-chatgpt) and [open-source token sharing](https://developers.openai.com/siwc/token-sharing-open-source) documentation.
+- Work accounts: OpenAI offers plan usage through Sign in with ChatGPT to eligible Plus and Pro subscribers. On ChatGPT Business workspaces, sign-in ends with `3p_delegated_access_policy_denied`, and Business workspaces have no setting that allows it (as of October 2026, including for owners). Enterprise and Edu global admins manage it in the OpenAI Admin Console under **External access**, which workspace owners and admins cannot change on their own. Work accounts use the [Codex sign-in](#business-enterprise-and-edu-workspaces-codex-sign-in-experimental) instead.
 - Writehand is not a ChatGPT plugin and does not appear in the Plugins list. Users manage the connection in ChatGPT under **Settings → Security and login → Sign in with ChatGPT** and usage under **Settings → Usage**.
 
 Accounts:
@@ -157,7 +158,18 @@ Accounts:
 - **Rename** sets a local name (1–80 characters, unique on this device). The first verified sign-in uses the profile name or email; duplicates get `(2)`, `(3)`; unverified records are called `ChatGPT`.
 - **Remove account** deletes the connection and its tokens from this device after confirmation, cancels a pending sign-in and tries to revoke the refresh token at OpenAI; a late OAuth response cannot recreate it. Removing the active account does not switch to another one. **Disconnect** clears the tokens but keeps the name and registration for signing in again. Neither deletes the ChatGPT account or OpenAI's app registration.
 
-Technical details: the ID token is verified (signature, issuer, audience, expiry, nonce) before an account is activated; saved accounts are kept apart by `client_id` even with the same email. On every start the helper loads the model catalog of the active account once (a model list, never a generation); an account without a catalog is not shown as ready. Every request uses `store: false` and `stream: true`, and a result is accepted only after `response.completed`. This is not a claim about the provider's own retention policies.
+Technical details: the ID token is verified (signature, issuer, audience, expiry, nonce) before an account is activated; Sign in with ChatGPT accounts are kept apart by `client_id` even with the same email, Codex sign-ins by user and workspace. On every start the helper loads the model catalog of the active account once (a model list, never a generation); an account without a catalog is not shown as ready. Every request uses `store: false` and `stream: true`, and a result is accepted only after `response.completed`. This is not a claim about the provider's own retention policies.
+
+#### Business, Enterprise and Edu workspaces: Codex sign-in (experimental)
+
+**Sign in through Codex** in the ChatGPT plan settings signs in with the OAuth client of OpenAI's Codex CLI, which OpenAI admits for work workspaces, the way other open-source tools (Pi, OpenCode) do. Codex itself does not need to be installed.
+
+- OpenAI does not document this sign-in for other apps. It may stop working at any time, which is why it is labelled experimental and Sign in with ChatGPT stays the recommended sign-in. The authorization request and every request to the Codex backend name Writehand (`originator: writehand`), never Codex.
+- Usage counts against the plan's limits, which ChatGPT shares across Codex and other work features (for example a weekly limit); no credits are needed while they last. When the limit is reached, generation fails with `AI_LIMIT_REACHED` until it resets. Business workspaces can add credits to keep going; when those run out too, generation fails with `AI_CREDITS_EXHAUSTED` until a workspace owner adds credits or raises the spending limit in the workspace billing settings. The Codex CLI words a reached weekly limit as "Your workspace is out of credits"; Writehand reports the code the backend returns.
+- Sign-in: authorization code with PKCE at `https://auth.openai.com/oauth/authorize` for client `app_EMoamEEZ73f0CkXaXp7hrann`, with the scopes `openid profile email offline_access`. The client's redirect allow-list accepts only `http://127.0.0.1:1455/auth/callback` and port 1457, so the helper listens on 1455 and falls back to 1457 (for example while `codex login` is running). Tokens are exchanged and refreshed at `/oauth/token`, without a `resource`. There is no nonce, as in the Codex CLI; the ID token is verified as for Sign in with ChatGPT.
+- Account: the verified `https://api.openai.com/auth` claim `chatgpt_account_id` names the ChatGPT account (personal account or workspace) the tokens belong to. Signing in to the same user and workspace again replaces that account's tokens; **Reconnect** sends `allowed_workspace_id`, and a sign-in to another workspace is refused (`AI_WORKSPACE_MISMATCH`) and its tokens revoked.
+- Requests go to ChatGPT's Codex backend (`https://chatgpt.com/backend-api/codex`) with the `chatgpt-account-id` header: `GET /models?client_version=…` for the account's model catalog (the version is the Codex CLI release the requests were checked against) and `POST /responses` with the same request body as Sign in with ChatGPT (`store: false`, `stream: true`, no tools).
+- **Remove account** revokes the refresh token at OpenAI, as for Sign in with ChatGPT.
 
 ### OpenAI API key
 
@@ -227,13 +239,15 @@ The prompt is built by `buildTaskPrompt` (`packages/contracts/src/ai-prompt.ts`)
 | Sign-in cancelled or expired | Start the sign-in again from the settings; an old callback is never reused |
 | `AI_AUTH_EXCHANGE_FAILED` | The token endpoint did not accept the sign-in code. Start a new sign-in; the saved client ID is kept |
 | `AI_AUTH_TOKEN_INVALID`, `AI_AUTH_IDENTITY_FAILED` | The token response format or the signed identity check failed; the account is not activated. Never share raw tokens, responses or callback URLs |
-| `AI_POLICY_DENIED` (`3p_delegated_access_policy_denied`) | An OpenAI organization policy refused the connection. The workspace administrator or OpenAI support must confirm Sign in with ChatGPT access and plan eligibility. Give support the error code and the `request_id` from OpenAI's page, never a token or callback URL |
+| `AI_POLICY_DENIED` (`3p_delegated_access_policy_denied`) | An OpenAI organization policy refused Sign in with ChatGPT. On ChatGPT Business no setting allows it; use **Sign in through Codex**. On Enterprise and Edu, a global admin can approve the app in the OpenAI Admin Console under **External access**. Give OpenAI support the error code and the `request_id` from OpenAI's page, never a token or callback URL |
 | `AI_WORKSPACE_MISMATCH` (`3p_login_workspace_scope_denied`) | The selected registration belongs to another workspace. Use its original account or workspace, or **Add a different account or workspace**. A new registration does not bypass organization policy or plan eligibility |
 | Account connected but no plan permission | Check the plan's eligibility, then allow plan usage again with **Continue with ChatGPT** |
 | Account verified but not ready to generate | The model catalog failed to load; the error is shown in the settings. Use **Refresh** |
 | `AI_NOT_ELIGIBLE` (`subscription_sharing_user_not_eligible`) | OpenAI refused eligibility at generation time even though sign-in and the model list worked. Do not loop sign-ins or requests. If the plan was upgraded moments ago, wait a while and try once more; otherwise contact OpenAI support with the plan and the error code |
 | `AI_ACCESS_DENIED` | Another check (permission, route, region) refused the request. A plain `403` does not mean the subscription is ineligible |
-| `AI_LIMIT_REACHED` | Usage limit reached: **Manage usage** for ChatGPT, the API usage limits for an API key, or wait for the Claude plan limit to reset (shared with Claude Code). There is no automatic switch to a paid method |
+| `AI_CREDITS_EXHAUSTED` | The ChatGPT workspace (Codex sign-in) or the OpenAI API account has no credits left, or its spending limit was reached. A workspace owner adds credits in the workspace billing settings; for an API key, check OpenAI Platform billing |
+| Codex sign-in fails at once with `AI_AUTH_FAILED` | Ports 1455 and 1457 are both in use, for example by another `codex login`. Finish or close that sign-in and try again |
+| `AI_LIMIT_REACHED` | Usage limit reached: **Manage usage** for ChatGPT shows when it resets (work workspaces can add credits to keep going), the API usage limits for an API key, or wait for the Claude plan limit to reset (shared with Claude Code). There is no automatic switch to a paid method |
 | Response cut off | The source text is kept and a partial answer is never applied; generate again |
 | `AI_CLAUDE_NOT_INSTALLED` | Install Claude Code, run the helper app's install command again, then **Refresh** in the settings |
 | `AI_CLAUDE_UNSUPPORTED_INSTALL` | Claude Code was found only as a `claude.cmd` script that cannot be started without a shell. Install it with Anthropic's native installer (`irm https://claude.ai/install.ps1 \| iex`), WinGet or npm, run the helper app's install command again and **Refresh** |

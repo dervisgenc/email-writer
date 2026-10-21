@@ -8,6 +8,14 @@ import { MAX_WRITING_INSTRUCTIONS } from './settings';
 /** Generation method: a ChatGPT plan, an OpenAI API key or Claude Code on the user's computer. */
 export const AI_MODES = ['chatgpt', 'api-key', 'claude-code'] as const;
 export type AiMode = (typeof AI_MODES)[number];
+/**
+ * How a ChatGPT account is signed in. `siwc`: OpenAI's Sign in with ChatGPT for open-source
+ * apps, which registers this app per account and currently serves Plus and Pro plans.
+ * `codex`: the sign-in of OpenAI's Codex CLI, which also serves Business, Enterprise and Edu
+ * workspaces; OpenAI does not document it for other apps.
+ */
+export const CHATGPT_SIGN_INS = ['siwc', 'codex'] as const;
+export type ChatGptSignIn = (typeof CHATGPT_SIGN_INS)[number];
 export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
 export const OPENAI_API_KEYS_URL = 'https://platform.openai.com/api-keys';
 export const CLAUDE_CODE_SETUP_URL = 'https://code.claude.com/docs/en/setup';
@@ -110,7 +118,14 @@ export function toAiInput(action: PreparedAction, preferences: AiPreferences): A
 const id = z.string().min(1).max(256);
 export const aiAccountLabelSchema = z.string().trim().min(1).max(80);
 export const aiCommandSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('connect'), accountId: id.nullable() }).strict(),
+  z
+    .object({
+      action: z.literal('connect'),
+      accountId: id.nullable(),
+      /** Sign-in for a new account (default `siwc`); a saved account keeps its own. */
+      signIn: z.enum(CHATGPT_SIGN_INS).optional(),
+    })
+    .strict(),
   z.object({ action: z.literal('cancel-sign-in') }).strict(),
   z.object({ action: z.literal('select-account'), accountId: id }).strict(),
   z.object({ action: z.literal('disconnect'), accountId: id }).strict(),
@@ -139,6 +154,8 @@ export const aiStatusSchema = z
             verified: z.boolean(),
             connected: z.boolean(),
             planEnabled: z.boolean(),
+            /** Missing from helper apps released before the Codex sign-in, which have only `siwc`. */
+            signIn: z.enum(CHATGPT_SIGN_INS).optional(),
           })
           .strict(),
       )

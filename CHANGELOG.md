@@ -4,6 +4,15 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ## [Unreleased]
 
+### Added
+
+- **Sign in through Codex** (experimental) for ChatGPT Business, Enterprise and Edu workspaces, where OpenAI's Sign in with ChatGPT is blocked by organization policy. It uses the sign-in of OpenAI's Codex CLI, without installing Codex, and generates on ChatGPT's Codex backend for the chosen workspace.
+- A separate error for a workspace or API account without credits (`AI_CREDITS_EXHAUSTED`), apart from plan usage limits.
+
+### Changed
+
+- The organization-policy error (`AI_POLICY_DENIED`) explains that Business workspaces currently cannot allow Sign in with ChatGPT, points to the Codex sign-in and names the Admin Console setting for Enterprise and Edu.
+
 ### Fixed
 
 - Write and reply prompts now distinguish directions from rough email text, preserve who is requesting what, and prefer the conversation's language unless the user explicitly chooses another language.

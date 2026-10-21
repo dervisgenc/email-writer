@@ -9,7 +9,7 @@ export const aiEs: AiText = {
   apiKey: 'Clave de API de OpenAI',
   claudeCode: 'Plan de Claude',
   methodHints: {
-    chatgpt: 'Con tu plan Plus o Pro',
+    chatgpt: 'Con tu plan Plus, Pro o Business',
     'api-key': 'Pago por uso',
     'claude-code': 'Con Claude Code en este equipo',
   },
@@ -30,20 +30,22 @@ export const aiEs: AiText = {
     methods: {
       chatgpt: {
         title: 'Plan de ChatGPT',
-        summary: 'Genera texto con el uso incluido en tu plan ChatGPT Plus o Pro.',
+        summary: 'Genera texto con el uso incluido en tu plan de ChatGPT.',
         requirements: [
-          'Una suscripción ChatGPT Plus o Pro. Las cuentas gratuitas no permiten usar el plan.',
+          'Una suscripción ChatGPT Plus o Pro, o un espacio de trabajo Business, Enterprise o Edu. Las cuentas gratuitas no permiten usar el plan.',
           `La aplicación auxiliar de ${PRODUCT_NAME} en este equipo.`,
         ],
         steps: [
           'Elige “Plan de ChatGPT” como método.',
           'Elige “Continue with ChatGPT”. En la página que se abre, elige tu cuenta y permite el acceso.',
+          'En un espacio de trabajo Business, Enterprise o Edu, elige en su lugar “Iniciar sesión con Codex” y después el espacio de trabajo.',
           'Vuelve a esta página; la cuenta muestra “Conectado · Listo para generar texto”. Después elige un modelo.',
         ],
         notes: [
           'El uso se descuenta de los límites de tu plan de ChatGPT. Puedes seguirlo en ChatGPT → Configuración → Usage.',
           'Si acabas de mejorar tu plan, puede tardar unos minutos en activarse.',
-          'Por ahora OpenAI solo admite los planes Plus y Pro. En cuentas de trabajo (Business, Enterprise), una directiva de la organización puede bloquear la conexión.',
+          '“Continue with ChatGPT” admite por ahora los planes Plus y Pro; en cuentas de trabajo, una directiva de la organización lo bloquea. “Iniciar sesión con Codex” usa en su lugar el inicio de sesión de la aplicación Codex de OpenAI. Es experimental: OpenAI no lo documenta para otras aplicaciones y puede cambiarlo.',
+          'Con “Iniciar sesión con Codex”, el uso se descuenta de los límites de tu plan, que ChatGPT comparte con Codex y otras funciones de trabajo. En los espacios de trabajo Business, los créditos permiten seguir cuando se alcanza el límite semanal; sus propietarios los añaden en la configuración de facturación.',
           'Puedes quitar el acceso cuando quieras en ChatGPT → Configuración → Security and login → Sign in with ChatGPT.',
         ],
       },
@@ -104,6 +106,12 @@ export const aiEs: AiText = {
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Iniciar sesión con Codex',
+  codexHint:
+    'Para espacios de trabajo ChatGPT Business, Enterprise y Edu. Usa el inicio de sesión de la aplicación Codex de OpenAI; no hace falta tener Codex instalado. Experimental.',
+  codexSignIn: 'Inicio de sesión con Codex',
+  codexConnectionHelp:
+    'Esta conexión usa el inicio de sesión de Codex. El uso se descuenta de los límites de tu plan compartidos con Codex; en los espacios de trabajo Business, los créditos permiten seguir cuando se agotan. Puedes cerrar la sesión quitando la cuenta aquí.',
   addAccount: 'Añadir otra cuenta o espacio de trabajo',
   reconnect: 'Volver a conectar',
   disconnect: 'Desconectar',
@@ -137,7 +145,7 @@ export const aiEs: AiText = {
   planDisabled:
     'Cuenta comprobada; la generación no está autorizada. Usar el plan requiere una cuenta Plus o Pro apta y permiso para usar su plan. Iniciar sesión con una cuenta gratuita no da acceso a la generación.',
   planNote:
-    'Las cuentas Plus y Pro aptas pueden usar la asignación de su plan. La disponibilidad depende de tu cuenta, tu espacio de trabajo y tu acceso a OpenAI.',
+    'Las cuentas Plus y Pro aptas pueden usar la asignación de su plan con “Continue with ChatGPT”. Para espacios de trabajo Business, Enterprise y Edu, usa “Iniciar sesión con Codex”.',
   apiNote:
     'OpenAI factura el uso de la API por separado. Es independiente de tu suscripción de ChatGPT; este método nunca se elige automáticamente.',
   claudeNote: `Claude Code, instalado en este equipo, se ejecuta con tu propia cuenta de Claude; el uso se descuenta de los límites de tu plan de Claude. ${PRODUCT_NAME} no accede a tus credenciales de Claude ni las guarda. Inicias y cierras sesión a través de Claude Code.`,

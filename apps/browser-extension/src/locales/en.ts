@@ -242,7 +242,7 @@ export const en: ExtensionText = {
         'The OpenAI identity response could not be securely verified. The account was not connected (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'ChatGPT sign-in was cancelled.',
       AI_POLICY_DENIED:
-        'Organization policy blocks this ChatGPT connection. Ask your workspace administrator to check Sign in with ChatGPT access and plan eligibility; Plugins permission alone does not enable it.',
+        'Organization policy blocks Sign in with ChatGPT for this app. ChatGPT Business workspaces currently have no setting to allow it; use Sign in through Codex instead. On Enterprise and Edu, a global admin can approve the app in the OpenAI Admin Console under External access.',
       AI_WORKSPACE_MISMATCH:
         'This connection belongs to a different ChatGPT account or workspace. Continue with the account that created it, or select Add a different account or workspace.',
       AI_ACCOUNT_NAME_TAKEN: 'Another connection already uses this name. Choose a distinct name.',
@@ -253,7 +253,9 @@ export const en: ExtensionText = {
       AI_ACCESS_DENIED:
         'OpenAI denied access to this request. Check app permissions, connection configuration or regional restrictions; this error alone does not establish subscription eligibility.',
       AI_LIMIT_REACHED:
-        'Usage limit reached. For ChatGPT, open Manage usage; on a Claude plan, try again when your limit resets; for API keys, check your OpenAI API limits.',
+        'Usage limit reached. For ChatGPT, open Manage usage to see when it resets; work workspaces can also add credits to keep going. On a Claude plan, try again when your limit resets; for API keys, check your OpenAI API limits.',
+      AI_CREDITS_EXHAUSTED:
+        'No credits left. For a ChatGPT workspace, a workspace owner can add credits or raise the spending limit in the workspace billing settings; with an API key, check your OpenAI Platform billing.',
       AI_UNAVAILABLE: 'The AI service is currently unavailable. Your connection is kept; try again later.',
       AI_NETWORK: 'Could not reach the AI service. Check your internet connection and try again.',
       AI_MODEL_UNAVAILABLE: 'The selected model is unavailable. Refresh models in AI settings.',

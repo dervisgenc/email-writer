@@ -86,7 +86,9 @@ describe('Task prompt', () => {
         expect(prompt.system).not.toContain('compose: write in the language of <instruction>');
         const request = buildEmailRequest(input, 'test-model');
         expect(request.instructions).toBe(prompt.system);
-        expect(request.input).toEqual([{ role: 'user', content: prompt.user }]);
+        expect(request.input).toEqual([
+          { role: 'user', content: [{ type: 'input_text', text: prompt.user }] },
+        ]);
       }
     },
   );

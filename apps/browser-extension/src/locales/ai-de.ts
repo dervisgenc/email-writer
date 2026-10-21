@@ -9,7 +9,7 @@ export const aiDe: AiText = {
   apiKey: 'OpenAI-API-Schlüssel',
   claudeCode: 'Claude-Plan',
   methodHints: {
-    chatgpt: 'Mit Ihrem Plus- oder Pro-Plan',
+    chatgpt: 'Mit Ihrem Plus-, Pro- oder Business-Plan',
     'api-key': 'Bezahlung nach Nutzung',
     'claude-code': 'Mit Claude Code auf diesem Computer',
   },
@@ -30,20 +30,22 @@ export const aiDe: AiText = {
     methods: {
       chatgpt: {
         title: 'ChatGPT-Plan',
-        summary: 'Erstellt Text mit der Nutzung, die in Ihrem ChatGPT-Plus- oder -Pro-Plan enthalten ist.',
+        summary: 'Erstellt Text mit der Nutzung, die in Ihrem ChatGPT-Plan enthalten ist.',
         requirements: [
-          'Ein ChatGPT-Plus- oder -Pro-Abo. Kostenlose Konten unterstützen keine Plannutzung.',
+          'Ein ChatGPT-Plus- oder -Pro-Abo oder ein Business-, Enterprise- oder Edu-Arbeitsbereich. Kostenlose Konten unterstützen keine Plannutzung.',
           `Die ${PRODUCT_NAME}-Hilfs-App auf diesem Computer.`,
         ],
         steps: [
           'Wählen Sie „ChatGPT-Plan“ als Methode.',
           'Wählen Sie „Continue with ChatGPT“. Wählen Sie auf der geöffneten Seite Ihr Konto und erlauben Sie den Zugriff.',
+          'Bei einem Business-, Enterprise- oder Edu-Arbeitsbereich wählen Sie stattdessen „Über Codex anmelden“ und dann den Arbeitsbereich.',
           'Kehren Sie zu dieser Seite zurück; beim Konto steht „Verbunden · Bereit zur Texterstellung“. Wählen Sie dann ein Modell.',
         ],
         notes: [
           'Die Nutzung wird auf die Limits Ihres ChatGPT-Plans angerechnet. Sie können sie unter ChatGPT → Einstellungen → Usage verfolgen.',
           'Wenn Sie Ihren Plan gerade erst hochgestuft haben, kann die Aktivierung einige Minuten dauern.',
-          'OpenAI unterstützt derzeit nur Plus- und Pro-Pläne. Bei Arbeitskonten (Business, Enterprise) kann eine Organisationsrichtlinie die Verbindung blockieren.',
+          '„Continue with ChatGPT“ unterstützt derzeit Plus- und Pro-Pläne; bei Arbeitskonten blockiert eine Organisationsrichtlinie die Verbindung. „Über Codex anmelden“ verwendet stattdessen die Anmeldung der Codex-App von OpenAI. Diese Methode ist experimentell: OpenAI dokumentiert sie nicht für andere Apps und kann sie ändern.',
+          'Mit „Über Codex anmelden“ wird die Nutzung auf die Limits Ihres Plans angerechnet, die ChatGPT mit Codex und anderen Arbeitsfunktionen teilt. In Business-Arbeitsbereichen können Credits die Nutzung fortsetzen, wenn das Wochenlimit erreicht ist; Inhaber des Arbeitsbereichs fügen sie in den Abrechnungseinstellungen hinzu.',
           'Sie können den Zugriff jederzeit unter ChatGPT → Einstellungen → Security and login → Sign in with ChatGPT entfernen.',
         ],
       },
@@ -104,6 +106,12 @@ export const aiDe: AiText = {
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Über Codex anmelden',
+  codexHint:
+    'Für ChatGPT-Business-, -Enterprise- und -Edu-Arbeitsbereiche. Verwendet die Anmeldung der Codex-App von OpenAI; Codex muss nicht installiert sein. Experimentell.',
+  codexSignIn: 'Codex-Anmeldung',
+  codexConnectionHelp:
+    'Diese Verbindung verwendet die Codex-Anmeldung. Die Nutzung wird auf die mit Codex geteilten Limits Ihres Plans angerechnet; in Business-Arbeitsbereichen können Credits die Nutzung danach fortsetzen. Sie beenden die Sitzung, indem Sie das Konto hier entfernen.',
   addAccount: 'Anderes Konto oder anderen Arbeitsbereich hinzufügen',
   reconnect: 'Neu verbinden',
   disconnect: 'Trennen',
@@ -137,7 +145,7 @@ export const aiDe: AiText = {
   planDisabled:
     'Konto bestätigt; die Texterstellung ist nicht berechtigt. Die Plannutzung erfordert ein berechtigtes Plus- oder Pro-Konto und die Erlaubnis, dessen Plan zu verwenden. Die Anmeldung mit einem kostenlosen Konto gewährt keinen Zugang zur Texterstellung.',
   planNote:
-    'Berechtigte Plus- und Pro-Konten können ihr Plankontingent nutzen. Die Verfügbarkeit hängt von Ihrem Konto, Ihrem Arbeitsbereich und Ihrem OpenAI-Zugang ab.',
+    'Berechtigte Plus- und Pro-Konten können ihr Plankontingent mit „Continue with ChatGPT“ nutzen. Für Business-, Enterprise- und Edu-Arbeitsbereiche verwenden Sie „Über Codex anmelden“.',
   apiNote:
     'Die API-Nutzung wird von OpenAI separat abgerechnet. Sie ist unabhängig von Ihrem ChatGPT-Abo; diese Methode wird nie automatisch gewählt.',
   claudeNote: `Das auf diesem Computer installierte Claude Code läuft mit Ihrem eigenen Claude-Konto; die Nutzung wird auf die Limits Ihres Claude-Plans angerechnet. ${PRODUCT_NAME} greift nicht auf Ihre Claude-Anmeldedaten zu und speichert sie nicht. Sie melden sich über Claude Code an und ab.`,

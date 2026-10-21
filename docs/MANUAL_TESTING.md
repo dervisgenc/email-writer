@@ -38,7 +38,7 @@ Record each run:
 - [ ] Use a clean machine or a new OS user account: no `~/.local/share/writehand` or `~/.config/writehand` (macOS, Linux), no `%LOCALAPPDATA%\Programs\writehand` or `%LOCALAPPDATA%\writehand` (Windows), and no earlier Writehand extension.
 - [ ] Get the extension: the store listing, or the release packages loaded manually (unzip `writehand-<version>-chromium.zip` and use **Load unpacked**; in Firefox load `writehand-<version>-firefox.zip` from `about:debugging`).
 - [ ] The one-line command always installs `releases/latest`. To test a draft release before publishing it, install the helper app from the downloaded draft folder instead ([Verifying a draft release](./RELEASING.md#verifying-a-draft-release)) and skip only the command itself.
-- [ ] Have test accounts ready: Outlook on the web, a ChatGPT Plus or Pro account, an OpenAI API key, and Claude Code installed and signed in (`claude`, then `/login`) for the Claude method.
+- [ ] Have test accounts ready: Outlook on the web, a ChatGPT Plus or Pro account, a ChatGPT Business workspace with weekly usage left (for the Codex sign-in), an OpenAI API key, and Claude Code installed and signed in (`claude`, then `/login`) for the Claude method.
 
 ## 1. Welcome wizard and helper app install
 
@@ -63,6 +63,9 @@ Connect each method in the wizard's **Connection** step or in **Settings → AI 
 - [ ] **Rename** the connection, **Disconnect**, then **Reconnect**: the name is kept and generation works again.
 - [ ] Optional, with a second account: **Add a different account or workspace**, then **Use this account** to switch between them.
 - [ ] **Remove account** asks for confirmation and removes the connection.
+- [ ] With a Business account, **Continue with ChatGPT** ends with the organization-policy message that points to **Sign in through Codex**.
+- [ ] **Sign in through Codex** opens the system browser; after choosing the Business workspace, the account appears marked as a Codex sign-in, models are listed and the sample is revised.
+- [ ] **Sign in through Codex** again with the same workspace keeps one account; **Reconnect** opens the same workspace.
 
 **OpenAI API key**
 

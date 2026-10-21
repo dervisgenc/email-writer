@@ -29,6 +29,7 @@ const ids = {
   key: useId(),
   welcome: useId(),
   method: useId(),
+  codexHint: useId(),
 };
 const welcome = useTemplateRef<HTMLDialogElement>('welcome');
 const selectedId = ref<string | null>(null);
@@ -194,7 +195,8 @@ function saveKey() {
               <option disabled value="">{{ text.account }}</option>
               <option v-for="account in status.accounts" :key="account.id" :value="account.id">
                 {{ account.label
-                }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : '' }}
+                }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : ''
+                }}{{ account.signIn === 'codex' ? ` · ${text.codexSignIn}` : '' }}
               </option>
             </select>
             <p :id="ids.accountHint" class="ew-muted">{{ text.savedAccountHint }}</p>
@@ -245,7 +247,17 @@ function saveKey() {
               <AppIcon name="plus" :size="14" />
               {{ text.addAccount }}
             </button>
+            <button
+              type="button"
+              class="ew-btn"
+              :disabled="busy"
+              :aria-describedby="ids.codexHint"
+              @click="emit('command', { action: 'connect', accountId: null, signIn: 'codex' })"
+            >
+              {{ text.codexConnect }}
+            </button>
           </div>
+          <p :id="ids.codexHint" class="ew-muted">{{ text.codexHint }}</p>
           <div v-if="selected" class="ew-ai-settings__manage">
             <button
               v-if="selected.connected"
@@ -281,7 +293,9 @@ function saveKey() {
             {{ text.manageUsage }}
             <AppIcon name="external" :size="14" />
           </a>
-          <p class="ew-muted">{{ text.connectionHelp }}</p>
+          <p class="ew-muted">
+            {{ selected?.signIn === 'codex' ? text.codexConnectionHelp : text.connectionHelp }}
+          </p>
         </template>
         <form v-else-if="status.mode === 'api-key'" class="ew-ai-settings__field" @submit.prevent="saveKey">
           <p class="ew-muted">{{ text.apiNote }}</p>

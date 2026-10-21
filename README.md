@@ -48,7 +48,7 @@ curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/inst
 - **Change the result:** turn it into a table or bullet points, add a chart, shorten it, make it more formal or friendlier, or ask for any other change.
 - **Flexible languages:** translate into any language, keep favourites in the Translate menu and set standing writing instructions (for example "always formal").
 - **Interface languages:** English, Turkish, German, French and Spanish, or automatic from the browser language.
-- **AI connection methods:** your ChatGPT Plus/Pro plan (Sign in with ChatGPT), your own OpenAI API key, or your Claude subscription through Claude Code on your computer (experimental).
+- **AI connection methods:** your ChatGPT plan (Plus and Pro through Sign in with ChatGPT; Business, Enterprise and Edu workspaces through the Codex sign-in, experimental), your own OpenAI API key, or your Claude subscription through Claude Code on your computer (experimental).
 
 ## How it works
 
@@ -101,7 +101,7 @@ Releases are built by GitHub Actions from `vX.Y.Z` tags; see [releasing](./docs/
 ```text
 apps/browser-extension/        WXT extension: entry points, welcome wizard, controllers, mounting, platform helpers, locales
 apps/ai-companion/             Helper app: native messaging host, installer, updater, install scripts
-packages/ai-openai/            ChatGPT OAuth, model discovery and Responses API adapter
+packages/ai-openai/            ChatGPT OAuth (Sign in with ChatGPT, Codex sign-in), model discovery and Responses adapter
 packages/ai-claude-code/       Runs the user's Claude Code in a restricted print mode
 packages/contracts/            Shared data and action definitions, boundary schemas, brand, AI prompt
 packages/core/                 Context, action preparation, session state and write preconditions (pure functions)

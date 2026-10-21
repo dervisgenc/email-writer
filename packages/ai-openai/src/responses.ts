@@ -2,10 +2,29 @@ import { aiModelSchema, type AiInput, type AiModel } from '@writehand/contracts'
 import { z } from 'zod';
 
 import { AiFailure, providerFailure } from './errors';
+import { CODEX_ORIGINATOR } from './oauth';
 import { buildEmailRequest } from './prompt';
 
-const endpoint = 'https://api.openai.com/v1';
-const errorBody = z.object({ error: z.object({ code: z.string().optional() }).optional() });
+/**
+ * Where requests go and how they are authorized: an API key or a Sign in with ChatGPT token
+ * on the public API, or a Codex sign-in token on ChatGPT's Codex backend, which also needs
+ * the ChatGPT account (workspace) the token was issued for.
+ */
+export type OpenAiConnection =
+  | { readonly kind: 'api-key' | 'chatgpt'; readonly token: string }
+  | { readonly kind: 'codex'; readonly token: string; readonly workspaceId: string };
+
+const apiEndpoint = 'https://api.openai.com/v1';
+const codexEndpoint = 'https://chatgpt.com/backend-api/codex';
+/**
+ * The Codex backend lists the models available to a client of the given version. This app's
+ * requests were checked against this Codex CLI version (October 2026).
+ */
+const codexClientVersion = '0.163.0';
+// The Codex backend names some errors in `type` instead of `code`.
+const errorBody = z.object({
+  error: z.object({ code: z.string().optional(), type: z.string().optional() }).optional(),
+});
 const eventSchema = z.object({
   type: z.string(),
   delta: z.string().optional(),
@@ -13,10 +32,25 @@ const eventSchema = z.object({
   response: z.object({ error: z.object({ code: z.string().optional() }).nullable().optional() }).optional(),
 });
 
+function target(connection: OpenAiConnection): { base: string; headers: Record<string, string> } {
+  const authorization = { Authorization: `Bearer ${connection.token}` };
+  if (connection.kind !== 'codex') return { base: apiEndpoint, headers: authorization };
+  return {
+    base: codexEndpoint,
+    headers: {
+      ...authorization,
+      'chatgpt-account-id': connection.workspaceId,
+      originator: CODEX_ORIGINATOR,
+      'OpenAI-Beta': 'responses=experimental',
+    },
+  };
+}
+
 async function checkResponse(response: Response): Promise<void> {
   if (response.ok) return;
   const body = errorBody.safeParse(await response.json().catch(() => null));
-  throw providerFailure(response.status, body.success ? body.data.error?.code : undefined);
+  const error = body.success ? body.data.error : undefined;
+  throw providerFailure(response.status, error?.code ?? error?.type);
 }
 
 /** A stream is successful only after response.completed, including when text arrived earlier. */
@@ -73,14 +107,17 @@ export async function readResponseStream(response: Response): Promise<string> {
 
 export function createOpenAiProvider(fetcher: typeof fetch = fetch) {
   return {
-    async listModels(token: string, mode: 'chatgpt' | 'api-key'): Promise<AiModel[]> {
-      const response = await fetcher(`${endpoint}/models`, {
-        headers: { Authorization: `Bearer ${token}` },
+    async listModels(connection: OpenAiConnection): Promise<AiModel[]> {
+      const { base, headers } = target(connection);
+      const query = connection.kind === 'codex' ? `?client_version=${codexClientVersion}` : '';
+      const response = await fetcher(`${base}/models${query}`, {
+        headers,
         signal: AbortSignal.timeout(20_000),
       });
       await checkResponse(response);
       const raw: unknown = await response.json();
-      if (mode === 'chatgpt') {
+      if (connection.kind !== 'api-key') {
+        // ChatGPT plans (either sign-in) get an account-specific catalog in the same format.
         const catalog = z
           .object({
             models: z.array(z.object({ slug: z.string(), display_name: z.string(), visibility: z.string() })),
@@ -101,10 +138,11 @@ export function createOpenAiProvider(fetcher: typeof fetch = fetch) {
         .slice(0, 500)
         .map(({ id }) => ({ id, label: id }));
     },
-    async generate(input: AiInput, model: string, token: string, signal: AbortSignal) {
-      const response = await fetcher(`${endpoint}/responses`, {
+    async generate(input: AiInput, model: string, connection: OpenAiConnection, signal: AbortSignal) {
+      const { base, headers } = target(connection);
+      const response = await fetcher(`${base}/responses`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify(buildEmailRequest(input, model)),
         signal,
       });

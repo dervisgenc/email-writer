@@ -183,6 +183,41 @@ describe('AI connection settings', () => {
     expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'connect', accountId: null }]);
     wrapper.unmount();
   });
+  it('offers the Codex sign-in for work accounts, also while another sign-in is pending', async () => {
+    const wrapper = render({ ...disconnected, signingIn: true });
+    const codex = wrapper.findAll('button').find((button) => button.text() === tr.ui.ai.codexConnect)!;
+    expect(codex.attributes('disabled')).toBeUndefined();
+    expect(wrapper.text()).toContain(tr.ui.ai.codexHint);
+    await codex.trigger('click');
+    expect(wrapper.emitted('command')?.[0]).toEqual([
+      { action: 'connect', accountId: null, signIn: 'codex' },
+    ]);
+    wrapper.unmount();
+  });
+  it('marks Codex connections and explains how they are billed and ended', async () => {
+    const work = {
+      id: 'codex_work',
+      label: 'İş',
+      email: 'w@example.test',
+      verified: true,
+      connected: true,
+      planEnabled: true,
+      signIn: 'codex' as const,
+    };
+    const wrapper = render({
+      ...disconnected,
+      activeAccountId: 'codex_work',
+      // Helper apps released before the Codex sign-in do not report `signIn`.
+      accounts: [{ ...work, id: 'oaiapp_personal', label: 'Kişisel', signIn: undefined }, work],
+    });
+    const options = wrapper.findAll('option').map((option) => option.text());
+    expect(options).toContain(`İş · w@example.test · ${tr.ui.ai.codexSignIn}`);
+    expect(options).toContain('Kişisel · w@example.test');
+    expect(wrapper.text()).toContain(tr.ui.ai.codexConnectionHelp);
+    await wrapper.get('.ew-select').setValue('oaiapp_personal');
+    expect(wrapper.text()).toContain(tr.ui.ai.connectionHelp);
+    wrapper.unmount();
+  });
   it.each([
     [false, tr.ui.ai.planDisabled],
     [true, tr.ui.ai.generationUnavailable],
