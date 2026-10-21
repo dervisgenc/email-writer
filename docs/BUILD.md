@@ -26,7 +26,7 @@ The build is WXT (Vite) with Vue 3; nothing is downloaded at run time and no cod
 
 ## Helper app
 
-The extension talks to a small helper app on the user's computer through native messaging (`com.dervisgenc.writehand`). Its source is in `apps/ai-companion`; release builds are single programs made with Node.js's single executable application support:
+For the ChatGPT and Claude plans, the extension talks to a small helper app on the user's computer through native messaging (`com.dervisgenc.writehand`); API keys need no helper app. Its source is in `apps/ai-companion`; release builds are single programs made with Node.js's single executable application support:
 
 ```sh
 pnpm ai:sea   # run with Node.js 24 on each target system

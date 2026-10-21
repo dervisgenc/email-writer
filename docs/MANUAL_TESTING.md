@@ -25,7 +25,7 @@ Cover at least these combinations for a release. Every helper app archive (macOS
 | 7 | Any | Brave | Work or school, or Outlook.com | English |
 | 8 | Any two of the above | Two different browsers | Any | Turkish |
 
-Connection methods: test the ChatGPT plan and the OpenAI API key on at least one machine per system, and Claude Code on at least one machine.
+Connection methods: test the ChatGPT plan on at least one machine per system, the API key method with Groq, OpenRouter and OpenAI in at least one Chromium browser and in Firefox (one of them on a machine without the helper app), and Claude Code on at least one machine.
 
 Record each run:
 
@@ -38,16 +38,17 @@ Record each run:
 - [ ] Use a clean machine or a new OS user account: no `~/.local/share/writehand` or `~/.config/writehand` (macOS, Linux), no `%LOCALAPPDATA%\Programs\writehand` or `%LOCALAPPDATA%\writehand` (Windows), and no earlier Writehand extension.
 - [ ] Get the extension: the store listing, or the release packages loaded manually (unzip `writehand-<version>-chromium.zip` and use **Load unpacked**; in Firefox load `writehand-<version>-firefox.zip` from `about:debugging`).
 - [ ] The one-line command always installs `releases/latest`. To test a draft release before publishing it, install the helper app from the downloaded draft folder instead ([Verifying a draft release](./RELEASING.md#verifying-a-draft-release)) and skip only the command itself.
-- [ ] Have test accounts ready: Outlook on the web, a ChatGPT Plus or Pro account, an OpenAI API key, and Claude Code installed and signed in (`claude`, then `/login`) for the Claude method.
+- [ ] Have test accounts ready: Outlook on the web, a ChatGPT Plus or Pro account, API keys from Groq (free plan), OpenRouter and OpenAI, and Claude Code installed and signed in (`claude`, then `/login`) for the Claude method.
 
 ## 1. Welcome wizard and helper app install
 
-- [ ] Installing the extension opens the welcome wizard by itself. The browser's install prompt does not mention native applications.
-- [ ] **Welcome:** the explanation is shown; **Source code on GitHub** opens the repository.
-- [ ] **Helper app:** the right system is preselected, and the command matches the [install commands](./HELPER_APP.md#install-and-uninstall). With an unpacked Chromium build the command ends with `--extension-id=<ID>` (`$env:WRITEHAND_EXTENSION_ID` on Windows).
-- [ ] **Permission prompt:** the step shows **Permission needed** with an **Allow** button. Select **Allow**; the browser asks to communicate with cooperating native applications. Decline once: the notice stays. Select **Allow** again and accept.
+- [ ] Installing the extension opens the welcome wizard by itself. The browser's install prompt mentions neither native applications nor access to other websites.
+- [ ] **Welcome:** the two ways to connect are explained; **Source code on GitHub** opens the repository.
+- [ ] **Connection:** without the helper app, **API key** is preselected and works without installing anything (section 2).
+- [ ] Choose **ChatGPT plan** or **Claude plan**: the helper app install appears in its place. The right system is preselected, and the command matches the [install commands](./HELPER_APP.md#install-and-uninstall). With an unpacked Chromium build the command ends with `--extension-id=<ID>` (`$env:WRITEHAND_EXTENSION_ID` on Windows).
+- [ ] **Permission prompt:** the install shows **Permission needed** with an **Allow** button. Select **Allow**; the browser asks to communicate with cooperating native applications. Decline once: the notice stays. Select **Allow** again and accept.
 - [ ] Copy the command and run it in Terminal (macOS, Linux) or PowerShell (Windows). No administrator prompt appears, the checksum check passes and the command ends without errors.
-- [ ] Within a few seconds the wizard shows **Helper app connected (version x.y.z)**, without reloading the extension. Check this in a Chromium browser as well as Firefox.
+- [ ] Within a few seconds the chosen method's settings replace the install, without reloading the extension, and the chosen method stays selected. Check this in a Chromium browser as well as Firefox.
 - [ ] The program starts without a Gatekeeper (macOS) or SmartScreen (Windows) warning.
 - [ ] `~/.local/share/writehand/writehand status` (Windows: `& "$env:LOCALAPPDATA\Programs\writehand\writehand.exe" status`) shows the version, the registered browsers and whether Claude Code is ready, and prints no account details.
 - [ ] Windows: `reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.dervisgenc.writehand"` shows the manifest path (Edge: `Microsoft\Edge`, Brave: `Chromium`, Firefox: `Mozilla`).
@@ -64,11 +65,17 @@ Connect each method in the wizard's **Connection** step or in **Settings → AI 
 - [ ] Optional, with a second account: **Add a different account or workspace**, then **Use this account** to switch between them.
 - [ ] **Remove account** asks for confirmation and removes the connection.
 
-**OpenAI API key**
+**API key** (on a machine or browser profile without the helper app at least once)
 
-- [ ] Paste the key and select **Connect key**: the field is cleared, "API key saved in the helper app." appears and the models are listed.
-- [ ] Choose a model and revise the sample.
-- [ ] **Remove key** removes it.
+- [ ] **Groq:** paste the key and select **Connect key**. The browser asks to allow access to `api.groq.com`; decline once: the key is not saved and the settings explain why. Select **Connect key** again and allow: the field is cleared, "Groq key saved, encrypted in this browser." appears and `openai/gpt-oss-120b` is selected. No speech or guard models are listed. Revise the sample.
+- [ ] Paste an OpenRouter key while Groq is selected: it is not sent, and the settings say whose key it looks like.
+- [ ] **OpenRouter:** connect a key; free models are listed first in their own group and a free GPT-OSS model is selected if OpenRouter offers one. Revise the sample with a free model. If OpenRouter refuses because of your privacy settings, the error says the model is unavailable.
+- [ ] **OpenAI:** connect a key; no model is selected until you choose one. Choose a model and revise the sample.
+- [ ] Switching providers keeps each provider's key and model. The Outlook indicator says "Using Groq API key" (or the selected provider).
+- [ ] Remove the provider's site access in the browser's extension settings: the settings show **Allow access**, generation reports the missing permission, and **Allow access** restores it.
+- [ ] In the browser's developer tools for the extension, `storage.local` contains the `secrets` record only as ciphertext; the key does not appear anywhere in storage.
+- [ ] **Remove key** removes it and its model; after a browser restart the remaining keys still work.
+- [ ] Groq free plan: reply in a long conversation with many context messages. If the request exceeds the plan's tokens per minute, the error suggests removing context messages.
 
 **Claude plan (experimental)**
 
@@ -112,7 +119,7 @@ Open Outlook on the web (work: `outlook.office.com`, which may redirect to `outl
 
 ### Writing quality
 
-Use made-up mail only. Run these scenarios with the ChatGPT plan, OpenAI API key and Claude Code, recording the model and provider alongside pass/fail. Inspect the context before generation: a reply must include the relevant message and show a reply target. Repeat with the reply already open before the extension starts, and with Outlook loading its quote after the Write card opens. A late switch to reply must preserve input but discard any earlier context-free result.
+Use made-up mail only. Run these scenarios with the ChatGPT plan, an API key (at least Groq with `openai/gpt-oss-120b` and an OpenAI model) and Claude Code, recording the model and provider alongside pass/fail. Inspect the context before generation: a reply must include the relevant message and show a reply target. Repeat with the reply already open before the extension starts, and with Outlook loading its quote after the Write card opens. A late switch to reply must preserve input but discard any earlier context-free result.
 
 Use an English message such as "The service is still unavailable. Please let us know how we can resolve the issue." For pricing scenarios, use "Here is our proposal. Please let us know if you would like to discuss the pricing."
 

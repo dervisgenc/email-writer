@@ -1,6 +1,6 @@
 # Helper app
 
-The helper app is a small program on the user's computer that holds Writehand's AI connection. The browser extension talks to it through native messaging under the name `com.dervisgenc.writehand`. Its source is in `apps/ai-companion`, with the providers in `packages/ai-openai` and `packages/ai-claude-code`.
+The helper app is a small program on the user's computer that runs Writehand's ChatGPT plan and Claude plan methods. The browser extension talks to it through native messaging under the name `com.dervisgenc.writehand`. Its source is in `apps/ai-companion`, with the providers in `packages/ai-openai` and `packages/ai-claude-code`. The API key method (Groq, OpenRouter, OpenAI) runs in the extension itself and does not need the helper app; see [API keys in the extension](#api-keys-in-the-extension).
 
 See also: [Development guide](./DEVELOPMENT.md), [Releasing](./RELEASING.md), [Privacy policy](../PRIVACY.md), [Security policy](../SECURITY.md).
 
@@ -8,7 +8,7 @@ See also: [Development guide](./DEVELOPMENT.md), [Releasing](./RELEASING.md), [P
 
 - **ChatGPT sign-in** uses OpenAI's documented Sign in with ChatGPT flow for open-source, locally run apps, which returns to `http://127.0.0.1:<port>/auth/callback`. A browser extension cannot listen on a local port.
 - **Claude Code** is a program on the user's computer; an extension cannot start programs.
-- **Secrets** (OAuth tokens, API keys) should not live in browser storage.
+- **ChatGPT tokens** (a refresh token that renews itself) are kept outside the browser, in a file only the user's account can read.
 
 The browser starts the helper app only when Writehand sends a request; there is no permanently running server. During a ChatGPT sign-in, the helper opens a loopback listener on a random port for at most five minutes. Writehand never reads ChatGPT cookies or another app's session files and never calls private `backend-api` endpoints.
 
@@ -16,10 +16,12 @@ The helper app is a single program built with Node.js's single executable applic
 
 ```text
 Outlook content script → validated background message → native messaging
-  → apps/ai-companion → packages/ai-openai      → OpenAI Responses API
+  → apps/ai-companion → packages/ai-openai      → OpenAI Responses API (ChatGPT plan)
                       → packages/ai-claude-code → the user's Claude Code (claude -p)
   ← finished text ← preview in the extension ← controlled write to the draft after approval
 ```
+
+The extension's background chooses where a generation goes: to the helper app for these two methods, or straight to the provider's API for an API key.
 
 ## Install and uninstall
 
@@ -82,6 +84,7 @@ All operating system differences are in `apps/ai-companion/src/platform.ts`. Ins
 - **Allowed extensions.** The Firefox manifest lists `allowed_extensions: ["writehand@dervisgenc.com"]`. Chromium manifests list `allowed_origins` for the store IDs in `CHROMIUM_EXTENSION_IDS` (`packages/contracts/src/brand.ts`) plus any `--extension-id` passed at install time. The browser refuses to start the helper for any other extension.
 - **Permission.** `nativeMessaging` is an optional permission, so installing the extension shows no "communicate with cooperating native applications" warning. The welcome wizard's **Helper app** step asks for it with an **Allow** button. Without it the browser does not offer `connectNative` and the settings card shows **Permission needed**.
 - **Who may do what.** The background script checks every sender. Outlook pages can only request generations, cancel them and read a summary (method, model, readiness). Account management, API keys and updates are accepted only from the extension's own pages. Tokens are never sent back to the extension.
+- **What reaches the helper app.** The background forwards only the requests of the host protocol (`packages/contracts/src/host-protocol.ts`): `AI_STATUS`, `AI_COMMAND` with account and model commands, `AI_GENERATE`, `AI_CANCEL` and `HOST_*`. API keys and the extension's own messages never reach it.
 
 ## Development install
 
@@ -131,11 +134,13 @@ After answering, the old host exits; the browser's next request starts the new p
 
 Users choose a method in **Settings → AI connection** (or in the welcome wizard). The settings also contain a **Connection guide** for end users with requirements, steps and notes for each method; its text is in `apps/browser-extension/src/locales/ai-<language>.ts`.
 
-| Method | Label | Billing | Requirements |
-| --- | --- | --- | --- |
-| ChatGPT plan | Recommended | Usage included in the user's ChatGPT plan | An eligible ChatGPT Plus or Pro account |
-| OpenAI API key | | Pay as you go on the user's OpenAI Platform account | An API key |
-| Claude plan | Experimental | Usage from the user's Claude plan, shared with their Claude Code usage | Claude Code installed and signed in on the same computer |
+| Method | Label | Runs in | Billing | Requirements |
+| --- | --- | --- | --- | --- |
+| ChatGPT plan | Recommended | Helper app | Usage included in the user's ChatGPT plan | An eligible ChatGPT Plus or Pro account |
+| API key | | Extension | Groq's free plan and OpenRouter's free models cost nothing; otherwise pay as you go with the provider | A key from Groq, OpenRouter or OpenAI |
+| Claude plan | Experimental | Helper app | Usage from the user's Claude plan, shared with their Claude Code usage | Claude Code installed and signed in on the same computer |
+
+The method is chosen per browser profile and stored by the extension. The helper app keeps one method for all browsers on the device, so before the helper app is shown or used, the extension switches it to the browser's method (never from the polled connection summary of a mail page). A method chosen before the helper app is installed is applied once it connects. The ChatGPT accounts and the model choice inside the helper app are shared by all browsers.
 
 A failure in one method never switches to another automatically, and failed requests are not retried on their own.
 
@@ -159,9 +164,9 @@ Accounts:
 
 Technical details: the ID token is verified (signature, issuer, audience, expiry, nonce) before an account is activated; saved accounts are kept apart by `client_id` even with the same email. On every start the helper loads the model catalog of the active account once (a model list, never a generation); an account without a catalog is not shown as ready. Every request uses `store: false` and `stream: true`, and a result is accepted only after `response.completed`. This is not a claim about the provider's own retention policies.
 
-### OpenAI API key
+### API keys in the extension
 
-Choose **OpenAI API key** in the same settings. The key is passed to the helper app only from the extension's settings page; the field is cleared immediately and the saved key is never shown again. The connection is checked by listing models, which does not generate text. The user chooses the model; whether a listed model supports the Responses API depends on OpenAI, so choose another if it is refused. API billing is separate from a ChatGPT subscription.
+API keys no longer pass through the helper app; see [API keys](./DEVELOPMENT.md#api-keys) in the development guide. Helper app 0.1.0 could keep an OpenAI API key itself. From 0.2.0 the helper app drops such a key from `credentials.json` the next time it writes the file and falls back to the ChatGPT plan method; the two fields stay in the file, empty, so that 0.1.0 can still read it. The extension then shows its own API key method with OpenAI selected, and the user connects the key again.
 
 ### Claude plan through Claude Code (experimental)
 
@@ -199,7 +204,7 @@ Finding Claude Code, in order: the path recorded at install time, `PATH`, then c
 
 Nothing is sent when an email is opened or the connection status is read. On a generation request, only the selected source, the instruction, the tone, the target language (for translations), the standing writing instructions, the output format and the prepared context are sent; **Change the result** adds the previous result and the requested change. Mailbox IDs, DOM targets and messages not selected for the context are never included.
 
-The prompt is built by `buildTaskPrompt` (`packages/contracts/src/ai-prompt.ts`), and both providers receive the same text:
+The prompt is built by `buildTaskPrompt` (`packages/contracts/src/ai-prompt.ts`), and every method receives the same text (the API key providers too):
 
 - The **system prompt** covers the task, the output rules (the whole answer goes into the draft as is; no subject line, preamble or commentary; names, amounts, dates and times are not reinterpreted; missing facts become placeholders such as `[date]`), the format (limited Markdown and a `chart` block for rich output, plain text otherwise), language, tone, preferences and safety.
 - **Language:** Revise keeps the source language, Translate writes the target language, a reply follows the language of the message being answered unless the instruction asks otherwise, Write follows the instruction's language, and a refinement keeps the previous result's language.
@@ -233,7 +238,7 @@ The prompt is built by `buildTaskPrompt` (`packages/contracts/src/ai-prompt.ts`)
 | Account verified but not ready to generate | The model catalog failed to load; the error is shown in the settings. Use **Refresh** |
 | `AI_NOT_ELIGIBLE` (`subscription_sharing_user_not_eligible`) | OpenAI refused eligibility at generation time even though sign-in and the model list worked. Do not loop sign-ins or requests. If the plan was upgraded moments ago, wait a while and try once more; otherwise contact OpenAI support with the plan and the error code |
 | `AI_ACCESS_DENIED` | Another check (permission, route, region) refused the request. A plain `403` does not mean the subscription is ineligible |
-| `AI_LIMIT_REACHED` | Usage limit reached: **Manage usage** for ChatGPT, the API usage limits for an API key, or wait for the Claude plan limit to reset (shared with Claude Code). There is no automatic switch to a paid method |
+| `AI_LIMIT_REACHED` | Usage limit reached: **Manage usage** for ChatGPT, or wait for the Claude plan limit to reset (shared with Claude Code). There is no automatic switch to a paid method |
 | Response cut off | The source text is kept and a partial answer is never applied; generate again |
 | `AI_CLAUDE_NOT_INSTALLED` | Install Claude Code, run the helper app's install command again, then **Refresh** in the settings |
 | `AI_CLAUDE_UNSUPPORTED_INSTALL` | Claude Code was found only as a `claude.cmd` script that cannot be started without a shell. Install it with Anthropic's native installer (`irm https://claude.ai/install.ps1 \| iex`), WinGet or npm, run the helper app's install command again and **Refresh** |

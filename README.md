@@ -3,16 +3,18 @@
 [![CI](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml/badge.svg)](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Writehand helps you write better emails without leaving Outlook on the web. It revises, translates, replies and drafts new emails with your ChatGPT plan, your own OpenAI API key or Claude Code on your computer. Every result is shown as a preview first; nothing is written to your draft until you approve it, and Writehand never sends email.
+Writehand helps you write better emails without leaving Outlook on the web. It revises, translates, replies and drafts new emails with your own API key from Groq, OpenRouter or OpenAI, your ChatGPT plan or Claude Code on your computer. Every result is shown as a preview first; nothing is written to your draft until you approve it, and Writehand never sends email.
 
-Writehand has two parts: a browser extension for Firefox, Edge, Chrome and Brave, and a small helper app on your computer that holds the AI connection.
+Writehand is a browser extension for Firefox, Edge, Chrome and Brave. An API key works with the extension alone; the ChatGPT and Claude plans also need a small helper app on your computer, which holds their sign-in.
 
 ![Writehand drafting a reply next to an email draft](./store/screenshots/en/01-reply.png)
 
 ## Install
 
 1. Install the extension. Store listings are on their way: Firefox Add-ons and Microsoft Edge Add-ons first, then the Chrome Web Store (which Brave uses).
-2. The welcome page opens and shows a one-line command that installs the helper app for your user account. No administrator rights are needed.
+2. The welcome page opens. Choose how to connect:
+   - **API key:** paste a key from [Groq](https://console.groq.com/keys) (free models, such as OpenAI's `gpt-oss-120b`), [OpenRouter](https://openrouter.ai/settings/keys) or [OpenAI](https://platform.openai.com/api-keys) and allow the browser to connect to that provider. Nothing else is installed.
+   - **ChatGPT plan or Claude plan:** the page shows a one-line command that installs the helper app for your user account. No administrator rights are needed.
 
    macOS and Linux (Terminal):
 
@@ -28,9 +30,9 @@ Writehand has two parts: a browser extension for Firefox, Edge, Chrome and Brave
 
    The command downloads the helper app for your system from the latest release, checks its SHA-256 checksum, installs it in your user folder and registers it with Firefox, Chrome, Edge and Brave.
 
-3. Choose how to connect (ChatGPT plan, OpenAI API key or Claude) and try a sample revision. Then open a draft in Outlook; the Writehand toolbar appears next to it.
+3. Try a sample revision. Then open a draft in Outlook; the Writehand toolbar appears next to it.
 
-To uninstall the helper app (add `--delete-data` or `-DeleteData` to also sign out of ChatGPT and delete saved keys):
+To uninstall the helper app (add `--delete-data` or `-DeleteData` to also sign out of ChatGPT and delete its saved sign-in details):
 
 ```sh
 curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/install.sh | sh -s -- uninstall
@@ -48,27 +50,33 @@ curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/inst
 - **Change the result:** turn it into a table or bullet points, add a chart, shorten it, make it more formal or friendlier, or ask for any other change.
 - **Flexible languages:** translate into any language, keep favourites in the Translate menu and set standing writing instructions (for example "always formal").
 - **Interface languages:** English, Turkish, German, French and Spanish, or automatic from the browser language.
-- **AI connection methods:** your ChatGPT Plus/Pro plan (Sign in with ChatGPT), your own OpenAI API key, or your Claude subscription through Claude Code on your computer (experimental).
+- **AI connection methods:** your own API key from Groq, OpenRouter or OpenAI (no helper app needed; Groq and OpenRouter offer free models), your ChatGPT Plus/Pro plan (Sign in with ChatGPT), or your Claude subscription through Claude Code on your computer (experimental).
 
 ## How it works
 
 ```text
 Outlook on the web ─ extension (preview, approval, writing to the draft)
+                         │
+                         ├─ API key: from the extension's background ─ Groq / OpenRouter / OpenAI API
+                         │
                          │ native messaging, only with your permission
                          ▼
-                   helper app on your computer ─ ChatGPT / OpenAI API / Claude Code
+                   helper app on your computer ─ ChatGPT plan / Claude Code
 ```
 
-A browser extension cannot listen for the ChatGPT sign-in callback on your computer, start Claude Code or keep secrets outside the browser, so the helper app does that part. The browser starts it only when Writehand asks for something, and only for Writehand's extension IDs. The extension asks for permission to talk to it on the welcome page.
+With an API key, the extension's background sends the request straight to the provider. It asks for permission to connect to that provider's API address when you connect the key; it has no access to any other site. The key is stored encrypted in the browser, and only the background ever decrypts it.
+
+A browser extension cannot listen for the ChatGPT sign-in callback on your computer or start Claude Code, so the helper app does that part for the two plans. The browser starts it only when Writehand asks for something, and only for Writehand's extension IDs. The extension asks for permission to talk to it when you choose one of these methods.
 
 The helper app is a single program (no Node.js needed) for macOS (Apple silicon and Intel), Linux (x64 and arm64) and Windows (x64; Windows on Arm through emulation). It can update itself from the extension's settings: it downloads only releases of this repository and installs them only after checking the Ed25519 signature of `SHA256SUMS` and the archive's checksum.
 
 ## Privacy
 
 - Writehand never sends email; sending is always up to you.
-- Text goes to the AI provider you chose (OpenAI or Anthropic) only when you request a revision, translation, reply or new email. There is no Writehand server, analytics or error reporting.
+- Text goes to the AI provider you chose (Groq, OpenRouter, OpenAI or Anthropic) only when you request a revision, translation, reply or new email. There is no Writehand server, analytics or error reporting.
 - Emails you open are kept in memory only while the page is open and are never written to disk.
-- Sign-in tokens and API keys are stored by the helper app in a file only your user account can read, never in browser storage.
+- An API key is stored in the browser encrypted (AES-GCM with a non-extractable key in the extension's own storage, which web pages and Outlook cannot reach), is never shown again and is sent only to its provider.
+- ChatGPT sign-in tokens are stored by the helper app in a file only your user account can read, never in browser storage.
 - While update checks are on (the default), the helper app asks GitHub for the latest version number at most once a day. You can turn this off in the settings.
 
 Read the full [privacy policy](./PRIVACY.md). To report a security issue privately, see the [security policy](./SECURITY.md).
@@ -101,7 +109,8 @@ Releases are built by GitHub Actions from `vX.Y.Z` tags; see [releasing](./docs/
 ```text
 apps/browser-extension/        WXT extension: entry points, welcome wizard, controllers, mounting, platform helpers, locales
 apps/ai-companion/             Helper app: native messaging host, installer, updater, install scripts
-packages/ai-openai/            ChatGPT OAuth, model discovery and Responses API adapter
+packages/ai-openai/            ChatGPT OAuth, model discovery and Responses API adapter (also for OpenAI API keys)
+packages/ai-chat-completions/  Groq and OpenRouter API keys through OpenAI-compatible Chat Completions
 packages/ai-claude-code/       Runs the user's Claude Code in a restricted print mode
 packages/contracts/            Shared data and action definitions, boundary schemas, brand, AI prompt
 packages/core/                 Context, action preparation, session state and write preconditions (pure functions)
