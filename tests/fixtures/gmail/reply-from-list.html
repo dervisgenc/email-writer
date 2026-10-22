@@ -1,0 +1,97 @@
+<!--
+  Synthetic Gmail page: the inbox list with a reply opened from a row's context menu, without
+  opening the email. Made-up people, ids and text. As on the real page (checked 2026-10-23), the
+  reply's hidden form names the conversation (lts, rt) and the replied-to message (rm), and the
+  quote is not in the page until the draft's "•••" toggle (.ajR) is pressed; the small script
+  below plays Gmail's part for the browser tests. The ids match conversation-inline-reply.html.
+-->
+<div class="nH" data-fixture="gmail-app">
+  <header class="gb_">
+    <form role="search" class="aJf">
+      <input type="text" aria-label="Search mail" placeholder="Search mail" />
+    </form>
+  </header>
+  <div class="bkK">
+    <div class="nH">
+      <div class="aeF">
+        <div class="nH">
+          <div role="main" class="nH" data-fixture="inbox">
+            <table class="F cf zt">
+              <tbody>
+                <tr class="zA zE">
+                  <td class="xY a4W">
+                    <span data-thread-id="#thread-f:1800000000000000001" data-legacy-thread-id="18f0000000000001">Proje toplantısı</span>
+                    <span class="y2"> - Evet, uygun. Gündem: Bütçe, Takvim</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dw">
+    <div class="nH">
+      <div class="nH">
+        <div class="no">
+          <div class="AD">
+            <div role="dialog" class="nH Hd" data-fixture="reply-window">
+              <div class="M9">
+                <table>
+                  <tbody>
+                    <tr>
+                      <td class="I5">
+                        <form class="bAs" method="POST">
+                          <input type="hidden" name="composeid" value="fixture-compose-3" />
+                          <input type="hidden" name="subject" value="Re: Proje toplantısı" />
+                          <input type="hidden" name="draft" value="undefined" />
+                          <input type="hidden" name="rt" value="#thread-f:1800000000000000001" />
+                          <input type="hidden" name="lts" value="18f0000000000001" />
+                          <input type="hidden" name="rm" value="#msg-f:1800000000000000004" />
+                          <input type="hidden" name="body" value="" />
+                        </form>
+                        <div class="aaZ">
+                          <div class="Ap">
+                            <div
+                              class="Am Al editable"
+                              g_editable="true"
+                              role="textbox"
+                              aria-label="Message Body"
+                              aria-multiline="true"
+                              contenteditable="true"
+                              data-fixture="list-reply-editor"
+                              style="width: 560px; min-height: 160px"
+                            ><div><br /></div></div>
+                          </div>
+                        </div>
+                        <div class="ajR" role="button" tabindex="0" data-fixture="list-reply-toggle">…</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // Gmail's part: pressing "•••" loads the replied-to message into the reply and hides the toggle.
+  document.querySelector('[data-fixture="list-reply-toggle"]').addEventListener('click', (event) => {
+    const editor = document.querySelector('[data-fixture="list-reply-editor"]');
+    const quote = document.createElement('div');
+    quote.className = 'gmail_quote gmail_quote_container';
+    const attribution = document.createElement('div');
+    attribution.className = 'gmail_attr';
+    attribution.textContent = 'Ayşe Kaya şunu yazdı:';
+    const blockquote = document.createElement('blockquote');
+    blockquote.className = 'gmail_quote';
+    blockquote.textContent = 'Evet, uygun. Gündem: Bütçe ve takvim. Oda B-204.';
+    quote.append(attribution, blockquote);
+    editor.append(document.createElement('br'), quote);
+    event.currentTarget.style.display = 'none';
+  });
+</script>

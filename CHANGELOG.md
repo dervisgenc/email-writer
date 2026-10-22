@@ -28,6 +28,7 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ### Fixed
 
+- Gmail: a reply opened from the message list, without opening the email, is recognized as a reply to its conversation. **Write reply** shows the replied-to message in the draft (as Gmail's "•••" button does) and uses it as context.
 - Write and reply prompts now distinguish directions from rough email text, preserve who is requesting what, and prefer the conversation's language unless the user explicitly chooses another language.
 - Recover context from recognized quotes when Outlook already has a reply draft open. Keep that context local to its editor, exclude the editable draft and signature, and invalidate a context-free result if a late quote identifies the draft as a reply.
 

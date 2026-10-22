@@ -4,6 +4,9 @@ import { chromium, test as base, type BrowserContext, type Page, type Worker } f
 
 export const FIXTURE_URL = 'http://127.0.0.1:4517/mail/inbox';
 /** The synthetic Gmail page, with a conversation open (Gmail routes with the URL hash). */
+/** The synthetic Gmail inbox with a reply opened from the list, without opening the email. */
+export const GMAIL_LIST_REPLY_URL =
+  'http://127.0.0.1:4517/gmail/mail/u/0/list#inbox?compose=fixture-compose-3';
 export const GMAIL_FIXTURE_URL =
   'http://127.0.0.1:4517/gmail/mail/u/0/#inbox/FMfcgzQXJWDsKmBvTkRbHnPLvXqZcwTt';
 
