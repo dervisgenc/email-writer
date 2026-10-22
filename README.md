@@ -118,6 +118,7 @@ packages/email-format/         Limited Markdown to email-safe HTML, plain text a
 packages/ui/                   Vue panel, toolbar, result card, settings and setup components
 packages/mail-connectors/
   outlook-web/                 Reads, observes and writes Outlook on the web pages in a controlled way
+  mail-dom/                    What the web mail connectors share: text extraction, drafts, selection, writing, undo
 tests/                         Unit, contract, integration and end-to-end tests with synthetic samples
 scripts/store-assets/          Demo mailbox and scripts that produce the store images and the demo video
 assets/brand/                  Logo sources (SVG)

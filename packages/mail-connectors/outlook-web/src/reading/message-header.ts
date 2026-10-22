@@ -1,33 +1,12 @@
+import { labelText, opaqueHash, senderDisplayName, type IdentityRegistry } from '@writehand/mail-dom';
+
 import { messageBodies } from '../discovery/locate-thread';
 import { MESSAGE_HEADER_PART_ID, queryAll, queryFirstOutside } from '../discovery/selectors';
-import { opaqueHash, type IdentityRegistry } from '../identity/identity-registry';
-
-const MAX_LABEL_LENGTH = 200;
 
 export interface MessageHeader {
   readonly senderLabel: string | null;
   /** Displayed date text; not parsed because it depends on language and locale. */
   readonly sentAtText: string | null;
-}
-
-/** Collapses the visible text to one line; `null` if empty. */
-export function labelText(element: Element | null): string | null {
-  const text = element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-  return text === '' ? null : text.slice(0, MAX_LABEL_LENGTH);
-}
-
-/**
- * Extracts the display name from sender text (`Jane Doe <jane.doe@example.com>`).
- * The address is not kept: bracketed and bare addresses are dropped, and if no
- * name is left the name counts as unknown.
- */
-export function senderDisplayName(text: string): string | null {
-  const name = text
-    .replace(/<[^<>]*@[^<>]*>/g, ' ')
-    .replace(/\S+@\S+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return name === '' ? null : name.slice(0, MAX_LABEL_LENGTH);
 }
 
 /** Distinct item ids of the message header parts inside the element. */

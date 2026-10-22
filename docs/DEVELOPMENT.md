@@ -98,6 +98,8 @@ flowchart TD
     EXT[apps/browser-extension<br/>entry points, controllers, mounting, platform] --> CORE[packages/core]
     EXT --> UI[packages/ui]
     EXT --> MAIL[packages/mail-connectors/outlook-web]
+    MAIL --> DOM[packages/mail-connectors/mail-dom]
+    DOM --> CONTRACTS
     UI --> FORMAT[packages/email-format]
     CORE --> CONTRACTS[packages/contracts]
     UI --> CONTRACTS
@@ -119,7 +121,8 @@ The extension imports only the browser-safe part of `ai-openai` (`@writehand/ai-
 | `contracts` | Shared types, the `MailConnector` and `TextProcessor` interfaces, Zod boundary schemas (settings, runtime messages, the host protocol, previews), error codes, brand and external IDs, API key providers and their permissions, the AI prompt | Vue, WXT, browser or DOM globals, other internal packages |
 | `core` | `buildContext`, `prepareAction`, `reduceSession`, apply and undo validation, capabilities. Pure functions; clock and ID generator are passed in | Vue, WXT, Zod, browser globals, `ui`, `outlook-web` |
 | `ui` | Vue panel, toolbar, result card, settings and setup components. Receives read-only view data and emits events; all text comes from the locale dictionaries | WXT, `core`, `outlook-web`, `chrome`, `browser`, `document`, `navigator`, web storage |
-| `outlook-web` | Page detection, reading, selection, observation, controlled writing and undo. Every selector lives in `src/discovery/selectors.ts` | Vue, WXT, `core`, `ui`, extension APIs, `window`, web storage |
+| `outlook-web` | Outlook on the web: page detection, the active conversation, reading messages, finding draft editors, theme. Every selector lives in `src/discovery/selectors.ts` | Vue, WXT, `core`, `ui`, other connectors, extension APIs, `window`, web storage |
+| `mail-dom` | What every web mail connector shares: text extraction, draft tracking (`createComposerRegistry`), selection capture, controlled writes, verification and undo, editor and page observation, opaque identities | Vue, WXT, `core`, `ui`, the connectors, extension APIs, `window`, web storage |
 | `email-format` | Parses the model's limited Markdown and produces email-safe HTML, plain text and the text used to verify a write (pure functions) | Vue, WXT, browser globals, other internal packages (Zod only) |
 | `ai-openai` | ChatGPT OAuth (PKCE, OIDC), model discovery, Responses API streaming, stable error codes; `api-key.ts` is the browser-safe entry for OpenAI API keys | Browser globals, UI or mailbox packages, the other provider packages; in the browser-safe files also Node.js modules and `jose` |
 | `ai-chat-completions` | Groq and OpenRouter: OpenAI-compatible Chat Completions streaming, model lists, free default models, stable error codes. Runs in the browser and in Node.js | Browser page globals, Node.js modules, UI or mailbox packages, the other provider packages |
@@ -162,7 +165,8 @@ The API key method runs entirely in the extension's background; no helper app is
 
 - No deep imports into another package's `src/`; use the package's exported API.
 - No `innerHTML` or `outerHTML`, and no `v-html` in Vue. The single exception is `packages/ui/src/components/RichPreview.vue`, which renders only HTML that `email-format` built from parsed structure with all text escaped.
-- `document.execCommand` only in `packages/mail-connectors/outlook-web/src/writing/editor-writer.ts`.
+- `document.execCommand` only in `packages/mail-connectors/mail-dom/src/writing/editor-writer.ts`.
+- Mail connectors never import each other; what they share lives in `mail-dom`.
 - No `console`. The only diagnostic output is `apps/browser-extension/src/platform/diagnostics.ts` (error codes and content-free numbers, development builds only).
 - The two AI provider packages never import each other; the shared prompt (`buildTaskPrompt` in `contracts/src/ai-prompt.ts`) and `AiInput` live in `contracts`.
 - No `any`; type-only imports use `import { type … }`.
@@ -224,7 +228,7 @@ Automated tests verify context selection, routing and the prompt passed to provi
 
 **A new mail service** (for example Gmail on the web):
 
-1. Add a package under `packages/mail-connectors/<name>/` that implements `MailConnector`, with its own `selectors.ts`.
+1. Add a package under `packages/mail-connectors/<name>/` that implements `MailConnector`, with its own `selectors.ts`. It finds the conversation, its messages and the draft editors; `mail-dom` provides text extraction, draft tracking, selection, writing and undo (`createComposerRegistry`).
 2. Run the shared contract tests in `tests/contracts/mail-connector.contract.ts` against its fixture page.
 3. Add `entrypoints/<name>.content.ts` that creates a `MailPageProvider` and calls `createExtensionSession`, and add the site to `SITE_IDS` in `contracts/src/settings.ts`.
 4. The panel, context rules, preview and write rules are reused as they are.

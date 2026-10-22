@@ -42,6 +42,7 @@
     "@writehand/contracts": "workspace:*",
     "@writehand/core": "workspace:*",
     "@writehand/outlook-web": "workspace:*",
+    "@writehand/mail-dom": "workspace:*",
     "@writehand/ui": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.0",

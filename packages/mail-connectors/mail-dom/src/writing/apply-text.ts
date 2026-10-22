@@ -13,7 +13,7 @@ import {
   type Result,
 } from '@writehand/contracts';
 
-import { editableRegionRange, emptyInsertionRange, type ComposerAnatomy } from '../reading/composer-anatomy';
+import { editableRegionRange, emptyInsertionRange, type ComposerAnatomy } from '../composer-anatomy';
 import type { SelectionRegistry } from '../selection/selection-registry';
 import { rangeForOffsets } from '../selection/text-range-map';
 import { comparableText, isEditorWritable, isProtectedIntact, type ComposerHandle } from './composer-handle';
@@ -115,8 +115,8 @@ export async function applyText(request: ApplyRequest, deps: WriteDependencies):
 }
 
 /**
- * When the draft gains focus, Outlook may fill in the quote or restructure the
- * content. The editor is focused before writing and that reaction is awaited;
+ * When the draft gains focus, the mail app may fill in the quote or restructure
+ * the content. The editor is focused before writing and that reaction is awaited;
  * all checks run afterwards, with no await between them and the write.
  */
 export async function focusEditor(ref: ComposerRef, deps: WriteDependencies): Promise<void> {

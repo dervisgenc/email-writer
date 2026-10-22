@@ -34,7 +34,7 @@ function selectRange(document: Document, editor: HTMLElement, range: Range): boo
  * First approach: select the target range and write with
  * `execCommand('insertText')`. The API is deprecated, but it keeps the editor's
  * own input events and undo history, so in some editors it is still the only
- * reliable path. An Outlook Web / browser combination does not count as
+ * reliable path. A mail service / browser combination does not count as
  * supported until verified on a real account (see docs/DEVELOPMENT.md).
  */
 export function createExecCommandWriter(document: Document): EditorWriter {
@@ -57,10 +57,11 @@ export function createExecCommandWriter(document: Document): EditorWriter {
 }
 
 /**
- * Alternative approach: on a synthetic `paste` event, Outlook's editor
- * (RoosterJS) cancels the browser's paste, runs its own paste logic, records its
- * own undo entry and reports the content change. `execCommand('insertText')`,
- * by contrast, only invalidates the editor's cache.
+ * Alternative approach for editors that handle paste themselves: on a synthetic
+ * `paste` event, Outlook's editor (RoosterJS), for example, cancels the browser's
+ * paste, runs its own paste logic, records its own undo entry and reports the
+ * content change. `execCommand('insertText')`, by contrast, only invalidates such
+ * an editor's cache.
  *
  * In Firefox, a `DataTransfer` created in the content script may be
  * inaccessible to page code (Xray boundary); this method is not used there until

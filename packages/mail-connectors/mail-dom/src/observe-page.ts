@@ -13,6 +13,11 @@ export interface ObservePageOptions {
   readonly isIgnored: (node: Node) => boolean;
   /** SPA navigation: a location change is a signal to rediscover. */
   readonly subscribeLocation?: (listener: () => void) => () => void;
+  /**
+   * Attributes whose changes also trigger rediscovery, such as a list row's selection or an
+   * editor's editability. Other attribute changes are ignored.
+   */
+  readonly attributes: readonly string[];
   readonly debounceMs?: number;
 }
 
@@ -51,9 +56,8 @@ export function observePage(options: ObservePageOptions): PageObserver {
     childList: true,
     subtree: true,
     characterData: true,
-    // Conversation selection and editor editability can change through attributes.
-    attributes: true,
-    attributeFilter: ['aria-selected', 'aria-expanded', 'data-convid', 'contenteditable'],
+    attributes: options.attributes.length > 0,
+    ...(options.attributes.length > 0 ? { attributeFilter: [...options.attributes] } : {}),
   });
   const unsubscribeLocation = options.subscribeLocation?.(schedule);
 

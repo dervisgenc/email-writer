@@ -1,5 +1,6 @@
+import type { ElementRole } from '@writehand/mail-dom';
+
 import { matches } from '../discovery/selectors';
-import type { ElementRole } from './extract-text-blocks';
 
 /**
  * Classifies text regions by Outlook markers: where earlier mail starts, the

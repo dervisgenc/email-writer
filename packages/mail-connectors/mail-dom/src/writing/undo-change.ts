@@ -10,7 +10,7 @@ function invalid(): UndoOutcome {
 
 /**
  * Undoes only the extension's last verified write, and only while its
- * conditions still hold. Outlook's general undo history is never rewound
+ * conditions still hold. The editor's general undo history is never rewound
  * blindly; `execCommand('undo')` is not called. The previous text comes back as
  * plain text; formatting in that part is not restored.
  */

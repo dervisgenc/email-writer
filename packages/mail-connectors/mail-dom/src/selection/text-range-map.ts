@@ -1,4 +1,4 @@
-import type { TextSegment } from '../reading/extract-text-blocks';
+import type { TextSegment } from '../extract-text-blocks';
 
 export interface DomPoint {
   readonly node: Node;

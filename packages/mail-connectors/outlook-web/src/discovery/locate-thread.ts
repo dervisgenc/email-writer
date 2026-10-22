@@ -1,4 +1,5 @@
-import { opaqueHash, type IdentityRegistry } from '../identity/identity-registry';
+import { innermostElements, opaqueHash, type IdentityRegistry } from '@writehand/mail-dom';
+
 import { closest, CONVERSATION_SUBJECT_ID, queryAll, queryFirst, URL_ITEM_ID } from './selectors';
 
 export interface LocatedThread {
@@ -22,8 +23,9 @@ export interface LocatedThread {
 
 /** Bodies in the reading pane; for nested matches the innermost (most specific) element is kept. */
 export function messageBodies(root: ParentNode): HTMLElement[] {
-  const all = queryAll(root, 'messageBody').filter((body) => closest(body, 'composeEditor') === null);
-  return all.filter((element) => !all.some((other) => other !== element && element.contains(other)));
+  return innermostElements(
+    queryAll(root, 'messageBody').filter((body) => closest(body, 'composeEditor') === null),
+  );
 }
 
 /** Token of the conversation shown in the reading pane, read from the subject heading's id. */

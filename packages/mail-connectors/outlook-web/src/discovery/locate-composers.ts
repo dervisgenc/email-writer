@@ -1,3 +1,5 @@
+import { isEditableElement, isVisibleElement, outermostElements } from '@writehand/mail-dom';
+
 import { messageBodies } from './locate-thread';
 import { closest, queryAll, queryFirst } from './selectors';
 
@@ -5,18 +7,6 @@ export interface LocatedComposer {
   readonly editor: HTMLElement;
   /** Is this a reply draft opened under a conversation in the reading pane? */
   readonly isReply: boolean;
-}
-
-function isEditable(element: HTMLElement): boolean {
-  if (element.getAttribute('contenteditable') !== 'true') {
-    return false;
-  }
-  // The test DOM does not implement `isContentEditable`; browsers get the extra check.
-  return element.isContentEditable !== false;
-}
-
-function isVisible(element: HTMLElement): boolean {
-  return typeof element.checkVisibility === 'function' ? element.checkVisibility() : true;
 }
 
 /**
@@ -32,12 +22,10 @@ export function locateComposers(document: Document, ownUiSelector: string): Loca
     (editor) =>
       closest(editor, 'composeExclusions') === null &&
       editor.closest(ownUiSelector) === null &&
-      isEditable(editor) &&
-      isVisible(editor),
+      isEditableElement(editor) &&
+      isVisibleElement(editor),
   );
-  const outermost = candidates.filter(
-    (editor) => !candidates.some((other) => other !== editor && other.contains(editor)),
-  );
+  const outermost = outermostElements(candidates);
 
   // Reply evidence: the editor quotes earlier mail or was opened under a conversation.
   // Outlook opens new messages in the same inline region, so the region alone is not enough.

@@ -1,7 +1,7 @@
 import type { ComposerRef } from '@writehand/contracts';
 
-import type { EditorTracker } from '../observation/observe-editor';
-import type { ComposerAnatomy } from '../reading/composer-anatomy';
+import type { ComposerAnatomy } from '../composer-anatomy';
+import type { EditorTracker } from '../observe-editor';
 
 /** Connector-internal record used to access a live editor. */
 export interface ComposerHandle {
@@ -27,7 +27,7 @@ export function isEditorWritable(editor: HTMLElement): boolean {
 
 /**
  * Are the signature and earlier mail preserved? They must stay the same or only
- * gain content at the end: Outlook may add the quote to the draft late (e.g.
+ * gain content at the end: the mail app may add the quote to the draft late (e.g.
  * after the first edit). The extension's content goes before the protected
  * region; if the start of that region changes (e.g. the last line merged into
  * the signature), the result cannot be verified.

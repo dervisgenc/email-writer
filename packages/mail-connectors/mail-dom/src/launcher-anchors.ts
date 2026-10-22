@@ -5,7 +5,7 @@ import type { ComposerRef, ThreadRef } from '@writehand/contracts';
  * interface may use `HTMLElement`; these objects never reach `core`, operation
  * records or storage.
  */
-export interface OutlookLauncherAnchor {
+export interface MailLauncherAnchor {
   readonly key: string;
   readonly element: HTMLElement;
   readonly placement: 'top-end' | 'bottom-end';
@@ -20,11 +20,12 @@ export interface AnchorSources {
 }
 
 /**
- * The top corner of the conversation pane and the bottom corner of each draft
- * editor. These positions are candidates until verified in the real Outlook UI.
+ * The top corner of the conversation area and the bottom corner of each draft
+ * editor. Each connector decides which elements these are; the positions are
+ * candidates until verified in the real mail UI.
  */
-export function locateLauncherAnchors(sources: AnchorSources): OutlookLauncherAnchor[] {
-  const anchors: OutlookLauncherAnchor[] = [];
+export function locateLauncherAnchors(sources: AnchorSources): MailLauncherAnchor[] {
+  const anchors: MailLauncherAnchor[] = [];
   if (sources.thread !== null) {
     anchors.push({
       key: `thread:${sources.thread.ref.threadKey}`,

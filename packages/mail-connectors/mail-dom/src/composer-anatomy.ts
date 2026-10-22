@@ -167,7 +167,7 @@ export function emptyInsertionRange(anatomy: ComposerAnatomy): Range {
  * Fingerprint of the region the user wrote: its whitespace-normalized text and
  * the number of elements such as tables and images. The revision goes up only
  * when these change. The signature and earlier mail are left out, so a ready
- * result and the selection stay valid when Outlook fills in the quote after
+ * result and the selection stay valid when the mail app fills in the quote after
  * opening the editor or restructures the written content (with the same text).
  * At write time, the selection text, the body and the protected region are
  * checked separately.

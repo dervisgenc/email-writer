@@ -1,6 +1,6 @@
 import { appError, err, ok, type AppError, type DraftSelection, type Result } from '@writehand/contracts';
 
-import type { StoredRange } from '../observation/observe-editor';
+import type { StoredRange } from '../observe-editor';
 import type { ComposerHandle } from '../writing/composer-handle';
 import type { SelectionRegistry } from './selection-registry';
 import { offsetForPoint } from './text-range-map';

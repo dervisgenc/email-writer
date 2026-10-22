@@ -13,6 +13,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'mail-dom',
+          environment: 'jsdom',
+          include: ['tests/integration/mail-dom/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'outlook-web',
           environment: 'jsdom',
           include: ['tests/integration/outlook-web/**/*.test.ts'],

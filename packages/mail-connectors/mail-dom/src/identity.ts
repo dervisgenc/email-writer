@@ -1,7 +1,5 @@
 import type { MailScope } from '@writehand/contracts';
 
-export const OUTLOOK_PROVIDER_ID = 'outlook-web';
-
 /**
  * Derives a local, opaque id from an account hint (e.g. the account button's
  * accessible name). The raw value is never stored or exposed; the id only tells
@@ -36,7 +34,8 @@ export interface IdentityRegistry {
   clear(): void;
 }
 
-export function createIdentityRegistry(createId: () => string): IdentityRegistry {
+/** `providerId` names the mail environment in every scope (e.g. `outlook-web`). */
+export function createIdentityRegistry(providerId: string, createId: () => string): IdentityRegistry {
   const documentInstanceId = createId();
   let accountScopeId = 'unknown';
   let keys = new WeakMap<Element, string>();
@@ -46,7 +45,7 @@ export function createIdentityRegistry(createId: () => string): IdentityRegistry
     documentInstanceId,
 
     scope() {
-      return { providerId: OUTLOOK_PROVIDER_ID, accountScopeId, documentInstanceId };
+      return { providerId, accountScopeId, documentInstanceId };
     },
 
     updateAccountHint(hint) {

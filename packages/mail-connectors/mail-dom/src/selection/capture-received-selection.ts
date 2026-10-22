@@ -8,10 +8,15 @@ import {
   type ThreadRef,
 } from '@writehand/contracts';
 
-import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
-import type { IdentityRegistry } from '../identity/identity-registry';
-import { extractTextBlocks } from '../reading/extract-text-blocks';
-import { messageContainerOf, messageKeyOf } from '../reading/message-header';
+import { extractTextBlocks } from '../extract-text-blocks';
+
+export interface ReceivedSelectionSources {
+  readonly ref: ThreadRef;
+  /** Bodies of the messages shown in the open conversation. */
+  readonly bodies: readonly HTMLElement[];
+  /** The key of the message a body belongs to, as `readThread` reports it. */
+  readonly messageKeyOf: (body: HTMLElement) => string;
+}
 
 function bodyContaining(bodies: readonly HTMLElement[], node: Node): HTMLElement | null {
   return bodies.find((body) => body.contains(node)) ?? null;
@@ -25,18 +30,15 @@ function bodyContaining(bodies: readonly HTMLElement[], node: Node): HTMLElement
  */
 export function captureReceivedSelection(
   document: Document,
-  thread: LocatedThread,
-  ref: ThreadRef,
-  registry: IdentityRegistry,
+  sources: ReceivedSelectionSources,
 ): Result<ReceivedMessageSelection | null, AppError> {
   const selection = document.getSelection();
   if (selection === null || selection.rangeCount === 0 || selection.isCollapsed) {
     return ok(null);
   }
   const range = selection.getRangeAt(0);
-  const bodies = messageBodies(thread.root);
-  const startBody = bodyContaining(bodies, range.startContainer);
-  const endBody = bodyContaining(bodies, range.endContainer);
+  const startBody = bodyContaining(sources.bodies, range.startContainer);
+  const endBody = bodyContaining(sources.bodies, range.endContainer);
   if (startBody === null && endBody === null) {
     return ok(null);
   }
@@ -51,9 +53,5 @@ export function captureReceivedSelection(
   if (text.trim() === '') {
     return ok(null);
   }
-  return ok({
-    threadRef: ref,
-    messageKey: messageKeyOf(messageContainerOf(startBody, thread.root), registry),
-    text,
-  });
+  return ok({ threadRef: sources.ref, messageKey: sources.messageKeyOf(startBody), text });
 }

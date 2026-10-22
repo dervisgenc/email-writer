@@ -1,15 +1,22 @@
 import {
   appError,
   err,
-  isSameScope,
-  ok,
-  type ComposerRef,
   type MailConnector,
   type MailEvent,
   type PageState,
   type PageTheme,
   type ThreadRef,
 } from '@writehand/contracts';
+import {
+  createComposerRegistry,
+  createExecCommandWriter,
+  createIdentityRegistry,
+  captureReceivedSelection,
+  locateLauncherAnchors,
+  observePage,
+  type EditorWriter,
+  type MailLauncherAnchor,
+} from '@writehand/mail-dom';
 
 import { detectPage, DEFAULT_WAIT_LIMIT_MS } from './discovery/detect-page';
 import { locateComposers, readAccountHint } from './discovery/locate-composers';
@@ -24,21 +31,14 @@ import {
   type SelectorKey,
   type SelectorStatus,
 } from './discovery/selectors';
-import { createIdentityRegistry, OUTLOOK_PROVIDER_ID } from './identity/identity-registry';
-import { locateLauncherAnchors, type OutlookLauncherAnchor } from './mounting/locate-launcher-anchors';
-import { observeEditor } from './observation/observe-editor';
-import { observePage } from './observation/observe-page';
-import { composerFingerprint, readComposerAnatomy } from './reading/composer-anatomy';
+import { messageContainerOf, messageKeyOf } from './reading/message-header';
 import { createOutlookClassifier } from './reading/outlook-classifier';
 import { readThread } from './reading/read-thread';
-import { captureDraftSelection } from './selection/capture-selection';
-import { captureReceivedSelection } from './selection/capture-received-selection';
-import { createSelectionRegistry } from './selection/selection-registry';
-import { applyText, type WriteDependencies } from './writing/apply-text';
-import type { ComposerHandle } from './writing/composer-handle';
-import { createExecCommandWriter, type EditorWriter } from './writing/editor-writer';
-import { undoChange } from './writing/undo-change';
-import { createUndoStore } from './writing/undo-store';
+
+export const OUTLOOK_PROVIDER_ID = 'outlook-web';
+
+/** Attributes whose changes may select another conversation or change an editor's editability. */
+const WATCHED_ATTRIBUTES = ['aria-selected', 'aria-expanded', 'data-convid', 'contenteditable'];
 
 export interface OutlookWebOptions {
   readonly document: Document;
@@ -63,7 +63,7 @@ export interface SelectorReportEntry {
 
 export interface OutlookWebConnection {
   readonly connector: MailConnector;
-  locateLauncherAnchors(): readonly OutlookLauncherAnchor[];
+  locateLauncherAnchors(): readonly MailLauncherAnchor[];
   /** Content-free diagnostic report for verifying selectors on the live page. */
   selectorReport(): readonly SelectorReportEntry[];
   /** Outlook's current theme colors, so the extension UI can match them. */
@@ -93,11 +93,6 @@ function threadSignature(thread: LocatedThread): string {
   return `${bodies.length}:${queryAll(thread.root, 'collapsedMessage').length}:${length}`;
 }
 
-/** Composer record; its thread binding may become known later while the editor stays the same. */
-interface TrackedComposer extends ComposerHandle {
-  readonly binding: { ref: ComposerRef; isReply: boolean };
-}
-
 /**
  * `MailConnector` for Outlook Web. It does not touch Outlook's internal
  * JavaScript state, undocumented network endpoints or session cookies; it
@@ -109,12 +104,8 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
   const now = options.now ?? (() => new Date());
   const startedAt = now().getTime();
   const classify = createOutlookClassifier(ownUiSelector);
-  const registry = createIdentityRegistry(createId);
+  const registry = createIdentityRegistry(OUTLOOK_PROVIDER_ID, createId);
   const threads = createActiveThreadTracker(document, registry, ownUiSelector);
-  const selections = createSelectionRegistry();
-  const undo = createUndoStore();
-  const attempts: WriteDependencies['attempts'] = new Map();
-  const composers = new Map<string, TrackedComposer>();
   const listeners = new Set<(event: MailEvent) => void>();
 
   let thread: LocatedThread | null = null;
@@ -130,60 +121,26 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     }
   };
 
-  const removeComposer = (key: string, notify: boolean) => {
-    const handle = composers.get(key);
-    if (handle === undefined) {
-      return;
-    }
-    handle.tracker.dispose();
-    composers.delete(key);
-    selections.forgetComposer(key);
-    undo.forgetComposer(key);
-    if (notify) {
-      emit({ type: 'composer-removed', ref: handle.ref });
-    }
-  };
-
-  const addComposer = (editor: HTMLElement, isReply: boolean) => {
-    const binding: TrackedComposer['binding'] = {
-      ref: {
-        scope: registry.scope(),
-        composerKey: registry.keyFor(editor, 'composer'),
-        threadKey: isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null,
-      },
-      isReply,
-    };
-    const tracker = observeEditor(editor, {
-      document,
-      fingerprint: (element) => composerFingerprint(element, classify),
-      isOwnUi: (node) =>
-        (node instanceof Element ? node : node.parentElement)?.closest(ownUiSelector) != null,
-      onRevision: (revision) => {
-        // Once the editor changes, earlier selection records are no longer valid.
-        selections.forgetComposer(binding.ref.composerKey);
-        emit({ type: 'composer-changed', ref: binding.ref, revision });
-      },
-      onSettled: () => {
-        // The editor's contents are outside the page observer. Outlook fills in the reply
-        // quote after opening the editor (the revision does not change), so a draft counted
-        // as a new message may have turned into a reply.
-        if (binding.ref.threadKey === null && queryFirst(editor, 'quoteStart') !== null) {
-          observer.request();
-        }
-      },
-    });
-    const handle: TrackedComposer = {
-      get ref() {
-        return binding.ref;
-      },
-      binding,
-      editor,
-      tracker,
-      readAnatomy: () => readComposerAnatomy(editor, { classify, isReply: binding.isReply }),
-    };
-    composers.set(binding.ref.composerKey, handle);
-    emit({ type: 'composer-added', ref: binding.ref });
-  };
+  const composers = createComposerRegistry({
+    document,
+    registry,
+    classify,
+    ownUiSelector,
+    emit,
+    flush: () => observer.flush(),
+    // The editor's contents are outside the page observer. Outlook fills in the reply
+    // quote after opening the editor (the revision does not change), so a draft counted
+    // as a new message may have turned into a reply.
+    onUnboundEditorSettled: (editor) => {
+      if (queryFirst(editor, 'quoteStart') !== null) {
+        observer.request();
+      }
+    },
+    createId,
+    now,
+    writer: options.writer ?? createExecCommandWriter(document),
+    settle: options.settle ?? (() => new Promise((resolve) => setTimeout(resolve, SETTLE_MS))),
+  });
 
   const refresh = () => {
     if (disposed) {
@@ -193,12 +150,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       // The account scope changed: drop the old scope's composer, selection and undo
       // records. If a scope had already been published, this is an account switch.
       const hadScope = pageState.scope !== null;
-      for (const key of [...composers.keys()]) {
-        removeComposer(key, hadScope);
-      }
-      selections.clear();
-      undo.clear();
-      attempts.clear();
+      composers.clear(hadScope);
       thread = null;
       threadRef = null;
       threads.reset();
@@ -232,40 +184,19 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     }
 
     const found = support === 'ready' ? locateComposers(document, ownUiSelector) : [];
-    const foundKeys = new Set(found.map(({ editor }) => registry.keyFor(editor, 'composer')));
-    for (const [key, handle] of composers) {
-      if (!foundKeys.has(key) || !handle.editor.isConnected) {
-        removeComposer(key, true);
-      }
-    }
-    for (const { editor, isReply } of found) {
-      const key = registry.keyFor(editor, 'composer');
-      const threadKey = isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null;
-      const tracked = composers.get(key);
-      if (tracked !== undefined) {
-        tracked.binding.isReply = isReply;
-        if (tracked.ref.threadKey === null && threadKey !== null) {
-          // The draft's thread became known later (e.g. Outlook filled in the quote
-          // after opening the editor). The editor is the same: its revision, selection
-          // and undo records are kept, and work in progress stays valid.
-          const previous = tracked.ref;
-          tracked.binding.ref = { ...previous, threadKey };
-          emit({ type: 'composer-rebound', previous, ref: tracked.ref });
-        } else if (tracked.ref.threadKey !== threadKey) {
-          // A draft that moves to another thread or loses its thread counts as a new record.
-          removeComposer(key, true);
-        }
-      }
-      if (!composers.has(key)) {
-        addComposer(editor, isReply);
-      }
-    }
+    composers.sync(
+      found.map(({ editor, isReply }) => ({
+        editor,
+        isReply,
+        threadKey: isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null,
+      })),
+    );
 
     const nextState: PageState = {
       support,
       scope: support === 'ready' ? registry.scope() : null,
       activeThread: threadRef,
-      composers: [...composers.values()].map((handle) => handle.ref),
+      composers: composers.refs(),
     };
     if (!samePageState(pageState, nextState)) {
       pageState = nextState;
@@ -273,47 +204,19 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
     }
   };
 
-  const isInsideTrackedEditor = (node: Node) => {
-    for (const handle of composers.values()) {
-      if (handle.editor.contains(node)) {
-        return true;
-      }
-    }
-    return false;
-  };
   const observer = observePage({
     document,
     onChange: refresh,
+    attributes: WATCHED_ATTRIBUTES,
     isIgnored: (node) => {
       const element = node instanceof Element ? node : node.parentElement;
-      return element?.closest(ownUiSelector) != null || isInsideTrackedEditor(node);
+      return element?.closest(ownUiSelector) != null || composers.contains(node);
     },
     ...(options.subscribeLocation ? { subscribeLocation: options.subscribeLocation } : {}),
   });
   // One-off check so the page can be declared unsupported while it is still loading.
   const waitTimer = setTimeout(refresh, (options.waitLimitMs ?? DEFAULT_WAIT_LIMIT_MS) + 50);
   refresh();
-
-  const findComposer = (ref: ComposerRef): ComposerHandle | null => {
-    observer.flush();
-    if (!isSameScope(ref.scope, registry.scope())) {
-      return null;
-    }
-    const handle = composers.get(ref.composerKey);
-    return handle !== undefined && handle.editor.isConnected ? handle : null;
-  };
-
-  const writeDependencies: WriteDependencies = {
-    document,
-    scope: () => registry.scope(),
-    findComposer,
-    selections,
-    undo,
-    writer: options.writer ?? createExecCommandWriter(document),
-    createId,
-    settle: options.settle ?? (() => new Promise((resolve) => setTimeout(resolve, SETTLE_MS))),
-    attempts,
-  };
 
   const connector: MailConnector = {
     providerId: OUTLOOK_PROVIDER_ID,
@@ -338,40 +241,21 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       });
     },
 
-    async readComposer(ref) {
-      const handle = findComposer(ref);
-      if (handle === null) {
-        return err(appError('TARGET_MISSING', { field: 'target' }));
-      }
-      const revision = handle.tracker.sync();
-      const anatomy = handle.readAnatomy();
-      return ok({
-        ref: handle.ref,
-        revision,
-        capturedAt: now().toISOString(),
-        editableText: anatomy.editableText,
-        canReplaceBody: anatomy.canReplaceBody,
-        canReplaceSelection: anatomy.editableSegments.length > 0,
-        canInsertIntoEmptyBody: anatomy.canInsertIntoEmptyBody,
-        containsRichContent: anatomy.containsRichContent,
-      });
-    },
+    readComposer: (ref) => composers.readComposer(ref),
 
-    async captureDraftSelection(ref) {
-      // The live selection is read synchronously, before the first await.
-      const handle = findComposer(ref);
-      if (handle === null) {
-        return err(appError('TARGET_MISSING', { field: 'target' }));
-      }
-      return captureDraftSelection(document, handle, selections, createId);
-    },
+    captureDraftSelection: (ref) => composers.captureDraftSelection(ref),
 
     async readSelectedMessageText(ref) {
       observer.flush();
       if (thread === null || threadRef === null || threadRef.threadKey !== ref.threadKey) {
         return err(appError('THREAD_CHANGED'));
       }
-      return captureReceivedSelection(document, thread, ref, registry);
+      const root = thread.root;
+      return captureReceivedSelection(document, {
+        ref: threadRef,
+        bodies: messageBodies(root),
+        messageKeyOf: (body) => messageKeyOf(messageContainerOf(body, root), registry),
+      });
     },
 
     subscribe(listener) {
@@ -379,24 +263,15 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       return () => listeners.delete(listener);
     },
 
-    applyText(request) {
-      return applyText(request, writeDependencies);
-    },
+    applyText: (request) => composers.applyText(request),
 
-    undoChange(undoId) {
-      return undoChange(undoId, writeDependencies);
-    },
+    undoChange: (undoId) => composers.undoChange(undoId),
 
     dispose() {
       disposed = true;
       clearTimeout(waitTimer);
       observer.dispose();
-      for (const key of [...composers.keys()]) {
-        removeComposer(key, false);
-      }
-      selections.clear();
-      undo.clear();
-      attempts.clear();
+      composers.clear(false);
       registry.clear();
       listeners.clear();
     },
@@ -414,7 +289,7 @@ export function createOutlookWebConnector(options: OutlookWebOptions): OutlookWe
       return locateLauncherAnchors({
         thread:
           shownThread !== null && threadRef !== null ? { ref: threadRef, root: shownThread.root } : null,
-        composers: [...composers.values()].map(({ ref, editor }) => ({ ref, editor })),
+        composers: composers.editors(),
       });
     },
     readTheme: () => readPageTheme(document),
