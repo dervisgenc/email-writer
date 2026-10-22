@@ -81,6 +81,10 @@ test('wizard: the two ways to connect, the helper app install for a plan and a t
     'href',
     'https://outlook.office.com/mail/',
   );
+  await expect(page.getByRole('link', { name: 'Gmail’i aç' })).toHaveAttribute(
+    'href',
+    'https://mail.google.com/mail/',
+  );
   // The last step stays current; the two before it are done.
   await expect(page.locator('.ew-steps__item[data-state="done"]')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/welcome-3-light.png', fullPage: true, animations: 'disabled' });

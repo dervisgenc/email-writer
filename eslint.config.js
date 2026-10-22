@@ -13,6 +13,7 @@ const INTERNAL_PACKAGES = [
   '@writehand/core',
   '@writehand/ui',
   '@writehand/outlook-web',
+  '@writehand/gmail-web',
   '@writehand/mail-dom',
   '@writehand/ai-openai',
   '@writehand/ai-claude-code',
@@ -21,7 +22,7 @@ const INTERNAL_PACKAGES = [
 ];
 
 /** Every mail connector; none of them imports another. */
-const MAIL_CONNECTOR_PACKAGES = ['@writehand/outlook-web'];
+const MAIL_CONNECTOR_PACKAGES = ['@writehand/outlook-web', '@writehand/gmail-web'];
 
 /** Every AI provider package; none of them imports another. */
 const AI_PROVIDER_PACKAGES = [

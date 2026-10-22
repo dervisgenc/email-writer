@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 import { chromium, test as base, type BrowserContext, type Page, type Worker } from '@playwright/test';
 
 export const FIXTURE_URL = 'http://127.0.0.1:4517/mail/inbox';
+/** The synthetic Gmail page, with a conversation open (Gmail routes with the URL hash). */
+export const GMAIL_FIXTURE_URL =
+  'http://127.0.0.1:4517/gmail/mail/u/0/#inbox/FMfcgzQXJWDsKmBvTkRbHnPLvXqZcwTt';
 
 /** The test build: includes the local fixture page origin and the labeled sample result source. */
 const EXTENSION_PATH = resolve(process.cwd(), 'apps/browser-extension/.output/chrome-mv3-test');

@@ -1,0 +1,201 @@
+<!--
+  Synthetic Gmail page: made-up people, addresses, ids and text. Its structure follows the
+  Gmail markup that open-source Gmail extensions target (InboxSDK, gmail.js, FlowCrypt, cmux;
+  see docs/DEVELOPMENT.md → Gmail selectors). It is not a copy of a real mailbox and has not
+  been checked against the real Gmail DOM yet.
+-->
+<div class="nH" data-fixture="gmail-app">
+  <header class="gb_">
+    <form role="search" class="aJf">
+      <input type="text" aria-label="Search mail" placeholder="Search mail" />
+    </form>
+  </header>
+  <div role="navigation" class="aeN">
+    <a href="#inbox" class="J-Ke">Inbox</a>
+  </div>
+  <div class="bkK">
+    <div class="nH" data-fixture="theme-surface">
+      <div class="aeF">
+        <div class="nH">
+          <!-- A view Gmail keeps hidden in the DOM: it must never count as the open conversation. -->
+          <div role="main" style="display: none" data-fixture="hidden-view">
+            <div class="a98 iY">
+              <div class="ha">
+                <h2
+                  class="hP"
+                  data-thread-perm-id="thread-f:1800000000000000099"
+                  data-legacy-thread-id="18f00000000000ff"
+                >Eski konu</h2>
+              </div>
+              <div role="list">
+                <div role="listitem" class="h7">
+                  <div class="adn ads" data-message-id="#msg-f:1800000000000000098" data-legacy-message-id="18f00000000000fe">
+                    <div class="ii gt"><div class="a3s aiL">Gizli görünümde kalan eski ileti.</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div role="main" data-fixture="thread-view">
+            <div class="a98 iY">
+              <div class="ha">
+                <h2
+                  class="hP"
+                  tabindex="-1"
+                  data-thread-perm-id="thread-f:1800000000000000001"
+                  data-legacy-thread-id="18f0000000000001"
+                >Proje toplantısı</h2>
+              </div>
+              <div role="list">
+                <div role="listitem" class="kv">
+                  <div class="adn" data-message-id="#msg-f:1800000000000000002" data-legacy-message-id="18f0000000000002">
+                    <span class="gD" email="selin.arslan@example.com" name="Selin Arslan">Selin Arslan</span>
+                    <span class="y2">Takvim davetini ekte bulabilirsiniz</span>
+                  </div>
+                </div>
+                <div role="listitem" class="h7">
+                  <div class="adn ads" data-message-id="#msg-f:1800000000000000003" data-legacy-message-id="18f0000000000003">
+                    <div class="gs">
+                      <div class="gE iv gt">
+                        <table>
+                          <tbody>
+                            <tr>
+                              <td class="gF gK">
+                                <span class="gD" email="mehmet.demir@example.com" name="Mehmet Demir">Mehmet Demir</span>
+                                <span class="go">&lt;mehmet.demir@example.com&gt;</span>
+                              </td>
+                              <td class="gK">
+                                <span class="g3" title="Cum, 10 Eki 2026 11:00">10 Eki 2026 11:00</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="ii gt">
+                        <div class="a3s aiL">
+                          <div dir="ltr">Merhaba Ayşe,<br /><br />Perşembe 14:00 toplantısını teyit edebilir misin?</div>
+                          <br />
+                          <span class="gmail_signature_prefix">-- </span><br />
+                          <div class="gmail_signature" data-smartmail="gmail_signature">Mehmet Demir<br />Proje Yöneticisi</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div role="listitem" class="h7">
+                  <div class="adn ads" data-message-id="#msg-f:1800000000000000004" data-legacy-message-id="18f0000000000004">
+                    <div class="gs">
+                      <div class="gE iv gt">
+                        <table>
+                          <tbody>
+                            <tr>
+                              <td class="gF gK">
+                                <span class="gD" email="ayse.kaya@example.com" name="Ayşe Kaya">Ayşe Kaya</span>
+                              </td>
+                              <td class="gK"><span class="g3">11:42</span></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="ii gt">
+                        <div class="a3s aiL">
+                          <div dir="ltr">
+                            Evet, uygun. Gündem:
+                            <ul>
+                              <li>Bütçe</li>
+                              <li>Takvim</li>
+                            </ul>
+                            <table>
+                              <tbody>
+                                <tr><td>Oda</td><td>B-204</td></tr>
+                              </tbody>
+                            </table>
+                            <span style="display: none">gizli izleme metni</span>
+                            <script>window.__shouldNotRun = true;</script>
+                          </div>
+                          <div class="gmail_quote gmail_quote_container">
+                            <div dir="ltr" class="gmail_attr">Mehmet Demir şunu yazdı:</div>
+                            <blockquote class="gmail_quote">Perşembe 14:00 toplantısını teyit edebilir misin?</blockquote>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- The inline reply: the message's .ip gains .adB and holds the reply root .M9. -->
+                    <div class="ip adB">
+                      <div class="M9" data-fixture="inline-reply">
+                        <table class="aoP">
+                          <tbody>
+                            <tr>
+                              <td class="I5">
+                                <form class="bAs" method="POST">
+                                  <input type="hidden" name="composeid" value="fixture-compose-1" />
+                                  <input type="hidden" name="rm" value="18f0000000000004" />
+                                  <input type="hidden" name="draft" value="undefined" />
+                                </form>
+                                <div class="Ap">
+                                  <div
+                                    class="Am Al editable"
+                                    g_editable="true"
+                                    role="textbox"
+                                    aria-label="Message Body"
+                                    aria-multiline="true"
+                                    contenteditable="true"
+                                    data-fixture="reply-editor"
+                                  ><div>Toplantı odası olarak B-204 uygun, toplantı odası rezervasyonunu ben yaparım.</div><div><br /></div><div class="gmail_signature_prefix">-- </div><div class="gmail_signature" data-smartmail="gmail_signature">Ayşe Kaya</div></div>
+                                </div>
+                                <!-- The quote stays outside the editor until "Show trimmed content" is pressed. -->
+                                <div class="ajR" role="button" tabindex="0" data-fixture="trimmed-toggle">…</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dw">
+    <div class="nH">
+      <div class="nH">
+        <div class="no">
+          <div class="AD">
+            <div role="dialog" data-fixture="compose-window">
+              <table>
+                <tbody>
+                  <tr>
+                    <td>
+                      <form class="bAs" method="POST">
+                        <input type="hidden" name="composeid" value="fixture-compose-2" />
+                        <input type="hidden" name="rm" value="undefined" />
+                        <input type="text" name="subjectbox" aria-label="Subject" />
+                      </form>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="aaZ">
+                <div class="Ap">
+                  <div
+                    class="Am Al editable"
+                    g_editable="true"
+                    role="textbox"
+                    aria-label="Message Body"
+                    aria-multiline="true"
+                    contenteditable="true"
+                    data-fixture="new-editor"
+                  ><div><br /></div><div class="gmail_signature_prefix">-- </div><div class="gmail_signature" data-smartmail="gmail_signature">Ayşe Kaya</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

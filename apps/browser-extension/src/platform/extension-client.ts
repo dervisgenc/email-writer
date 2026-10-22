@@ -1,7 +1,13 @@
-import type { AiCommand, AiInput, SettingsChanges } from '@writehand/contracts';
+import {
+  SITE_IDS,
+  type AiCommand,
+  type AiInput,
+  type SettingsChanges,
+  type SiteId,
+} from '@writehand/contracts';
 import { MatchPattern } from '#imports';
 
-import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from '../bootstrap/supported-sites';
+import { DEVELOPMENT_MATCHES, SITE_MATCHES } from '../bootstrap/supported-sites';
 import { sendToBackground, sendToTab } from './extension-browser';
 import { createRequest, sendRequest } from './runtime-messaging';
 
@@ -69,17 +75,18 @@ export function fetchSelectorReport(tabId: number) {
   );
 }
 
-const supportedPatterns = () => {
-  const patterns: readonly string[] =
-    import.meta.env.MODE === 'production'
-      ? OUTLOOK_WEB_MATCHES
-      : [...OUTLOOK_WEB_MATCHES, ...DEVELOPMENT_MATCHES];
-  return patterns.map((pattern) => new MatchPattern(pattern));
-};
+const sitePatterns = (site: SiteId) =>
+  (import.meta.env.MODE === 'production'
+    ? SITE_MATCHES[site]
+    : [...SITE_MATCHES[site], ...DEVELOPMENT_MATCHES[site]]
+  ).map((pattern) => new MatchPattern(pattern));
 
-/** The browser exposes the tab URL only on supported sites. */
-export function isSupportedUrl(url: string | undefined): boolean {
-  return url !== undefined && supportedPatterns().some((pattern) => pattern.includes(url));
+/** The supported mail site a tab URL belongs to; the browser exposes the URL only on those. */
+export function siteOfUrl(url: string | undefined): SiteId | null {
+  if (url === undefined) return null;
+  return SITE_IDS.find((site) => sitePatterns(site).some((pattern) => pattern.includes(url))) ?? null;
 }
 
-export const SUPPORTED_ORIGINS: readonly string[] = OUTLOOK_WEB_MATCHES;
+export function isSupportedUrl(url: string | undefined): boolean {
+  return siteOfUrl(url) !== null;
+}

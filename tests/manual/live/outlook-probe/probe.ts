@@ -9,9 +9,9 @@ import { createOutlookWebConnector, OUTLOOK_SELECTORS } from '@writehand/outlook
 
 import { OWN_UI_SELECTOR } from '../../../../apps/browser-extension/src/bootstrap/mail-provider';
 
-import { describeStructure } from './describe-structure';
+import { describeStructure } from '../probe/describe-structure';
 import { conversationRows, describeRows } from './message-list';
-import { readThreadReport } from './read-thread-report';
+import { readOutlookThreadReport } from './read-thread-report';
 
 const messageBodySelector = OUTLOOK_SELECTORS.messageBody.selectors.join(', ');
 
@@ -145,7 +145,7 @@ export function readingPaneChanged(): boolean {
 }
 
 export function readThread() {
-  return readThreadReport(document);
+  return readOutlookThreadReport(document);
 }
 
 /** Outlook's theme colors (read with the extension's own reader); carries no content. */

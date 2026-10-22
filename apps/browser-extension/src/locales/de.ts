@@ -10,7 +10,7 @@ const count = countWith('de');
 
 export const de: ExtensionText = {
   description:
-    'E-Mails in Outlook im Web mit ChatGPT oder Claude überarbeiten, übersetzen und schreiben. Erst Vorschau; nichts wird gesendet.',
+    'E-Mails in Outlook im Web und Gmail mit KI Ihrer Wahl überarbeiten, übersetzen und schreiben. Erst Vorschau; nichts wird gesendet.',
   ui: {
     locale: 'de',
     ai: aiDe,
@@ -342,7 +342,7 @@ export const de: ExtensionText = {
   },
   options: {
     title: `${PRODUCT_NAME} – Einstellungen`,
-    subtitle: 'Schreibassistent für Outlook im Web',
+    subtitle: 'Schreibassistent für Outlook im Web und Gmail',
     preferencesTitle: 'Schreibeinstellungen',
     preferencesDescription: 'Sprache, Ton und Darstellung für neue Arbeiten.',
     uiLanguage: 'Sprache der Oberfläche',
@@ -375,12 +375,14 @@ export const de: ExtensionText = {
     instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Standardton',
     theme: 'Design',
-    themes: { system: 'Automatisch (wie Outlook)', light: 'Hell', dark: 'Dunkel' },
+    themes: { system: 'Automatisch (wie Ihr E-Mail-Dienst)', light: 'Hell', dark: 'Dunkel' },
     themeOptions: { system: 'Automatisch', light: 'Hell', dark: 'Dunkel' },
     themeHint:
-      'Bei „Automatisch“ folgt der Bereich in Outlook dem Outlook-Design und diese Seite dem Design Ihres Systems.',
-    siteEnabled: 'Schreibassistent in Outlook im Web anzeigen',
-    siteEnabledHint: 'Wenn ausgeschaltet, sind die Schaltflächen und der Bereich in Outlook ausgeblendet.',
+      'Bei „Automatisch“ folgt der Bereich dem Design Ihrer E-Mail-Seite und diese Seite dem Design Ihres Systems.',
+    siteNames: { 'outlook-web': 'Outlook im Web', 'gmail-web': 'Gmail' },
+    siteEnabled: (site) => `Schreibassistent in ${site} anzeigen`,
+    siteEnabledHint: (site) =>
+      `Wenn ausgeschaltet, sind die Schaltflächen und der Bereich in ${site} ausgeblendet.`,
     unsaved: 'Sie haben ungespeicherte Änderungen.',
     save: 'Speichern',
     saved: 'Einstellungen gespeichert.',

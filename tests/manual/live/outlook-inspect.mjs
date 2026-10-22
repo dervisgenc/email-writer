@@ -18,103 +18,17 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { build } from 'vite';
+import {
+  clickAt,
+  explainLiveError,
+  requireLiveFirefox,
+  sleep,
+  waitUntil,
+  withMailProbe,
+} from './live-probe.mjs';
 
-import { unwrapScriptResult, withBidiSession } from '../../support/firefox/bidi-client.mjs';
-import { isBidiListening } from '../../support/firefox/firefox-process.mjs';
-import { LIVE_BIDI_PORT } from './live-config.mjs';
-
-const PROBE_GLOBAL = '__emailWriterProbe';
-const SANDBOX = 'writehand-live-probe';
 const OPEN_TIMEOUT_MS = 5_000;
 const OPEN_SETTLE_MS = 500;
-
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-async function waitUntil(check, timeoutMs) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    if (await check()) {
-      return true;
-    }
-    await sleep(200);
-  }
-  return false;
-}
-
-async function bundleProbe() {
-  const output = await build({
-    configFile: false,
-    logLevel: 'warn',
-    build: {
-      write: false,
-      minify: false,
-      target: 'firefox140',
-      lib: {
-        entry: resolve(import.meta.dirname, 'probe/probe.ts'),
-        formats: ['iife'],
-        name: PROBE_GLOBAL,
-        fileName: 'probe',
-      },
-    },
-  });
-  return (Array.isArray(output) ? output[0] : output).output[0].code;
-}
-
-async function findOutlookContext(bidi) {
-  const { contexts } = await bidi.send('browsingContext.getTree', { maxDepth: 0 });
-  const outlook = contexts.find((context) => /^https:\/\/outlook\.[^/]+\/mail\//.test(context.url));
-  if (outlook === undefined) {
-    throw new Error('Outlook mail tab not found. If the window was closed: pnpm outlook:firefox --restart');
-  }
-  return outlook.context;
-}
-
-function createProbeClient(bidi, context) {
-  const target = { context, sandbox: SANDBOX };
-  return {
-    async install(code) {
-      unwrapScriptResult(
-        await bidi.send('script.evaluate', { expression: code, target, awaitPromise: false }),
-      );
-    },
-    /**
-     * Calls a function inside the sandbox; the result is carried as JSON. An omitted
-     * argument stays `undefined` so that the function's default value applies.
-     */
-    async call(name, ...args) {
-      const serialized = args.map((arg) => (arg === undefined ? 'undefined' : JSON.stringify(arg)));
-      const call = `${PROBE_GLOBAL}.${name}(${serialized.join(', ')})`;
-      const result = unwrapScriptResult(
-        await bidi.send('script.evaluate', {
-          expression: `Promise.resolve(${call}).then((value) => JSON.stringify(value ?? null))`,
-          target,
-          awaitPromise: true,
-        }),
-      );
-      return JSON.parse(result.value);
-    },
-  };
-}
-
-async function clickAt(bidi, context, { x, y }) {
-  await bidi.send('input.performActions', {
-    context,
-    actions: [
-      {
-        type: 'pointer',
-        id: 'writehand-mouse',
-        parameters: { pointerType: 'mouse' },
-        actions: [
-          { type: 'pointerMove', x, y, origin: 'viewport' },
-          { type: 'pointerDown', button: 0 },
-          { type: 'pointerUp', button: 0 },
-        ],
-      },
-    ],
-  });
-  await bidi.send('input.releaseActions', { context });
-}
 
 function printRows(rows) {
   if (rows.length === 0) {
@@ -173,10 +87,7 @@ const { positionals, values } = parseArgs({
 });
 const [command = 'read', argument] = positionals;
 
-if (!(await isBidiListening(LIVE_BIDI_PORT))) {
-  console.error(`Firefox BiDi ${LIVE_BIDI_PORT} is not listening. Start it first: pnpm outlook:firefox`);
-  process.exit(1);
-}
+await requireLiveFirefox();
 
 async function runCommand(bidi, context, probe) {
   switch (command) {
@@ -257,21 +168,16 @@ async function runCommand(bidi, context, probe) {
   }
 }
 
-function explain(error) {
-  const message = error instanceof Error ? error.message : String(error);
-  return /Maximum number of active sessions/.test(message)
-    ? 'Firefox is holding an unfinished automation session. Restart it: pnpm outlook:firefox --restart'
-    : message;
-}
-
 try {
-  await withBidiSession(LIVE_BIDI_PORT, async (bidi) => {
-    const context = await findOutlookContext(bidi);
-    const probe = createProbeClient(bidi, context);
-    await probe.install(await bundleProbe());
-    await runCommand(bidi, context, probe);
-  });
+  await withMailProbe(
+    {
+      tab: /^https:\/\/outlook\.[^/]+\/mail\//,
+      missing: 'Outlook mail tab not found. If the window was closed: pnpm outlook:firefox --restart',
+      probe: resolve(import.meta.dirname, 'outlook-probe/probe.ts'),
+    },
+    (bidi, context, probe) => runCommand(bidi, context, probe),
+  );
 } catch (error) {
-  console.error(explain(error));
+  console.error(explainLiveError(error));
   process.exitCode = 1;
 }

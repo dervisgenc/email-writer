@@ -1,10 +1,12 @@
 import {
   DEFAULT_SETTINGS,
   SETTINGS_SCHEMA_VERSION,
+  SITE_IDS,
   settingsChangesSchema,
   settingsSchema,
   settingsV1Schema,
   settingsV2Schema,
+  settingsV3Schema,
   type Settings,
   type SettingsChanges,
 } from '@writehand/contracts';
@@ -36,11 +38,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * The per-site switches the record has, site by site. A site the record does not know (one
+ * added in a later version) gets its default, so a switch turned off earlier stays off.
+ */
+function salvageSiteEnabled(raw: unknown): Settings['siteEnabled'] {
+  const siteEnabled = { ...DEFAULT_SETTINGS.siteEnabled };
+  if (isRecord(raw)) {
+    for (const site of SITE_IDS) {
+      const value = raw[site];
+      if (typeof value === 'boolean') siteEnabled[site] = value;
+    }
+  }
+  return siteEnabled;
+}
+
 /** Recovers the valid fields from an invalid record and fills the rest with defaults. */
 function salvage(raw: Record<string, unknown>): Settings {
-  const recovered: Record<string, unknown> = {};
+  const recovered: Record<string, unknown> = { siteEnabled: salvageSiteEnabled(raw.siteEnabled) };
   for (const [key, field] of Object.entries(settingsChangesSchema.shape)) {
-    if (raw[key] !== undefined && field.safeParse(raw[key]).success) {
+    if (key !== 'siteEnabled' && raw[key] !== undefined && field.safeParse(raw[key]).success) {
       recovered[key] = raw[key];
     }
   }
@@ -70,7 +87,9 @@ export function parseStoredSettings(raw: unknown): StoredSettings {
   if (parsed.success) {
     return { settings: parsed.data, issue: null, writable: true };
   }
-  if ([settingsV1Schema, settingsV2Schema].some((schema) => schema.safeParse(raw).success)) {
+  if (
+    [settingsV1Schema, settingsV2Schema, settingsV3Schema].some((schema) => schema.safeParse(raw).success)
+  ) {
     // Every field of older versions is still valid in the current one; new fields get their defaults.
     return { settings: salvage(raw), issue: 'migrated', writable: true };
   }

@@ -10,7 +10,7 @@ const count = countWith('es');
 
 export const es: ExtensionText = {
   description:
-    'Corrige, traduce y redacta correos en Outlook en la Web con ChatGPT o Claude. Primero ves una vista previa; nunca se envía nada.',
+    'Corrige, traduce y redacta correos en Outlook en la Web y Gmail con la IA que elijas. Primero, una vista previa; no se envía nada.',
   ui: {
     locale: 'es',
     ai: aiEs,
@@ -329,7 +329,7 @@ export const es: ExtensionText = {
   },
   options: {
     title: `Configuración de ${PRODUCT_NAME}`,
-    subtitle: 'Asistente de redacción para Outlook en la Web',
+    subtitle: 'Asistente de redacción para Outlook en la Web y Gmail',
     preferencesTitle: 'Preferencias de redacción',
     preferencesDescription: 'Idioma, tono y apariencia que se usan en los trabajos nuevos.',
     uiLanguage: 'Idioma de la interfaz',
@@ -362,12 +362,13 @@ export const es: ExtensionText = {
     instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Tono predeterminado',
     theme: 'Tema',
-    themes: { system: 'Automático (igual que Outlook)', light: 'Claro', dark: 'Oscuro' },
+    themes: { system: 'Automático (igual que tu correo)', light: 'Claro', dark: 'Oscuro' },
     themeOptions: { system: 'Automático', light: 'Claro', dark: 'Oscuro' },
     themeHint:
-      'Con Automático, el panel en Outlook sigue el tema de Outlook y esta página sigue el tema de tu sistema.',
-    siteEnabled: 'Mostrar el asistente de redacción en Outlook en la Web',
-    siteEnabledHint: 'Si está desactivado, los botones y el panel se ocultan en Outlook.',
+      'Con Automático, el panel sigue el tema de tu página de correo y esta página sigue el tema de tu sistema.',
+    siteNames: { 'outlook-web': 'Outlook en la Web', 'gmail-web': 'Gmail' },
+    siteEnabled: (site) => `Mostrar el asistente de redacción en ${site}`,
+    siteEnabledHint: (site) => `Si está desactivado, los botones y el panel se ocultan en ${site}.`,
     unsaved: 'Tienes cambios sin guardar.',
     save: 'Guardar',
     saved: 'Configuración guardada.',

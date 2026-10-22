@@ -27,6 +27,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'gmail-web',
+          environment: 'jsdom',
+          include: ['tests/integration/gmail-web/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'extension',
           environment: 'jsdom',
           include: ['tests/integration/extension/**/*.test.ts'],

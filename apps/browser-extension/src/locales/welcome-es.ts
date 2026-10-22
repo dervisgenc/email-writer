@@ -11,7 +11,7 @@ export const welcomeEs: WelcomeText = {
   next: 'Continuar',
   intro: {
     title: 'Dos formas de conectarte',
-    lead: `${PRODUCT_NAME} funciona dentro de Outlook en la Web y escribe con el proveedor de IA que elijas. Elige lo que te convenga en el siguiente paso; puedes cambiarlo cuando quieras.`,
+    lead: `${PRODUCT_NAME} funciona dentro de Outlook en la Web y Gmail y escribe con el proveedor de IA que elijas. Elige lo que te convenga en el siguiente paso; puedes cambiarlo cuando quieras.`,
     apiKey: {
       title: 'Tu propia clave de API',
       points: [
@@ -70,10 +70,12 @@ export const welcomeEs: WelcomeText = {
       'Hola Sam:\n\ngracias por tu mensage. Puedo enviar el informe el jueves, pero antes nesecito las últimas cifras de tu equipo. ¿Podrías compartirlas asta el miércoles?\n\nSaludos,\nAlex',
     run: 'Corregir el ejemplo',
     running: 'Corrigiendo…',
-    success: 'Todo funciona. Abre un borrador en Outlook; la barra de herramientas aparece junto a él.',
+    success:
+      'Todo funciona. Abre un borrador en Outlook o Gmail; la barra de herramientas aparece junto a él.',
     resultLabel: 'Resultado',
     openOutlook: 'Abrir Outlook',
     personalOutlook: 'Outlook.com (personal)',
+    openGmail: 'Abrir Gmail',
     openSettings: 'Configuración',
   },
 };

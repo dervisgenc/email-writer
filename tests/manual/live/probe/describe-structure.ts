@@ -12,6 +12,8 @@ const STRUCTURAL_ATTRIBUTES = new Set([
   'aria-posinset',
   'aria-setsize',
   'contenteditable',
+  // Gmail's mark of its compose editor.
+  'g_editable',
   'tabindex',
   'datetime',
   'dir',

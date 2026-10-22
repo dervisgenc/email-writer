@@ -40,14 +40,15 @@ All commands run from the repository root.
 | `pnpm typecheck` | TypeScript and vue-tsc for every package and the tests |
 | `pnpm lint` | ESLint: correctness and [module boundary](#module-boundaries) rules |
 | `pnpm format` / `pnpm format:check` | Prettier (Markdown is excluded in `.prettierignore`) |
-| `pnpm test` / `pnpm test:watch` | Vitest: unit, connector contract, Outlook connector, Vue and controller tests |
-| `pnpm test:e2e` | Test build, then Playwright with Chromium on the synthetic Outlook page |
+| `pnpm test` / `pnpm test:watch` | Vitest: unit, connector contract, Outlook and Gmail connectors, shared connector parts, Vue and controller tests |
+| `pnpm test:e2e` | Test build, then Playwright with Chromium on the synthetic Outlook and Gmail pages |
 | `pnpm test:firefox` | Test build, then a headless Firefox smoke test over WebDriver BiDi |
 | `pnpm lint:firefox` | Production build, then Mozilla's `web-ext lint` on the Firefox package |
 | `pnpm verify:packages` | Checks the production packages: permissions (including the optional provider origins), content script matches, no development code or local origins, Firefox ID and data collection declaration |
 | `pnpm outlook:firefox [--restart]` | Starts Firefox with a persistent profile and WebDriver BiDi for live Outlook inspection |
 | `pnpm outlook:dev [--restart]` | Runs the extension with live reload in that Firefox window |
 | `pnpm outlook:inspect <command>` | Runs the extension's reading code on the live Outlook page with masked output; see [Live inspection](#live-inspection) |
+| `pnpm gmail:inspect <command>` | The same, read-only, on a live Gmail tab in that Firefox window; see [Live inspection](#live-inspection) |
 | `pnpm release:version <x.y.z>` | Sets the version in the root `package.json` and opens its section in `CHANGELOG.md`; see [Releasing](./RELEASING.md) |
 | `pnpm store:assets [icons] [screenshots] [promo] [video]` | Generates icons, store screenshots, promo images and the demo video in `store/`; see [Store assets](./RELEASING.md#store-assets) |
 | `pnpm check` | `typecheck`, `lint`, `format:check`, `test`, `build` and `verify:packages`; CI runs it on Linux, macOS and Windows |
@@ -59,7 +60,7 @@ To build a single package: `pnpm --filter @writehand/browser-extension exec wxt 
 | Mode | Built by | AI connection | Local origins |
 | --- | --- | --- | --- |
 | `production` | `pnpm build`, `zip:all` | Helper app | No |
-| `development` | `pnpm dev`, `pnpm dev:firefox`, `pnpm outlook:dev` | Helper app | `localhost`, `127.0.0.1`; the popup shows selector diagnostics (match counts only) |
+| `development` | `pnpm dev`, `pnpm dev:firefox`, `pnpm outlook:dev` | Helper app | `localhost` and `127.0.0.1` under `/mail/` (Outlook script) and `/gmail/` (Gmail script); the popup shows selector diagnostics (match counts only) |
 | `test` | `pnpm build:test` | Labeled sample results (`src/development/fixture-results.ts`) | Yes |
 | `demo` | `pnpm store:assets` (`wxt build --mode demo`) | Helper app (a fake helper in the asset scripts) | Yes |
 
@@ -98,7 +99,9 @@ flowchart TD
     EXT[apps/browser-extension<br/>entry points, controllers, mounting, platform] --> CORE[packages/core]
     EXT --> UI[packages/ui]
     EXT --> MAIL[packages/mail-connectors/outlook-web]
+    EXT --> GMAIL[packages/mail-connectors/gmail-web]
     MAIL --> DOM[packages/mail-connectors/mail-dom]
+    GMAIL --> DOM
     DOM --> CONTRACTS
     UI --> FORMAT[packages/email-format]
     CORE --> CONTRACTS[packages/contracts]
@@ -122,6 +125,7 @@ The extension imports only the browser-safe part of `ai-openai` (`@writehand/ai-
 | `core` | `buildContext`, `prepareAction`, `reduceSession`, apply and undo validation, capabilities. Pure functions; clock and ID generator are passed in | Vue, WXT, Zod, browser globals, `ui`, `outlook-web` |
 | `ui` | Vue panel, toolbar, result card, settings and setup components. Receives read-only view data and emits events; all text comes from the locale dictionaries | WXT, `core`, `outlook-web`, `chrome`, `browser`, `document`, `navigator`, web storage |
 | `outlook-web` | Outlook on the web: page detection, the active conversation, reading messages, finding draft editors, theme. Every selector lives in `src/discovery/selectors.ts` | Vue, WXT, `core`, `ui`, other connectors, extension APIs, `window`, web storage |
+| `gmail-web` | Gmail on the web: page detection, the open conversation, reading messages, finding draft editors (inline replies, compose windows), theme. Every selector lives in `src/discovery/selectors.ts` | Vue, WXT, `core`, `ui`, other connectors, extension APIs, `window`, web storage |
 | `mail-dom` | What every web mail connector shares: text extraction, draft tracking (`createComposerRegistry`), selection capture, controlled writes, verification and undo, editor and page observation, opaque identities | Vue, WXT, `core`, `ui`, the connectors, extension APIs, `window`, web storage |
 | `email-format` | Parses the model's limited Markdown and produces email-safe HTML, plain text and the text used to verify a write (pure functions) | Vue, WXT, browser globals, other internal packages (Zod only) |
 | `ai-openai` | ChatGPT OAuth (PKCE, OIDC), model discovery, Responses API streaming, stable error codes; `api-key.ts` is the browser-safe entry for OpenAI API keys | Browser globals, UI or mailbox packages, the other provider packages; in the browser-safe files also Node.js modules and `jose` |
@@ -136,11 +140,11 @@ Dependencies are passed as function parameters. There is no dependency injection
 
 | Context | Location | Role |
 | --- | --- | --- |
-| Content script | `entrypoints/outlook.content.ts` | Outlook connector, panel session, toolbar and launchers. Email session and AI previews live in memory only |
+| Content scripts | `entrypoints/outlook.content.ts`, `entrypoints/gmail.content.ts` | One per mail service: its connector, the panel session, toolbar and launchers (`src/bootstrap/start-mail-session.ts`). Email session and AI previews live in memory only |
 | Background | `entrypoints/background.ts` | Install events, settings reads and writes, the AI connection: the API key method itself (vault, provider requests) and the helper app's methods over native messaging. Service worker in Chromium, background script in Firefox |
 | Popup | `entrypoints/popup/` | Page support status, **Open panel on this page**, link to settings; selector diagnostics in development builds |
 | Welcome wizard | `entrypoints/welcome/` | Opens on first install (`runtime.onInstalled`); reopened from settings and the popup. Three steps: the two ways to connect, the connection (an API key, or for the ChatGPT and Claude plans the helper app install with the optional `nativeMessaging` permission) and a sample revision |
-| Settings | `entrypoints/options/` | AI connection, helper app card (status, version, update, uninstall), interface language, default and favourite translation languages, standing writing instructions, tone, theme, per-site switch. Settings schema v3; earlier records are migrated |
+| Settings | `entrypoints/options/` | AI connection, helper app card (status, version, update, uninstall), interface language, default and favourite translation languages, standing writing instructions, tone, theme, a switch per mail service (Outlook on the web, Gmail). Settings schema v4; earlier records are migrated, and a switch a record does not know gets its default |
 | Helper app | `apps/ai-companion` | A separate process the browser starts on demand; see [Helper app](./HELPER_APP.md) |
 
 Messages between contexts are defined in `packages/contracts/src/runtime-messages.ts`: `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`, the `AI_*` requests and `HOST_INFO`, `HOST_UPDATE_CHECK` and `HOST_UPDATE` for the helper app. Every message is validated against its schema and checked against the sender the browser reports (`src/platform/ai-sender-policy.ts`): a content script on a mail page may only send `AI_SUMMARY`, `AI_GENERATE`, `AI_CANCEL` and `OPEN_OPTIONS`; account management, API keys and updates are accepted only from the extension's own pages. `AI_SUMMARY` returns the method, model and readiness without any credentials.
@@ -220,7 +224,7 @@ Automated tests verify context selection, routing and the prompt passed to provi
 ### Appearance
 
 - The UI follows the Fluent UI v9 design language (`packages/ui/src/styles/`).
-- With the **Automatic** theme (`system`), the extension reads Outlook's current colours from the page (`MailPageProvider.readTheme`, `mounting/appearance.ts`) and follows light or dark mode and the accent colour; if they cannot be read, the system preference is used.
+- With the **Automatic** theme (`system`), the extension reads the mail page's current colours (`MailPageProvider.readTheme`, `mounting/appearance.ts`): Outlook's Fluent variables, including the accent colour, or Gmail's background and text colour, which tell light from dark. If they cannot be read (for example a Gmail theme with a background picture), the system preference is used.
 - WXT applies `all: initial !important` to the shadow root's host element, so floating buttons are positioned on a container inside the shadow root, not on the host.
 - Stacking order: toolbar and card `999990`, panel `999991`; Outlook's dialogs and menus use `1000000`. The extension stays above page content and below Outlook's confirmation dialogs.
 
@@ -275,7 +279,35 @@ Do all of the following in the same change:
 
 Current samples: `conversation-inline-reply.html` (the synthetic page behind the end-to-end tests), `selected-message-reading-pane.html` and `selected-message-reply-compose.html` (anonymized real structures). Passing tests on synthetic pages does not prove that real Outlook works; report the two separately.
 
-### Live inspection
+## Gmail selectors
+
+`packages/mail-connectors/gmail-web/src/discovery/selectors.ts` is the single place for every Gmail-specific selector, with the same fields as the Outlook registry (`status`, `evidence`, `languageDependent`, `note`, `verifiedOn`). **Every Gmail selector is still a candidate:** none has been checked on a real Gmail account. The synthetic page `tests/fixtures/gmail/conversation-inline-reply.html` follows the structure the sources below target; passing tests on it does not prove that real Gmail works.
+
+How the connector reads Gmail:
+
+- **Page:** the content script runs on `mail.google.com`, but only paths under `/mail/` with the app's main area (`role="main"`) or a compose editor count as Gmail; Google Chat and Gmail's print and original-message views get no buttons.
+- **Account scope:** the account's place in the URL (`/mail/u/<n>/`, `/mail/b/<id>/`), hashed. Gmail opens another account in a new page.
+- **Conversation:** the rendered `h2.hP` subject (Gmail keeps views it is not showing in the DOM, hidden) inside the `role="main"` area; its key is a hash of `data-legacy-thread-id` or `data-thread-perm-id`, then of the token at the end of the URL hash, then a local key. Values like "undefined" are ignored.
+- **Messages:** expanded `div.adn` containers with `div.a3s` bodies, keyed by a hash of `data-message-id` (present before `data-legacy-message-id` is). The sender's name comes from `span.gD[name]`; the address is never kept. The date is the `title` of `span.g3` (display text, not parsed). Collapsed (`.kv`, `.ky`) and hidden (`.kQ`, `.kx`) messages are counted, never expanded. With more than one expanded message the user picks the reply target.
+- **Drafts:** editors marked `g_editable="true"`. A draft is a reply if it quotes earlier mail, has a non-empty hidden `input[name="rm"]` or a reply marker, has the "Show trimmed content" toggle (`.ajR`) or sits inside a message (an inline reply); only an inline reply inside the open conversation is bound to it. Gmail keeps a reply's quote trimmed outside the editor until the user expands it, so while the toggle is there and the editor has no quote, everything before the signature is the user's region.
+- **Signature and quote:** `.gmail_signature_prefix` (the "-- " line), `.gmail_signature`, `[data-smartmail="gmail_signature"]`; `.gmail_quote_container`, `.gmail_quote`. These classes are part of the mail HTML Gmail sends, not of its interface.
+- **Writing:** the same `execCommand` writer as Outlook (`insertText`, `insertHTML`), which keeps Gmail's own undo history and input events; the write is verified by reading the editor again. None of the sources writes this way (InboxSDK inserts nodes and sends a synthetic key press), so this is the first thing to check on a real account.
+- **Theme:** the computed background of `.bkK > .nH`, then `role="main"`, as InboxSDK reads it. Gmail has no theme variables, so only light or dark and the background and text colours are taken.
+
+Sources (read at their latest commits on 2026-10-23; the notes in `selectors.ts` say which source backs which selector):
+
+- [InboxSDK](https://github.com/InboxSDK/InboxSDK/tree/42f7c36/src/platform-implementation-js/dom-driver/gmail): `selectors.ts`, `gmail-element-getter.ts`, the compose, thread and message views, `track-gmail-styles.ts`
+- [gmail.js](https://github.com/KartikTalwar/gmail.js/blob/a9b262c/src/gmail.js)
+- [FlowCrypt](https://github.com/FlowCrypt/flowcrypt-browser/tree/072d0f0/extension/js/content_scripts/webmail/gmail): `gmail-element-replacer.ts`
+- [Mailvelope](https://github.com/mailvelope/mailvelope/tree/ffaa27a/src/content-scripts)
+- [cmux Gmail driver](https://github.com/manaflow-ai/cmux/tree/f6c6779/Resources/browser-repl/sites)
+- Smaller extensions: [scrum_helper](https://github.com/fossasia/scrum_helper/blob/7e309c0/src/scripts/emailClientAdapter.js), [copy-as-markdown](https://github.com/bvolpato/copy-as-markdown/blob/294f14f/src/extractors/gmail.ts), [better-gmail](https://github.com/mattferry/better-gmail)
+- Gmail's own quote markup: [Google Workspace CLI](https://github.com/googleworkspace/cli/blob/0850c48/crates/google-workspace-cli/src/helpers/gmail/reply.rs#L401-L411)
+- Trusted Types: Gmail enforces them since early 2024 ([Workspace Updates](https://workspaceupdates.googleblog.com/2024/01/extending-trusted-types-to-gmail.html)); content scripts' isolated worlds are not affected in Chromium ([W3C wiki](https://github.com/w3c/trusted-types/wiki/Effects-of-deploying-Trusted-Types-on-browser-extension-developers)), while Firefox's handling is only partly fixed ([bug 1990732](https://bugzilla.mozilla.org/show_bug.cgi?id=1990732)).
+
+To verify a Gmail selector: open Gmail in the inspection window, run `pnpm gmail:inspect selectors` and `pnpm gmail:inspect read`, then do the same three steps as for Outlook (definition with `verifiedOn`, an anonymized sample in `tests/fixtures/gmail/`, a test).
+
+## Live inspection
 
 The `pnpm outlook:*` commands run the extension's own reading code on a real Outlook page in Firefox, read-only:
 
@@ -297,6 +329,7 @@ pnpm outlook:inspect diagnose-reply  # connector state across "Reply" (opens an 
 - The profile lives outside the repository at `~/.writehand/firefox-outlook-profile` (override with `OUTLOOK_LIVE_PROFILE`) and contains Outlook session cookies. The BiDi port is `9223` (`OUTLOOK_LIVE_BIDI_PORT`); the `outlook:dev` server uses port `3123` (`OUTLOOK_DEV_PORT`).
 - `pnpm outlook:dev` starts the WXT dev server without opening a browser and loads the development build into the inspection window as a temporary add-on. It reloads the extension from disk after every build, because WXT's content script reload is not reliable in Firefox. It cannot run twice at once or together with `pnpm dev:firefox` (same output folder).
 - If the window was closed or a stale automation session blocks the connection, run `pnpm outlook:firefox --restart`.
+- **Gmail:** open `https://mail.google.com/mail/` in a tab of the same window and sign in once; the session stays in the profile. `pnpm outlook:dev` runs the extension on that tab too. `pnpm gmail:inspect` only reads (it never clicks or types): `read`, `selectors [key]` (all and rendered matches), `composers` (the drafts found and how they are split), `theme`, `structure [target]` (default `threadView`; `--bodies`, `--depth N`, `--lines N`). Google may refuse to sign in to a browser under automation; if it does, sign in once in the same profile without the inspection tools and start them again.
 
 Rules for live inspection:
 
@@ -311,14 +344,16 @@ Rules for live inspection:
 | Business rules | `tests/unit/` | Vitest (node) |
 | Connector contract | `tests/contracts/mail-connector.contract.ts` | Run by each mail connector's tests |
 | Outlook connector | `tests/integration/outlook-web/` with `tests/fixtures/outlook/` | Vitest and jsdom |
+| Gmail connector | `tests/integration/gmail-web/` with `tests/fixtures/gmail/` | Vitest and jsdom |
+| Shared connector parts | `tests/integration/mail-dom/` | Vitest and jsdom |
 | Vue components | `tests/integration/ui/` | Vue Test Utils |
 | Controllers and platform | `tests/integration/extension/` | Vitest with a fake connector |
 | Chromium extension | `tests/e2e/extension-chromium/` | Playwright with the test build |
 | Firefox extension | `tests/e2e/extension-firefox/run-smoke.mjs` | WebDriver BiDi, headless |
-| Live Outlook (manual) | `tests/manual/outlook-live/` | WebDriver BiDi and a persistent Firefox profile |
+| Live Outlook and Gmail (manual) | `tests/manual/live/` | WebDriver BiDi and a persistent Firefox profile |
 | Release checklist (manual) | [Manual testing](./MANUAL_TESTING.md) | Clean machines |
 
-- All test data is synthetic: made-up mail in `tests/fixtures/synthetic-mail/` and Outlook-like pages in `tests/fixtures/outlook/`. `scripts/serve-fixtures.mjs` serves them on `http://127.0.0.1:4517` (`FIXTURE_PORT`) for the browser tests; only test and development builds accept that origin.
+- All test data is synthetic: made-up mail in `tests/fixtures/synthetic-mail/`, Outlook-like pages in `tests/fixtures/outlook/` and a Gmail-like page in `tests/fixtures/gmail/`. `scripts/serve-fixtures.mjs` serves them on `http://127.0.0.1:4517` (`FIXTURE_PORT`) for the browser tests, Outlook under `/mail/` and Gmail under `/gmail/`; only test and development builds accept that origin. The page helpers both connectors' tests use are in `tests/support/mail-page.ts`.
 - Playwright can drive extensions only in Chromium, so a passing Chromium run says nothing about Firefox; the Firefox smoke test and a real install cover it.
 - jsdom has no `execCommand`, so the connector tests use a DOM-based test writer; the connector's pre-checks and post-write verification run unchanged. The real `execCommand` writer is exercised in the Chromium and Firefox browser tests.
 - Firefox start-up and the BiDi client are shared in `tests/support/firefox/`. On macOS, Firefox is started as an application with `open`: macOS privacy protection judges a Firefox started directly from a terminal by the terminal's permissions, and without access to other apps' data Firefox cannot read its own data folder and reports "Profile Missing". For the same reason, `pnpm dev:firefox` (web-ext) may not start on macOS unless the terminal has Full Disk Access.
@@ -334,7 +369,7 @@ These rules apply to every change. See also [SECURITY.md](../SECURITY.md) and [P
 - **Text goes only to the chosen provider** (OpenAI, Anthropic, Groq or OpenRouter) and only when the user requests a generation. There is no Writehand server, analytics, error reporting or remote configuration. Opening an email or reading the connection status never sends a generation request. If the data flow changes, update the Firefox data collection declaration and `PRIVACY.md` in the same change.
 - **Credentials are never exposed.** ChatGPT tokens stay in the helper app and are never sent back to the extension. API keys are stored encrypted in the browser, decrypted only by the background and sent only to their own provider; no page receives them. The content script cannot send account or key commands.
 - **Incoming email is untrusted.** It is never run as HTML, links and images in it are not opened, and instructions inside it are not followed. The prompt marks source, draft, conversation and previous result as untrusted data and neutralizes imitated tags.
-- **Permissions stay narrow:** `storage`, optional `nativeMessaging` (requested for the helper app's methods), optional host access to `api.groq.com`, `openrouter.ai` and `api.openai.com` (requested when a key for that provider is connected) and static content script matches for `outlook.live.com`, `outlook.office.com`, `outlook.office365.com` and `outlook.cloud.microsoft`. No `host_permissions`, `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`, `downloads` or `clipboardRead`; no remote code. `pnpm verify:packages` enforces this.
+- **Permissions stay narrow:** `storage`, optional `nativeMessaging` (requested for the helper app's methods), optional host access to `api.groq.com`, `openrouter.ai` and `api.openai.com` (requested when a key for that provider is connected) and static content script matches for `outlook.live.com`, `outlook.office.com`, `outlook.office365.com`, `outlook.cloud.microsoft` and `mail.google.com`. No `host_permissions`, `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`, `downloads` or `clipboardRead`; no remote code. `pnpm verify:packages` enforces this.
 - **Updates are verified.** The helper app asks GitHub for the latest version number at most once a day (no email or account data in the request) and installs only releases of this repository whose signature and checksum verify.
 
 ## Known limitations
@@ -342,10 +377,12 @@ These rules apply to every change. See also [SECURITY.md](../SECURITY.md) and [P
 | Area | Limitation |
 | --- | --- |
 | Outlook coverage | Selectors are verified for one configuration so far: work account, English interface, Firefox on macOS, reading pane showing the selected message. The editor, signature, collapsed-message and inline-reply selectors are still candidates. The multi-message conversation reading pane, personal Outlook.com accounts, other interface languages and other browsers still need a recorded check (see [Manual testing](./MANUAL_TESTING.md)) |
-| Collapsed messages | No reliable marker is known; the count may be reported as unknown and collapsed text is never added to the context |
-| Message dates | Only the displayed date text is read; there is no machine-readable date, so messages keep their on-screen order |
+| Gmail coverage | No Gmail selector has been verified on a real account. Until the checks in [Manual testing](./MANUAL_TESTING.md#4-gmail) are recorded, Gmail support is unverified; whether `execCommand` writes are saved by Gmail and how its new message header is marked are the first things to check |
+| Gmail in Firefox | Gmail enforces Trusted Types; Firefox exempts content scripts only partly, which may affect writing rich content. Not yet checked |
+| Collapsed messages | Outlook: no reliable marker is known; the count may be reported as unknown. Gmail: collapsed and hidden messages are counted from candidate markers. Collapsed text is never added to the context |
+| Message dates | Only the displayed date text is read (Gmail: the date's tooltip); there is no machine-readable date, so messages keep their on-screen order |
 | Draft body boundary | If the boundary between the user's text and the signature or quote is not certain, replacing the whole draft body is disabled; a selection can still be replaced |
-| Pop-out drafts and iframe editors | Not supported (`all_frames` is off) |
+| Pop-out drafts and iframe editors | Outlook: not supported (`all_frames` is off). Gmail's compose windows are part of the page and supported; a compose window opened in its own browser window is a Gmail page of its own |
 | Undo | Restores the previous text as plain text; formatting such as bold or links in the changed part is not restored. The panel says so |
 | Rich content | Not written into a selection inside a sentence |
 | Extension updates | The old content script is cleaned up; until the tab is reloaded the popup reports that it cannot reach the tab |

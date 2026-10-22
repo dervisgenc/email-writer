@@ -10,7 +10,7 @@ const count = countWith('fr');
 
 export const fr: ExtensionText = {
   description:
-    'Corrigez, traduisez et rédigez vos e-mails dans Outlook sur le web avec ChatGPT ou Claude. Aperçu d’abord ; rien n’est envoyé.',
+    'Corrigez, traduisez et rédigez vos e-mails dans Outlook sur le web et Gmail avec l’IA choisie. Aperçu d’abord ; rien n’est envoyé.',
   ui: {
     locale: 'fr',
     ai: aiFr,
@@ -332,7 +332,7 @@ export const fr: ExtensionText = {
   },
   options: {
     title: `Paramètres de ${PRODUCT_NAME}`,
-    subtitle: 'Assistant de rédaction pour Outlook sur le web',
+    subtitle: 'Assistant de rédaction pour Outlook sur le web et Gmail',
     preferencesTitle: 'Préférences de rédaction',
     preferencesDescription: 'Langue, ton et apparence utilisés pour les nouveaux travaux.',
     uiLanguage: 'Langue de l’interface',
@@ -365,12 +365,13 @@ export const fr: ExtensionText = {
     instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Ton par défaut',
     theme: 'Thème',
-    themes: { system: 'Automatique (comme Outlook)', light: 'Clair', dark: 'Sombre' },
+    themes: { system: 'Automatique (comme votre messagerie)', light: 'Clair', dark: 'Sombre' },
     themeOptions: { system: 'Automatique', light: 'Clair', dark: 'Sombre' },
     themeHint:
-      'En mode Automatique, le volet dans Outlook suit le thème d’Outlook et cette page suit le thème de votre système.',
-    siteEnabled: 'Afficher l’assistant de rédaction dans Outlook sur le web',
-    siteEnabledHint: 'Désactivé, les boutons et le volet sont masqués dans Outlook.',
+      'En mode Automatique, le volet suit le thème de votre messagerie et cette page suit le thème de votre système.',
+    siteNames: { 'outlook-web': 'Outlook sur le web', 'gmail-web': 'Gmail' },
+    siteEnabled: (site) => `Afficher l’assistant de rédaction dans ${site}`,
+    siteEnabledHint: (site) => `Désactivé, les boutons et le volet sont masqués dans ${site}.`,
     unsaved: 'Vous avez des modifications non enregistrées.',
     save: 'Enregistrer',
     saved: 'Paramètres enregistrés.',

@@ -3,7 +3,7 @@
 [![CI](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml/badge.svg)](https://github.com/dervisgenc/writehand/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Writehand helps you write better emails without leaving Outlook on the web. It revises, translates, replies and drafts new emails with your own API key from Groq, OpenRouter or OpenAI, your ChatGPT plan or Claude Code on your computer. Every result is shown as a preview first; nothing is written to your draft until you approve it, and Writehand never sends email.
+Writehand helps you write better emails without leaving Outlook on the web or Gmail. It revises, translates, replies and drafts new emails with your own API key from Groq, OpenRouter or OpenAI, your ChatGPT plan or Claude Code on your computer. Every result is shown as a preview first; nothing is written to your draft until you approve it, and Writehand never sends email.
 
 Writehand is a browser extension for Firefox, Edge, Chrome and Brave. An API key works with the extension alone; the ChatGPT and Claude plans also need a small helper app on your computer, which holds their sign-in.
 
@@ -30,7 +30,7 @@ Writehand is a browser extension for Firefox, Edge, Chrome and Brave. An API key
 
    The command downloads the helper app for your system from the latest release, checks its SHA-256 checksum, installs it in your user folder and registers it with Firefox, Chrome, Edge and Brave.
 
-3. Try a sample revision. Then open a draft in Outlook; the Writehand toolbar appears next to it.
+3. Try a sample revision. Then open a draft in Outlook or Gmail; the Writehand toolbar appears next to it.
 
 To uninstall the helper app (add `--delete-data` or `-DeleteData` to also sign out of ChatGPT and delete its saved sign-in details):
 
@@ -44,7 +44,7 @@ curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/inst
 
 ## Features
 
-- **Revise, translate, reply and compose** from a toolbar next to the Outlook draft. Results appear as a preview first; nothing is written to your draft until you approve it.
+- **Revise, translate, reply and compose** from a toolbar next to the Outlook or Gmail draft. Results appear as a preview first; nothing is written to your draft until you approve it.
 - **Conversation context:** replies use the messages you opened in the same conversation. You can see, edit or remove every message before it is used.
 - **Rich content:** results can contain lists, tables and simple bar charts, written to the draft as email-safe HTML.
 - **Change the result:** turn it into a table or bullet points, add a chart, shorten it, make it more formal or friendlier, or ask for any other change.
@@ -55,7 +55,7 @@ curl -fsSL https://github.com/dervisgenc/writehand/releases/latest/download/inst
 ## How it works
 
 ```text
-Outlook on the web ─ extension (preview, approval, writing to the draft)
+Outlook on the web or Gmail ─ extension (preview, approval, writing to the draft)
                          │
                          ├─ API key: from the extension's background ─ Groq / OpenRouter / OpenAI API
                          │
@@ -75,7 +75,7 @@ The helper app is a single program (no Node.js needed) for macOS (Apple silicon 
 - Writehand never sends email; sending is always up to you.
 - Text goes to the AI provider you chose (Groq, OpenRouter, OpenAI or Anthropic) only when you request a revision, translation, reply or new email. There is no Writehand server, analytics or error reporting.
 - Emails you open are kept in memory only while the page is open and are never written to disk.
-- An API key is stored in the browser encrypted (AES-GCM with a non-extractable key in the extension's own storage, which web pages and Outlook cannot reach), is never shown again and is sent only to its provider.
+- An API key is stored in the browser encrypted (AES-GCM with a non-extractable key in the extension's own storage, which web pages, Outlook and Gmail cannot reach), is never shown again and is sent only to its provider.
 - ChatGPT sign-in tokens are stored by the helper app in a file only your user account can read, never in browser storage.
 - While update checks are on (the default), the helper app asks GitHub for the latest version number at most once a day. You can turn this off in the settings.
 
@@ -94,7 +94,7 @@ pnpm install
 pnpm dev            # develop in Chromium (real AI connection)
 pnpm dev:firefox    # develop in Firefox
 pnpm check          # typecheck, lint, format, tests, builds for both browsers, package checks
-pnpm test:e2e       # Chromium end-to-end tests on a synthetic Outlook page
+pnpm test:e2e       # Chromium end-to-end tests on synthetic Outlook and Gmail pages
 pnpm test:firefox   # Firefox smoke test
 pnpm ai:build       # helper app as a Node.js script
 pnpm ai:install     # install that build for your browsers (add --extension-id=ID for an unpacked Chromium build)
@@ -118,6 +118,7 @@ packages/email-format/         Limited Markdown to email-safe HTML, plain text a
 packages/ui/                   Vue panel, toolbar, result card, settings and setup components
 packages/mail-connectors/
   outlook-web/                 Reads, observes and writes Outlook on the web pages in a controlled way
+  gmail-web/                   Reads, observes and writes Gmail pages in a controlled way
   mail-dom/                    What the web mail connectors share: text extraction, drafts, selection, writing, undo
 tests/                         Unit, contract, integration and end-to-end tests with synthetic samples
 scripts/store-assets/          Demo mailbox and scripts that produce the store images and the demo video
@@ -127,7 +128,7 @@ assets/brand/                  Logo sources (SVG)
 
 ## Documentation
 
-- [Development guide](./docs/DEVELOPMENT.md): architecture, commands, Outlook selectors and tests
+- [Development guide](./docs/DEVELOPMENT.md): architecture, commands, Outlook and Gmail selectors and tests
 - [Helper app](./docs/HELPER_APP.md): commands, connection methods, stored data and troubleshooting
 - [Releasing](./docs/RELEASING.md): versioning, signed releases, store submission and store assets
 - [Manual testing](./docs/MANUAL_TESTING.md): release checklist for clean machines

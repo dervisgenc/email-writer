@@ -9,7 +9,7 @@ const plural = (count: number, word: string) => `${count} ${word}`;
 
 export const tr: ExtensionText = {
   description:
-    'Outlook Web’de e-postalarınızı ChatGPT veya Claude ile düzeltin, çevirin ve yazın. Sonuç önce önizlenir; hiçbir şey gönderilmez.',
+    'Outlook Web ve Gmail’de e-postalarınızı seçtiğiniz yapay zekâyla düzeltin, çevirin ve yazın. Önce önizlenir; hiçbir şey gönderilmez.',
   ui: {
     locale: 'tr',
     ai: aiTr,
@@ -301,7 +301,7 @@ export const tr: ExtensionText = {
   },
   options: {
     title: `${PRODUCT_NAME} ayarları`,
-    subtitle: 'Outlook Web için yazma yardımcısı',
+    subtitle: 'Outlook Web ve Gmail için yazma yardımcısı',
     preferencesTitle: 'Yazma tercihleri',
     preferencesDescription: 'Yeni çalışmalarda kullanılacak dil, ton ve görünüm.',
     uiLanguage: 'Arayüz dili',
@@ -333,12 +333,12 @@ export const tr: ExtensionText = {
     instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Varsayılan ton',
     theme: 'Tema',
-    themes: { system: 'Otomatik (Outlook ile aynı)', light: 'Açık', dark: 'Koyu' },
+    themes: { system: 'Otomatik (e-posta sayfasıyla aynı)', light: 'Açık', dark: 'Koyu' },
     themeOptions: { system: 'Otomatik', light: 'Açık', dark: 'Koyu' },
-    themeHint:
-      'Otomatik seçildiğinde Outlook’taki panel Outlook’un temasını, bu sayfa sistem temasını izler.',
-    siteEnabled: 'Outlook Web üzerinde yazma yardımcısını göster',
-    siteEnabledHint: 'Kapatırsanız Outlook’taki düğmeler ve panel görünmez.',
+    themeHint: 'Otomatik seçildiğinde panel e-posta sayfasının temasını, bu sayfa sistem temasını izler.',
+    siteNames: { 'outlook-web': 'Outlook Web', 'gmail-web': 'Gmail' },
+    siteEnabled: (site) => `${site} üzerinde yazma yardımcısını göster`,
+    siteEnabledHint: (site) => `Kapatırsanız ${site} üzerindeki düğmeler ve panel görünmez.`,
     unsaved: 'Kaydedilmemiş değişiklikler var.',
     save: 'Kaydet',
     saved: 'Ayarlar kaydedildi.',

@@ -1,4 +1,4 @@
-import { maskIdentifier, maskText } from './mask-text';
+import { maskIdentifier, maskText } from '../probe/mask-text';
 
 /**
  * Conversation rows in the message list. The list is not part of conversation

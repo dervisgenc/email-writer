@@ -1,4 +1,4 @@
-import type { HostOperatingSystem, Theme } from '@writehand/contracts';
+import type { HostOperatingSystem, SiteId, Theme } from '@writehand/contracts';
 import type { UiText } from '@writehand/ui';
 
 export type PopupStatusKey =
@@ -49,8 +49,10 @@ export interface ExtensionText {
     readonly themes: Readonly<Record<Theme, string>>;
     readonly themeOptions: Readonly<Record<Theme, string>>;
     readonly themeHint: string;
-    readonly siteEnabled: string;
-    readonly siteEnabledHint: string;
+    /** The mail services by the names their makers use in this language. */
+    readonly siteNames: Readonly<Record<SiteId, string>>;
+    readonly siteEnabled: (site: string) => string;
+    readonly siteEnabledHint: (site: string) => string;
     readonly unsaved: string;
     readonly save: string;
     readonly saved: string;
@@ -114,6 +116,7 @@ export interface WelcomeText {
     readonly resultLabel: string;
     readonly openOutlook: string;
     readonly personalOutlook: string;
+    readonly openGmail: string;
     readonly openSettings: string;
   };
 }

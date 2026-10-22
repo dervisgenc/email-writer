@@ -11,7 +11,7 @@ export const welcomeEn: WelcomeText = {
   next: 'Continue',
   intro: {
     title: 'Two ways to connect',
-    lead: `${PRODUCT_NAME} works inside Outlook on the web and writes with the AI provider you choose. Pick what suits you in the next step; you can change it at any time.`,
+    lead: `${PRODUCT_NAME} works inside Outlook on the web and Gmail and writes with the AI provider you choose. Pick what suits you in the next step; you can change it at any time.`,
     apiKey: {
       title: 'Your own API key',
       points: [
@@ -69,10 +69,11 @@ export const welcomeEn: WelcomeText = {
       'Hi Sam,\n\nthanks for you’re message. I can send the report on thursday, but i need the latest numbers from you team first. Could you share them until wendesday?\n\nBest,\nAlex',
     run: 'Revise the sample',
     running: 'Revising…',
-    success: 'Everything works. Open a draft in Outlook; the toolbar appears next to it.',
+    success: 'Everything works. Open a draft in Outlook or Gmail; the toolbar appears next to it.',
     resultLabel: 'Result',
     openOutlook: 'Open Outlook',
     personalOutlook: 'Outlook.com (personal)',
+    openGmail: 'Open Gmail',
     openSettings: 'Settings',
   },
 };

@@ -11,7 +11,7 @@ export const welcomeDe: WelcomeText = {
   next: 'Weiter',
   intro: {
     title: 'Zwei Wege zur Verbindung',
-    lead: `${PRODUCT_NAME} arbeitet in Outlook im Web und schreibt mit dem KI-Anbieter Ihrer Wahl. Wählen Sie im nächsten Schritt, was zu Ihnen passt; Sie können es jederzeit ändern.`,
+    lead: `${PRODUCT_NAME} arbeitet in Outlook im Web und Gmail und schreibt mit dem KI-Anbieter Ihrer Wahl. Wählen Sie im nächsten Schritt, was zu Ihnen passt; Sie können es jederzeit ändern.`,
     apiKey: {
       title: 'Ihr eigener API-Schlüssel',
       points: [
@@ -72,10 +72,12 @@ export const welcomeDe: WelcomeText = {
       'Hallo Sam,\n\ndanke für deine Nachricht. Den Bericht kann ich am donnerstag schicken, aber ich brauche vorher die aktuelle Zahlen von deinem Team. Kannst du sie bis Mitwoch teilen.\n\nViele Grüße\nAlex',
     run: 'Beispiel überarbeiten',
     running: 'Wird überarbeitet…',
-    success: 'Alles funktioniert. Öffnen Sie in Outlook einen Entwurf; die Symbolleiste erscheint daneben.',
+    success:
+      'Alles funktioniert. Öffnen Sie in Outlook oder Gmail einen Entwurf; die Symbolleiste erscheint daneben.',
     resultLabel: 'Ergebnis',
     openOutlook: 'Outlook öffnen',
     personalOutlook: 'Outlook.com (privat)',
+    openGmail: 'Gmail öffnen',
     openSettings: 'Einstellungen',
   },
 };

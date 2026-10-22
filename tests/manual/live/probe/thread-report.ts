@@ -1,11 +1,11 @@
-import type { ContextCoverage, PageSupport, TextBlock, ThreadSnapshot } from '@writehand/contracts';
-import {
-  createOutlookWebConnector,
-  OUTLOOK_SELECTORS,
-  type SelectorReportEntry,
-} from '@writehand/outlook-web';
+import type {
+  ContextCoverage,
+  MailConnector,
+  PageSupport,
+  TextBlock,
+  ThreadSnapshot,
+} from '@writehand/contracts';
 
-import { OWN_UI_SELECTOR } from '../../../../apps/browser-extension/src/bootstrap/mail-provider';
 import { maskText } from './mask-text';
 
 export interface BlockReport {
@@ -29,11 +29,17 @@ export interface TextCoverage {
   readonly rendered: number;
 }
 
+export interface SelectorCount {
+  readonly key: string;
+  readonly status: 'candidate' | 'verified';
+  readonly matches: number;
+}
+
 export interface ThreadReport {
   readonly support: PageSupport;
-  /** The connector's conversation key (opaque hash); its prefix shows the source (conv/url/thread-local). */
+  /** The connector's conversation key (opaque hash); its prefix shows where it came from. */
   readonly threadKey: string | null;
-  readonly selectors: readonly SelectorReportEntry[];
+  readonly selectors: readonly SelectorCount[];
   readonly thread:
     | {
         readonly subject: string | null;
@@ -48,10 +54,9 @@ export interface ThreadReport {
 
 const countVisibleCharacters = (text: string) => text.replace(/\s+/g, '').length;
 
-/** Innermost message bodies in the reading pane, found with the connector's selectors. */
-function renderedBodyText(document: Document): number {
-  const selector = OUTLOOK_SELECTORS.messageBody.selectors.join(', ');
-  const all = Array.from(document.querySelectorAll<HTMLElement>(selector));
+/** Visible text of the innermost message bodies, found with the connector's own selector. */
+function renderedBodyText(document: Document, bodySelector: string): number {
+  const all = Array.from(document.querySelectorAll<HTMLElement>(bodySelector));
   return all
     .filter((element) => !all.some((other) => other !== element && element.contains(other)))
     .reduce((total, body) => total + countVisibleCharacters(body.innerText), 0);
@@ -86,15 +91,18 @@ function describeThread(snapshot: ThreadSnapshot, rendered: number): NonNullable
 }
 
 /**
- * Runs the extension's Outlook connector on the page, reads the open conversation
- * and turns the result into a masked report. The connector is created on every call
- * and disposed at the end; it leaves no trace on the page.
+ * Runs a connector on the page, reads the open conversation and turns the result into a
+ * masked report. The connector is created on every call and disposed at the end; it leaves
+ * no trace on the page.
  */
-export async function readThreadReport(document: Document): Promise<ThreadReport> {
-  const { connector, selectorReport } = createOutlookWebConnector({
-    document,
-    ownUiSelector: OWN_UI_SELECTOR,
-  });
+export async function readThreadReport(
+  document: Document,
+  options: {
+    readonly connect: () => { connector: MailConnector; selectorReport(): readonly SelectorCount[] };
+    readonly bodySelector: string;
+  },
+): Promise<ThreadReport> {
+  const { connector, selectorReport } = options.connect();
   try {
     const state = connector.getPageState();
     const base = {
@@ -109,7 +117,10 @@ export async function readThreadReport(document: Document): Promise<ThreadReport
     if (!result.ok) {
       return { ...base, thread: { error: result.error.code } };
     }
-    return { ...base, thread: describeThread(result.value, renderedBodyText(document)) };
+    return {
+      ...base,
+      thread: describeThread(result.value, renderedBodyText(document, options.bodySelector)),
+    };
   } finally {
     connector.dispose();
   }
