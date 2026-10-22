@@ -9,7 +9,7 @@ export const aiTr: AiText = {
   apiKey: 'API anahtarı',
   claudeCode: 'Claude aboneliği',
   methodHints: {
-    chatgpt: 'Plus veya Pro planınızla',
+    chatgpt: 'Plus, Pro veya Business planınızla',
     'api-key': 'Groq, OpenRouter veya OpenAI; ücretsiz modeller de var',
     'claude-code': 'Claude Code ile, bu bilgisayarda',
   },
@@ -32,20 +32,22 @@ export const aiTr: AiText = {
     methods: {
       chatgpt: {
         title: 'ChatGPT üyeliği',
-        summary: 'ChatGPT Plus veya Pro planınızın kullanım hakkıyla üretir.',
+        summary: 'ChatGPT planınızın kullanım hakkıyla üretir.',
         requirements: [
-          'ChatGPT Plus veya Pro aboneliği. Ücretsiz hesaplar plan kullanımını desteklemez.',
+          'ChatGPT Plus veya Pro aboneliği ya da bir Business, Enterprise veya Edu çalışma alanı. Ücretsiz hesaplar plan kullanımını desteklemez.',
           `Bu bilgisayarda ${PRODUCT_NAME} yardımcı uygulaması.`,
         ],
         steps: [
           'Yöntem olarak ChatGPT üyeliği’ni seçin.',
           '“Continue with ChatGPT” düğmesine basın. Tarayıcıda açılan sayfada hesabınızı seçip izin verin.',
+          'Business, Enterprise veya Edu çalışma alanında bunun yerine “Codex girişiyle bağlan” düğmesine basıp çalışma alanını seçin.',
           'Bu sayfaya dönün; hesap “Bağlı · Metin üretmeye hazır” görünür. Ardından modeli seçin.',
         ],
         notes: [
           'Kullanım ChatGPT planınızın limitlerinden düşer. ChatGPT → Ayarlar → Usage bölümünden takip edebilirsiniz.',
           'Planınızı yeni yükselttiyseniz etkinleşmesi birkaç dakika sürebilir.',
-          'OpenAI şu an yalnızca Plus ve Pro planlarını destekliyor. İş hesaplarında (Business, Enterprise) kuruluş politikası bağlantıyı engelleyebilir.',
+          'Continue with ChatGPT şu an Plus ve Pro planlarına hizmet veriyor; iş hesaplarında kuruluş politikası bunu engelliyor. Codex girişiyle bağlan seçeneği bunun yerine OpenAI’ın Codex uygulamasının girişini kullanır. Deneyseldir: OpenAI bu girişi başka uygulamalar için belgelemiyor ve değiştirebilir.',
+          'Codex girişiyle kullanım, planınızın Codex ve diğer iş özellikleriyle paylaşılan limitlerinden düşer. Business çalışma alanlarında haftalık limit dolunca kredi ile devam edilebilir; krediyi çalışma alanı sahipleri faturalandırma ayarlarından ekler.',
           'Erişimi istediğiniz zaman ChatGPT → Ayarlar → Security and login → Sign in with ChatGPT bölümünden kaldırabilirsiniz.',
         ],
       },
@@ -110,6 +112,12 @@ export const aiTr: AiText = {
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Codex girişiyle bağlan',
+  codexHint:
+    'ChatGPT Business, Enterprise ve Edu çalışma alanları için. OpenAI’ın Codex uygulamasının girişini kullanır; Codex’in kurulu olması gerekmez. Deneysel.',
+  codexSignIn: 'Codex girişi',
+  codexConnectionHelp:
+    'Bu bağlantı Codex girişini kullanıyor. Kullanım planınızın Codex ile paylaşılan limitlerinden düşer; Business çalışma alanlarında limit dolunca kredi ile devam edilebilir. Oturumu buradan hesabı kaldırarak sonlandırabilirsiniz.',
   addAccount: 'Farklı hesap veya çalışma alanı ekle',
   reconnect: 'Yeniden bağlan',
   disconnect: 'Bağlantıyı kes',
@@ -143,7 +151,7 @@ export const aiTr: AiText = {
   planDisabled:
     'Hesap doğrulandı; üretim izni yok. Planla üretim için uygun bir Plus/Pro hesabı ve plan kullanım izni gerekir. Ücretsiz hesapla giriş yapmak üretim hakkı sağlamaz.',
   planNote:
-    'Uygun Plus ve Pro hesapları plan limitlerini kullanabilir. Kullanılabilirlik hesabınıza, çalışma alanınıza ve OpenAI erişimine bağlıdır.',
+    'Uygun Plus ve Pro hesapları Continue with ChatGPT ile plan limitlerini kullanabilir. Business, Enterprise ve Edu çalışma alanları için Codex girişiyle bağlan seçeneğini kullanın.',
   apiNote: (provider) =>
     `Anahtarınız bu tarayıcıda şifreli saklanır ve yalnızca ${provider} hizmetine gönderilir. Ücretli kullanım, ChatGPT veya Claude aboneliğinizden ayrı olarak ${provider} tarafından faturalandırılır.`,
   claudeNote: `Bilgisayarınızda kurulu Claude Code, kendi Claude hesabınızla çalıştırılır; kullanım Claude planınızın limitlerinden düşer. ${PRODUCT_NAME} Claude hesap bilgilerinize erişmez ve bunları saklamaz. Giriş ve çıkış Claude Code üzerinden yapılır.`,

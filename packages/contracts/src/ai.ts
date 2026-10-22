@@ -18,6 +18,14 @@ export type HelperAiMode = (typeof HELPER_AI_MODES)[number];
 export function isHelperMode(mode: AiMode): mode is HelperAiMode {
   return (HELPER_AI_MODES as readonly AiMode[]).includes(mode);
 }
+/**
+ * How a ChatGPT account is signed in. `siwc`: OpenAI's Sign in with ChatGPT for open-source
+ * apps, which registers this app per account and currently serves Plus and Pro plans.
+ * `codex`: the sign-in of OpenAI's Codex CLI, which also serves Business, Enterprise and Edu
+ * workspaces; OpenAI does not document it for other apps.
+ */
+export const CHATGPT_SIGN_INS = ['siwc', 'codex'] as const;
+export type ChatGptSignIn = (typeof CHATGPT_SIGN_INS)[number];
 export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
 export const CLAUDE_CODE_SETUP_URL = 'https://code.claude.com/docs/en/setup';
 
@@ -127,7 +135,14 @@ export const apiKeySchema = z
 
 /** Account and model commands, shared by the settings pages and the helper app. */
 const accountAndModelCommands = [
-  z.object({ action: z.literal('connect'), accountId: id.nullable() }).strict(),
+  z
+    .object({
+      action: z.literal('connect'),
+      accountId: id.nullable(),
+      /** Sign-in for a new account (default `siwc`); a saved account keeps its own. */
+      signIn: z.enum(CHATGPT_SIGN_INS).optional(),
+    })
+    .strict(),
   z.object({ action: z.literal('cancel-sign-in') }).strict(),
   z.object({ action: z.literal('select-account'), accountId: id }).strict(),
   z.object({ action: z.literal('disconnect'), accountId: id }).strict(),
@@ -186,6 +201,8 @@ export const helperStatusSchema = z
             verified: z.boolean(),
             connected: z.boolean(),
             planEnabled: z.boolean(),
+            /** Missing from helper apps released before the Codex sign-in, which have only `siwc`. */
+            signIn: z.enum(CHATGPT_SIGN_INS).optional(),
           })
           .strict(),
       )

@@ -9,7 +9,7 @@ export const aiFr: AiText = {
   apiKey: 'Clé API',
   claudeCode: 'Forfait Claude',
   methodHints: {
-    chatgpt: 'Avec votre forfait Plus ou Pro',
+    chatgpt: 'Avec votre forfait Plus, Pro ou Business',
     'api-key': 'Groq, OpenRouter ou OpenAI ; modèles gratuits disponibles',
     'claude-code': 'Avec Claude Code sur cet ordinateur',
   },
@@ -32,20 +32,22 @@ export const aiFr: AiText = {
     methods: {
       chatgpt: {
         title: 'Forfait ChatGPT',
-        summary: 'Génère du texte avec l’utilisation incluse dans votre forfait ChatGPT Plus ou Pro.',
+        summary: 'Génère du texte avec l’utilisation incluse dans votre forfait ChatGPT.',
         requirements: [
-          'Un abonnement ChatGPT Plus ou Pro. Les comptes gratuits ne permettent pas l’utilisation du forfait.',
+          'Un abonnement ChatGPT Plus ou Pro, ou un espace de travail Business, Enterprise ou Edu. Les comptes gratuits ne permettent pas l’utilisation du forfait.',
           `L’application d’assistance ${PRODUCT_NAME} sur cet ordinateur.`,
         ],
         steps: [
           'Choisissez « Forfait ChatGPT » comme méthode.',
           'Choisissez « Continue with ChatGPT ». Sur la page qui s’ouvre, choisissez votre compte et autorisez l’accès.',
+          'Pour un espace de travail Business, Enterprise ou Edu, choisissez plutôt « Se connecter via Codex », puis l’espace de travail.',
           'Revenez sur cette page ; le compte indique « Connecté · Prêt à générer du texte ». Choisissez ensuite un modèle.',
         ],
         notes: [
           'L’utilisation est décomptée des limites de votre forfait ChatGPT. Vous pouvez la suivre dans ChatGPT → Paramètres → Usage.',
           'Si vous venez de changer de forfait, son activation peut prendre quelques minutes.',
-          'OpenAI ne prend actuellement en charge que les forfaits Plus et Pro. Sur les comptes professionnels (Business, Enterprise), une stratégie de l’organisation peut bloquer la connexion.',
+          '« Continue with ChatGPT » prend actuellement en charge les forfaits Plus et Pro ; sur les comptes professionnels, une stratégie de l’organisation le bloque. « Se connecter via Codex » utilise à la place la connexion de l’application Codex d’OpenAI. Cette méthode est expérimentale : OpenAI ne la documente pas pour d’autres applications et peut la modifier.',
+          'Avec « Se connecter via Codex », l’utilisation est décomptée des limites de votre forfait, que ChatGPT partage avec Codex et d’autres fonctions professionnelles. Dans les espaces de travail Business, des crédits permettent de continuer une fois la limite hebdomadaire atteinte ; les propriétaires de l’espace de travail les ajoutent dans les paramètres de facturation.',
           'Vous pouvez retirer l’accès à tout moment dans ChatGPT → Paramètres → Security and login → Sign in with ChatGPT.',
         ],
       },
@@ -110,6 +112,12 @@ export const aiFr: AiText = {
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Se connecter via Codex',
+  codexHint:
+    'Pour les espaces de travail ChatGPT Business, Enterprise et Edu. Utilise la connexion de l’application Codex d’OpenAI ; Codex n’a pas besoin d’être installé. Expérimental.',
+  codexSignIn: 'Connexion Codex',
+  codexConnectionHelp:
+    'Cette connexion utilise la connexion Codex. L’utilisation est décomptée des limites de votre forfait partagées avec Codex ; dans les espaces de travail Business, des crédits permettent de continuer une fois ces limites atteintes. Vous pouvez mettre fin à la session en supprimant le compte ici.',
   addAccount: 'Ajouter un autre compte ou espace de travail',
   reconnect: 'Se reconnecter',
   disconnect: 'Se déconnecter',
@@ -143,7 +151,7 @@ export const aiFr: AiText = {
   planDisabled:
     'Compte vérifié ; la génération n’est pas autorisée. L’utilisation du forfait nécessite un compte Plus ou Pro éligible et l’autorisation d’utiliser son forfait. Se connecter avec un compte gratuit ne donne pas accès à la génération.',
   planNote:
-    'Les comptes Plus et Pro éligibles peuvent utiliser l’allocation de leur forfait. La disponibilité dépend de votre compte, de votre espace de travail et de votre accès OpenAI.',
+    'Les comptes Plus et Pro éligibles peuvent utiliser l’allocation de leur forfait avec « Continue with ChatGPT ». Pour les espaces de travail Business, Enterprise et Edu, utilisez « Se connecter via Codex ».',
   apiNote: (provider) =>
     `Votre clé est enregistrée chiffrée dans ce navigateur et envoyée uniquement à ${provider}. L’utilisation payante est facturée par ${provider}, séparément de tout abonnement ChatGPT ou Claude.`,
   claudeNote: `Claude Code, installé sur cet ordinateur, s’exécute avec votre propre compte Claude ; l’utilisation est décomptée des limites de votre forfait Claude. ${PRODUCT_NAME} n’accède pas à vos identifiants Claude et ne les enregistre pas. Vous vous connectez et vous déconnectez via Claude Code.`,

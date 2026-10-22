@@ -112,7 +112,7 @@ describe('Chat Completions adapter', () => {
 
   it.each([
     [401, { error: { code: 'invalid_api_key' } }, 'AI_KEY_INVALID'],
-    [402, { error: { code: 402, message: 'Insufficient credits' } }, 'AI_LIMIT_REACHED'],
+    [402, { error: { code: 402, message: 'Insufficient credits' } }, 'AI_CREDITS_EXHAUSTED'],
     [413, { error: { code: 'rate_limit_exceeded' } }, 'AI_REQUEST_TOO_LARGE'],
     [400, { error: { code: 'context_length_exceeded' } }, 'AI_REQUEST_TOO_LARGE'],
     [429, { error: { code: 'rate_limit_exceeded' } }, 'AI_LIMIT_REACHED'],

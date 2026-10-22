@@ -13,12 +13,28 @@ export function failureCode(error: unknown): ErrorCode {
   return 'AI_NETWORK';
 }
 
+/** No credits or spending allowance left, as distinct from a plan's usage limit (as classified by the Codex CLI). */
+const creditCodes = new Set([
+  'insufficient_quota',
+  'credit_balance_exhausted',
+  'organization_spend_limit_exceeded',
+  'project_spend_limit_exceeded',
+  'organization_usage_limit_exceeded',
+]);
+
 export function providerFailure(status: number, code?: string): AiFailure {
   if (code === '3p_delegated_access_policy_denied') return new AiFailure('AI_POLICY_DENIED');
   if (code === '3p_login_workspace_scope_denied') return new AiFailure('AI_WORKSPACE_MISMATCH');
-  if (code === 'subscription_sharing_user_not_eligible') return new AiFailure('AI_NOT_ELIGIBLE');
+  if (code === 'subscription_sharing_user_not_eligible' || code === 'usage_not_included')
+    return new AiFailure('AI_NOT_ELIGIBLE');
   if (code === 'model_not_found') return new AiFailure('AI_MODEL_UNAVAILABLE');
-  if (code === 'subscription_sharing_usage_limit_exceeded' || status === 429)
+  if ((code !== undefined && creditCodes.has(code)) || status === 402)
+    return new AiFailure('AI_CREDITS_EXHAUSTED');
+  if (
+    code === 'subscription_sharing_usage_limit_exceeded' ||
+    code === 'usage_limit_reached' ||
+    status === 429
+  )
     return new AiFailure('AI_LIMIT_REACHED');
   // A generic admission denial does not establish subscription eligibility.
   if (

@@ -11,7 +11,7 @@ import ModelSelect from './ModelSelect.vue';
 /** ChatGPT plan accounts, kept by the helper app. */
 const props = defineProps<{ helper: HelperStatus; text: AiText; busy: boolean }>();
 const emit = defineEmits<{ command: [command: AiCommand] }>();
-const ids = { account: useId(), accountHint: useId(), welcome: useId() };
+const ids = { account: useId(), accountHint: useId(), welcome: useId(), codexHint: useId() };
 const welcome = useTemplateRef<HTMLDialogElement>('welcome');
 const selectedId = ref<string | null>(null);
 const active = computed(() =>
@@ -68,7 +68,8 @@ watch(
     >
       <option disabled value="">{{ text.account }}</option>
       <option v-for="account in helper.accounts" :key="account.id" :value="account.id">
-        {{ account.label }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : '' }}
+        {{ account.label }}{{ account.email && account.email !== account.label ? ` · ${account.email}` : ''
+        }}{{ account.signIn === 'codex' ? ` · ${text.codexSignIn}` : '' }}
       </option>
     </select>
     <p :id="ids.accountHint" class="ew-muted">{{ text.savedAccountHint }}</p>
@@ -119,7 +120,17 @@ watch(
       <AppIcon name="plus" :size="14" />
       {{ text.addAccount }}
     </button>
+    <button
+      type="button"
+      class="ew-btn"
+      :disabled="busy"
+      :aria-describedby="ids.codexHint"
+      @click="emit('command', { action: 'connect', accountId: null, signIn: 'codex' })"
+    >
+      {{ text.codexConnect }}
+    </button>
   </div>
+  <p :id="ids.codexHint" class="ew-muted">{{ text.codexHint }}</p>
   <div v-if="selected" class="ew-ai-settings__manage">
     <button
       v-if="selected.connected"
@@ -150,7 +161,9 @@ watch(
     {{ text.manageUsage }}
     <AppIcon name="external" :size="14" />
   </a>
-  <p class="ew-muted">{{ text.connectionHelp }}</p>
+  <p class="ew-muted">
+    {{ selected?.signIn === 'codex' ? text.codexConnectionHelp : text.connectionHelp }}
+  </p>
   <ModelSelect
     v-if="helper.models.length && selectedIsActive"
     :models="helper.models"

@@ -1,7 +1,7 @@
 import { appError, err, ok, type AiInput, type AppError, type Result } from '@writehand/contracts';
 
 import { failureCode } from './errors';
-import { createOpenAiProvider } from './responses';
+import { createOpenAiProvider, type OpenAiConnection } from './responses';
 
 async function settle<T>(work: () => Promise<T>): Promise<Result<T, AppError>> {
   try {
@@ -20,11 +20,12 @@ async function settle<T>(work: () => Promise<T>): Promise<Result<T, AppError>> {
  */
 export function createOpenAiApiKeyProvider(fetcher: typeof fetch = fetch) {
   const provider = createOpenAiProvider(fetcher);
+  const connection = (token: string): OpenAiConnection => ({ kind: 'api-key', token });
   return {
-    listModels: (apiKey: string) => settle(() => provider.listModels(apiKey, 'api-key')),
+    listModels: (apiKey: string) => settle(() => provider.listModels(connection(apiKey))),
     // Pay as you go: the user always chooses the model.
     defaultModel: (): string | null => null,
     generate: (input: AiInput, model: string, apiKey: string, signal: AbortSignal) =>
-      settle(() => provider.generate(input, model, apiKey, signal)),
+      settle(() => provider.generate(input, model, connection(apiKey), signal)),
   };
 }

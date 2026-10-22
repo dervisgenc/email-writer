@@ -233,7 +233,7 @@ export const tr: ExtensionText = {
         'OpenAI kimlik yanıtı güvenli biçimde doğrulanamadı. Hesap bağlanmadı (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'ChatGPT girişi iptal edildi.',
       AI_POLICY_DENIED:
-        'Kuruluş politikası bu uygulamayla ChatGPT bağlantısını engelliyor. Çalışma alanı yöneticisiyle Sign in with ChatGPT erişimini ve plan uygunluğunu kontrol edin; Plugins izni bunu tek başına açmaz.',
+        'Kuruluş politikası bu uygulama için Sign in with ChatGPT’yi engelliyor. ChatGPT Business çalışma alanlarında şu an buna izin veren bir ayar yok; bunun yerine Codex girişiyle bağlan seçeneğini kullanın. Enterprise ve Edu’da bir global admin uygulamayı OpenAI Admin Console’da External access bölümünden onaylayabilir.',
       AI_WORKSPACE_MISMATCH:
         'Bu bağlantı kaydı farklı bir ChatGPT hesabına veya çalışma alanına ait. Kaydın oluşturulduğu hesapla devam edin ya da Farklı hesap veya çalışma alanı ekle seçeneğini kullanın.',
       AI_ACCOUNT_NAME_TAKEN: 'Bu ad başka bir bağlantıda kullanılıyor. Ayırt edilebilir bir ad seçin.',
@@ -244,7 +244,9 @@ export const tr: ExtensionText = {
       AI_ACCESS_DENIED:
         'AI sağlayıcısı isteğe erişim izni vermedi. Uygulama izinleri, bağlantı yapılandırması veya bölge kısıtlaması kontrol edilmeli; ChatGPT planında bu hata tek başına aboneliğinizin uygun olmadığını göstermez.',
       AI_LIMIT_REACHED:
-        'Kullanım limitine ulaşıldı. ChatGPT için Kullanımı yönet bağlantısını açın; Claude aboneliğinde limit yenilenince tekrar deneyin; API anahtarında biraz bekleyin veya sağlayıcıdaki limitlerinizi ve kredinizi kontrol edin.',
+        'Kullanım limitine ulaşıldı. ChatGPT için limitin ne zaman yenileneceğini Kullanımı yönet bağlantısından görebilirsiniz; iş çalışma alanları kredi ekleyerek de devam edebilir. Claude aboneliğinde limit yenilenince tekrar deneyin; API anahtarında biraz bekleyin veya sağlayıcıdaki limitlerinizi kontrol edin.',
+      AI_CREDITS_EXHAUSTED:
+        'Kredi kalmadı. ChatGPT çalışma alanında, çalışma alanı sahibi faturalandırma ayarlarından kredi ekleyebilir veya harcama limitini yükseltebilir; API anahtarında sağlayıcıdan kredi ekleyin veya harcama limitini yükseltin.',
       AI_UNAVAILABLE: 'AI hizmeti şu anda kullanılamıyor. Bağlantınız korunuyor; daha sonra tekrar deneyin.',
       AI_NETWORK: 'AI hizmetine ulaşılamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.',
       AI_MODEL_UNAVAILABLE: 'Seçili model kullanılamıyor. AI ayarlarında model listesini yenileyin.',

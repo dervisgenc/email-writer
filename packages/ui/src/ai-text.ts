@@ -42,6 +42,12 @@ export interface AiText {
   readonly statusSetup: string;
   readonly statusAction: string;
   readonly connect: string;
+  /** Sign-in for work accounts that Sign in with ChatGPT does not serve (see `ChatGptSignIn`). */
+  readonly codexConnect: string;
+  readonly codexHint: string;
+  /** Marks Codex sign-ins in the account list. */
+  readonly codexSignIn: string;
+  readonly codexConnectionHelp: string;
   readonly addAccount: string;
   readonly reconnect: string;
   readonly disconnect: string;

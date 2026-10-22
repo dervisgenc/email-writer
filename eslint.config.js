@@ -289,7 +289,7 @@ export default tseslint.config(
     // browser and in Node.js alike.
     files: [
       'packages/ai-chat-completions/src/**/*.ts',
-      'packages/ai-openai/src/{api-key,responses,errors,prompt}.ts',
+      'packages/ai-openai/src/{api-key,codex,responses,errors,prompt}.ts',
     ],
     rules: {
       'no-restricted-globals': ['error', ...browserGlobals, 'process', 'Buffer'],

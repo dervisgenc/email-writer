@@ -17,8 +17,8 @@ export function failureFor(status: number, code?: string): ProviderFailure {
   if (status === 413 || code === 'context_length_exceeded')
     return new ProviderFailure('AI_REQUEST_TOO_LARGE');
   // 402: OpenRouter has no credits left for a paid model.
-  if (status === 402 || status === 429 || code === 'rate_limit_exceeded')
-    return new ProviderFailure('AI_LIMIT_REACHED');
+  if (status === 402 || code === 'insufficient_quota') return new ProviderFailure('AI_CREDITS_EXHAUSTED');
+  if (status === 429 || code === 'rate_limit_exceeded') return new ProviderFailure('AI_LIMIT_REACHED');
   if (status === 403) return new ProviderFailure('AI_ACCESS_DENIED');
   if (status === 404 || code === 'model_not_found' || code === 'model_decommissioned')
     return new ProviderFailure('AI_MODEL_UNAVAILABLE');
