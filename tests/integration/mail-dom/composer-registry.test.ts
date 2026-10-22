@@ -125,5 +125,8 @@ describe('mail-dom helpers', () => {
     expect(isDarkBackground('#202124')).toBe(true);
     expect(isDarkBackground('rgb(255, 255, 255)')).toBe(false);
     expect(isDarkBackground('transparent')).toBeNull();
+    // A transparent background (e.g. under a theme image) does not count as black.
+    expect(isDarkBackground('rgba(0, 0, 0, 0)')).toBeNull();
+    expect(isDarkBackground('rgba(32, 33, 36, 1)')).toBe(true);
   });
 });

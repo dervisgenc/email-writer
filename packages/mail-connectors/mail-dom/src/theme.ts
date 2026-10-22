@@ -1,4 +1,7 @@
-/** The 0–255 channels of a `#rgb`, `#rrggbb` or `rgb(r, g, b)` value. */
+/**
+ * The 0–255 channels of a `#rgb`, `#rrggbb`, `rgb(r, g, b)` or opaque `rgba(…)` value. A
+ * transparent or translucent color says nothing about what is behind it, so it gives `null`.
+ */
 function parseChannels(color: string): number[] | null {
   const value = color.trim().toLowerCase();
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(value)?.[1];
@@ -6,8 +9,12 @@ function parseChannels(color: string): number[] | null {
     const full = hex.length === 3 ? [...hex].map((digit) => digit + digit).join('') : hex;
     return [0, 2, 4].map((index) => Number.parseInt(full.slice(index, index + 2), 16));
   }
-  const rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(value);
-  return rgb === null ? null : [rgb[1], rgb[2], rgb[3]].map(Number);
+  const rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+%?))?\s*\)$/.exec(value);
+  if (rgb === null) {
+    return null;
+  }
+  const alpha = rgb[4] === undefined ? 1 : Number.parseFloat(rgb[4]) / (rgb[4].endsWith('%') ? 100 : 1);
+  return alpha < 1 ? null : [rgb[1], rgb[2], rgb[3]].map(Number);
 }
 
 /** Relative luminance of the color from 0 to 1 (WCAG); `null` if it cannot be parsed. */

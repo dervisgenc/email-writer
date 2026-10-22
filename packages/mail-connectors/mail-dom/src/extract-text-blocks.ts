@@ -373,15 +373,44 @@ export function extractTextBlocks(root: Node, options: ExtractOptions = {}): Ext
     visit(child, () => (mode === 'quote' ? 'quote' : 'body'), false);
   }
 
-  return {
-    blocks: writer.blocks
-      .map((block) => ({
-        kind: block.kind,
-        certainty: 'certain' as const,
-        text: block.parts.join(''),
-        segments: block.segments,
-      }))
-      .filter((block) => block.text.trim().length > 0),
-    truncated: writer.truncated,
-  };
+  const blocks = writer.blocks
+    .map((block) => ({
+      kind: block.kind,
+      certainty: 'certain' as const,
+      text: block.parts.join(''),
+      segments: block.segments,
+    }))
+    .filter((block) => block.text.trim().length > 0);
+  return { blocks: mergeAdjacentBlocks(blocks), truncated: writer.truncated };
+}
+
+/**
+ * Blocks of the same kind that only a whitespace-only block separated (for example a signature
+ * whose "-- " line is followed by a line break outside it) become one block. The second block's
+ * text is joined after a line break and its node mapping is shifted with it.
+ */
+function mergeAdjacentBlocks(blocks: readonly ExtractedBlock[]): ExtractedBlock[] {
+  const merged: ExtractedBlock[] = [];
+  for (const block of blocks) {
+    const previous = merged[merged.length - 1];
+    if (previous === undefined || previous.kind !== block.kind) {
+      merged.push(block);
+      continue;
+    }
+    const separator = previous.text.endsWith('\n') || block.text.startsWith('\n') ? '' : '\n';
+    const offset = previous.text.length + separator.length;
+    merged[merged.length - 1] = {
+      ...previous,
+      text: previous.text + separator + block.text,
+      segments: [
+        ...previous.segments,
+        ...block.segments.map((segment) => ({
+          ...segment,
+          start: segment.start + offset,
+          end: segment.end + offset,
+        })),
+      ],
+    };
+  }
+  return merged;
 }

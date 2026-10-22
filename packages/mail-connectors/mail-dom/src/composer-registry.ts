@@ -33,6 +33,11 @@ export interface FoundComposer {
   readonly isReply: boolean;
   /** The conversation the draft belongs to, when the connector can prove it; otherwise `null`. */
   readonly threadKey: string | null;
+  /**
+   * A reply whose quote the mail app keeps outside the editor (Gmail trims it behind a toggle):
+   * everything in the editor before the signature is the user's, even without a quote marker.
+   */
+  readonly quoteOutsideEditor?: boolean;
 }
 
 export interface ComposerRegistryOptions {
@@ -78,7 +83,7 @@ export interface ComposerRegistry {
 
 /** Composer record; its conversation binding may become known later while the editor stays the same. */
 interface TrackedComposer extends ComposerHandle {
-  readonly binding: { ref: ComposerRef; isReply: boolean };
+  readonly binding: { ref: ComposerRef; isReply: boolean; quoteOutsideEditor: boolean };
 }
 
 export function createComposerRegistry(options: ComposerRegistryOptions): ComposerRegistry {
@@ -102,10 +107,11 @@ export function createComposerRegistry(options: ComposerRegistryOptions): Compos
     }
   };
 
-  const add = ({ editor, isReply, threadKey }: FoundComposer) => {
+  const add = ({ editor, isReply, threadKey, quoteOutsideEditor = false }: FoundComposer) => {
     const binding: TrackedComposer['binding'] = {
       ref: { scope: registry.scope(), composerKey: registry.keyFor(editor, 'composer'), threadKey },
       isReply,
+      quoteOutsideEditor,
     };
     const tracker = observeEditor(editor, {
       document,
@@ -130,7 +136,9 @@ export function createComposerRegistry(options: ComposerRegistryOptions): Compos
       binding,
       editor,
       tracker,
-      readAnatomy: () => readComposerAnatomy(editor, { classify, isReply: binding.isReply }),
+      // Without a quote marker, only a reply that may hold its quote in the editor is uncertain.
+      readAnatomy: () =>
+        readComposerAnatomy(editor, { classify, isReply: binding.isReply && !binding.quoteOutsideEditor }),
     };
     composers.set(binding.ref.composerKey, handle);
     emit({ type: 'composer-added', ref: binding.ref });
@@ -170,6 +178,7 @@ export function createComposerRegistry(options: ComposerRegistryOptions): Compos
         const tracked = composers.get(key);
         if (tracked !== undefined) {
           tracked.binding.isReply = composer.isReply;
+          tracked.binding.quoteOutsideEditor = composer.quoteOutsideEditor ?? false;
           if (tracked.ref.threadKey === null && composer.threadKey !== null) {
             // The draft's conversation became known later (e.g. the mail app filled in the
             // quote after opening the editor). The editor is the same: its revision, selection

@@ -25,3 +25,21 @@ export function innermostElements<T extends Element>(elements: readonly T[]): T[
     (element) => !elements.some((other) => other !== element && element.contains(other)),
   );
 }
+
+/**
+ * Whether the element is rendered: not hidden by itself or an ancestor. Browsers answer with
+ * `checkVisibility`; the test DOM, which lacks it, is checked for `hidden` and an inline
+ * `display: none` on the element and its ancestors.
+ */
+export function isRenderedElement(element: HTMLElement): boolean {
+  if (typeof element.checkVisibility === 'function' && element.isConnected) {
+    return element.checkVisibility();
+  }
+  for (let current: HTMLElement | null = element; current !== null; current = current.parentElement) {
+    const style = current.getAttribute('style')?.toLowerCase().replace(/\s+/g, '') ?? '';
+    if (current.hidden || style.includes('display:none')) {
+      return false;
+    }
+  }
+  return true;
+}

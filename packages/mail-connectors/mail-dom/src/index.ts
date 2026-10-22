@@ -2,7 +2,13 @@ export { createComposerRegistry } from './composer-registry';
 export type { ComposerRegistry, ComposerRegistryOptions, FoundComposer } from './composer-registry';
 export { composerFingerprint, readComposerAnatomy } from './composer-anatomy';
 export type { AnatomyOptions, ComposerAnatomy } from './composer-anatomy';
-export { innermostElements, isEditableElement, isVisibleElement, outermostElements } from './dom';
+export {
+  innermostElements,
+  isEditableElement,
+  isRenderedElement,
+  isVisibleElement,
+  outermostElements,
+} from './dom';
 export { extractTextBlocks } from './extract-text-blocks';
 export type { ElementRole, ExtractedBlock, ExtractOptions, TextSegment } from './extract-text-blocks';
 export { createIdentityRegistry, opaqueHash } from './identity';
@@ -17,3 +23,5 @@ export { labelText, senderDisplayName } from './text';
 export { isDarkBackground, relativeLuminance } from './theme';
 export { createExecCommandWriter, createPasteEventWriter } from './writing/editor-writer';
 export type { EditorWriter } from './writing/editor-writer';
+export { selectorQueries } from './selectors';
+export type { EvidenceLevel, SelectorDefinition, SelectorQueries, SelectorStatus } from './selectors';
