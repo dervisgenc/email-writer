@@ -11,12 +11,10 @@ import {
   createSettingsStore,
   parseStoredSettings,
   SETTINGS_STORAGE_KEY,
-  type SettingsStorageArea,
+  type StorageArea,
 } from '../../../apps/browser-extension/src/platform/settings-store';
 
-function memoryArea(
-  initial: Record<string, unknown> = {},
-): SettingsStorageArea & { data: Record<string, unknown> } {
+function memoryArea(initial: Record<string, unknown> = {}): StorageArea & { data: Record<string, unknown> } {
   const data = { ...initial };
   return {
     data,

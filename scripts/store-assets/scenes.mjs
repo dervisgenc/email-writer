@@ -144,13 +144,11 @@ export const SCENES = [
     width: 960,
     caption: {
       title: 'Use the AI plan you already have',
-      text: 'Sign in with ChatGPT, use your own OpenAI API key, or Claude Code on your computer.',
+      text: 'Sign in with ChatGPT, use Claude Code on your computer, or your own Groq, OpenRouter or OpenAI key.',
     },
     async run(page) {
-      for (const step of ['Helper app', 'Connection']) {
-        await page.getByRole('button', { name: 'Continue' }).click();
-        await page.locator('.ew-steps__item[data-state="current"]', { hasText: step }).waitFor();
-      }
+      await page.getByRole('button', { name: 'Continue' }).click();
+      await page.locator('.ew-steps__item[data-state="current"]', { hasText: 'Connection' }).waitFor();
       await page.getByText('Connected · Ready to generate text').waitFor();
     },
   },

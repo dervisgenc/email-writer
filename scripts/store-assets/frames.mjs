@@ -92,7 +92,7 @@ function bannerWithShot(size, { icon, image, crop }) {
        ${lockup(icon, 72, 52)}
        <h1>Write better emails<br>in Outlook on the web</h1>
        <ul><li>Reply</li><li>Revise</li><li>Translate</li><li>Tables &amp; charts</li></ul>
-       <p>Your ChatGPT plan, OpenAI API key or Claude Code<br>Free and open source</p>
+       <p>Your own API key, ChatGPT plan or Claude Code<br>Free and open source</p>
      </div>
      <div class="window" style="left:${left}px;top:${top}px;width:${width}px;height:${size.height - top}px">
        <img src="${image}" style="width:${browserViewport().width * scale}px;max-width:none;margin:${-crop.y * scale}px 0 0 ${-crop.x * scale}px"></div>`,

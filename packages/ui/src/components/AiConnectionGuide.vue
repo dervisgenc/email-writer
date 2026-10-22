@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { AI_MODES, CLAUDE_CODE_SETUP_URL, OPENAI_API_KEYS_URL, type AiMode } from '@writehand/contracts';
+import {
+  AI_MODES,
+  API_PROVIDER_DETAILS,
+  API_PROVIDERS,
+  CLAUDE_CODE_SETUP_URL,
+  type AiMode,
+} from '@writehand/contracts';
 import { useId } from 'vue';
 
 import type { AiGuideItem, AiText } from '../ai-text';
@@ -10,10 +16,16 @@ const props = defineProps<{ text: AiText; mode: AiMode | null }>();
 
 const titleId = useId();
 const ICONS: Record<AiMode, IconName> = { chatgpt: 'chat', 'api-key': 'key', 'claude-code': 'terminal' };
-const LINKS: Partial<Record<AiMode, string>> = {
-  'api-key': OPENAI_API_KEYS_URL,
-  'claude-code': CLAUDE_CODE_SETUP_URL,
-};
+/** Official pages: where to create a key with each provider, Anthropic's Claude Code setup. */
+function links(mode: AiMode): { href: string; label: string }[] {
+  if (mode === 'api-key')
+    return API_PROVIDERS.map((provider) => ({
+      href: API_PROVIDER_DETAILS[provider].keysUrl,
+      label: props.text.createKey(API_PROVIDER_DETAILS[provider].name),
+    }));
+  const label = props.text.guide.methods[mode].linkLabel;
+  return mode === 'claude-code' && label ? [{ href: CLAUDE_CODE_SETUP_URL, label }] : [];
+}
 // The selected method's section starts open; after that the user decides.
 const initiallyOpen = props.mode;
 
@@ -87,13 +99,14 @@ function sections(item: AiGuideItem) {
             </component>
           </div>
           <a
-            v-if="LINKS[method] && text.guide.methods[method].linkLabel"
+            v-for="link in links(method)"
+            :key="link.href"
             class="ew-ai-guide__link"
-            :href="LINKS[method]"
+            :href="link.href"
             target="_blank"
             rel="noopener noreferrer"
           >
-            {{ text.guide.methods[method].linkLabel }}
+            {{ link.label }}
             <AppIcon name="external" :size="14" />
           </a>
         </div>

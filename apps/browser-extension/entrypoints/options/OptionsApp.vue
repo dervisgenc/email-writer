@@ -154,13 +154,14 @@ async function save(): Promise<void> {
     :subtitle="text.options.subtitle"
     :logo="brandIconUrl()"
   >
+    <AiSettings :text="text.ui" />
+
+    <!-- Needed only for the ChatGPT and Claude plans, so it follows the connection card. -->
     <HelperSettings
       :text="text.ui"
       :check-updates="settings.checkHelperUpdates"
       @toggle-updates="saveNow({ checkHelperUpdates: $event })"
     />
-
-    <AiSettings :text="text.ui" />
 
     <form class="options__form" @submit.prevent="save">
       <section class="ew-settings-card" :aria-labelledby="ids.languages">

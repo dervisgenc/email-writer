@@ -59,7 +59,7 @@ try {
     await waitFor(isServing, 'fixture page server');
   }
 
-  firefox = await launchFirefox({ profile, port: bidiPort, headless: true });
+  firefox = await launchFirefox({ profile, port: bidiPort, headless: true, systemAccess: true });
   console.log(`Browser: ${firefoxVersion(firefox.firefox)}`);
 
   bidi = await waitFor(() => connectBidi(bidiPort).catch(() => null), 'WebDriver BiDi connection', 20_000);
@@ -80,6 +80,61 @@ try {
     return contexts.find((item) => /^moz-extension:\/\/[^/]+\/welcome\.html$/.test(item.url));
   }, 'welcome wizard tab').catch(() => null);
   record('Welcome wizard opened on first install', welcome !== null, welcome?.url ?? '');
+
+  // The API key method runs in Firefox's background without the helper app: it keeps a
+  // non-extractable key in the extension's IndexedDB, and no provider is reachable until the
+  // user allows it. The wizard page shares the background's origin and storage.
+  if (welcome !== null) {
+    const result = await bidi.send('script.evaluate', {
+      target: { context: welcome.context },
+      awaitPromise: true,
+      expression: `(async () => {
+        const open = () => new Promise((resolve, reject) => {
+          const request = indexedDB.open('writehand-smoke', 1);
+          request.onupgradeneeded = () => request.result.createObjectStore('keys');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const run = async (mode, operation) => {
+          const database = await open();
+          return new Promise((resolve, reject) => {
+            const transaction = database.transaction('keys', mode);
+            const request = operation(transaction.objectStore('keys'));
+            transaction.oncomplete = () => { database.close(); resolve(request.result); };
+            transaction.onabort = () => reject(transaction.error);
+          });
+        };
+        const created = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        await run('readwrite', (store) => store.put(created, 'key'));
+        const key = await run('readonly', (store) => store.get('key'));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const sealed = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode('secret'));
+        const opened = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, sealed));
+        const exportable = await crypto.subtle.exportKey('raw', key).then(() => true, () => false);
+        indexedDB.deleteDatabase('writehand-smoke');
+        const status = await browser.runtime.sendMessage({ protocolVersion: 1, requestId: 'smoke', type: 'AI_STATUS', payload: {} });
+        return JSON.stringify({
+          stored: key instanceof CryptoKey && !key.extractable && opened === 'secret' && !exportable,
+          optional: browser.runtime.getManifest().optional_host_permissions,
+          granted: await browser.permissions.contains({ origins: ['https://api.groq.com/*'] }),
+          mode: status.payload?.mode,
+          provider: status.payload?.apiKey?.provider,
+          access: status.payload?.apiKey?.access,
+        });
+      })()`,
+    });
+    const checks = result.type === 'success' ? JSON.parse(result.result.value) : {};
+    record(
+      'API key method: a non-extractable key persists in the extension IndexedDB; providers stay unreachable until allowed',
+      checks.stored === true &&
+        checks.optional?.length === 3 &&
+        checks.granted === false &&
+        checks.mode === 'api-key' &&
+        checks.provider === 'groq' &&
+        checks.access === false,
+      result.type === 'success' ? result.result.value : result.exceptionDetails?.text,
+    );
+  }
 
   const tree = await bidi.send('browsingContext.getTree', {});
   // Use the test's own tab, not the wizard's.

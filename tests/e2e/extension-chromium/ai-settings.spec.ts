@@ -1,13 +1,22 @@
 import { expect, test } from './extension-fixture';
 
-test('without the helper app, settings show the permission and the setup wizard with no developer instructions', async ({
+test('without the helper app, settings offer the API key method, the permission and the setup wizard with no developer instructions', async ({
   context,
   extensionId,
 }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/options.html`);
   await expect(page.getByRole('heading', { name: 'AI bağlantısı', exact: true })).toBeVisible();
-  await expect(page.getByRole('alert')).toContainText('Yardımcı uygulama bağlı değil');
+  // The API key method works without the helper app, so its absence is not an error here.
+  await expect(page.locator('.ew-method[data-mode="api-key"]')).toHaveAttribute('data-checked', 'true');
+  await expect(page.getByLabel('Groq API anahtarı')).toBeVisible();
+  await expect(page.locator('.ew-ai-settings').getByRole('alert')).toHaveCount(0);
+  // A plan method points to the setup wizard instead.
+  await page.locator('.ew-method[data-mode="chatgpt"]').click();
+  await expect(page.locator('.ew-ai-settings')).toContainText('henüz bağlı değil');
+  await expect(
+    page.locator('.ew-ai-settings').getByRole('button', { name: 'Kurulum sihirbazını aç' }),
+  ).toBeVisible();
   const helper = page.locator('.ew-helper');
   await expect(helper.locator('.ew-status-pill')).toHaveText('İzin gerekli');
   await expect(helper.getByRole('button', { name: 'Kurulum sihirbazını aç' })).toBeVisible();

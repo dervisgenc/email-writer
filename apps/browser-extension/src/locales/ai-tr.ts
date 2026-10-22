@@ -4,18 +4,20 @@ import type { AiText } from '@writehand/ui';
 export const aiTr: AiText = {
   title: 'AI bağlantısı',
   description:
-    'E-postalarınızı ChatGPT planınızla, kendi OpenAI API anahtarınızla veya bilgisayarınızdaki Claude Code ile hazırlayın.',
+    'E-postalarınızı Groq, OpenRouter veya OpenAI’dan aldığınız kendi API anahtarınızla, ChatGPT planınızla ya da bilgisayarınızdaki Claude Code ile hazırlayın.',
   chatgpt: 'ChatGPT üyeliği',
-  apiKey: 'OpenAI API anahtarı',
+  apiKey: 'API anahtarı',
   claudeCode: 'Claude aboneliği',
   methodHints: {
-    chatgpt: 'Plus veya Pro planınızla',
-    'api-key': 'Kullandıkça ödenir',
+    chatgpt: 'Plus, Pro veya Business planınızla',
+    'api-key': 'Groq, OpenRouter veya OpenAI; ücretsiz modeller de var',
     'claude-code': 'Claude Code ile, bu bilgisayarda',
   },
   methodLabel: 'Bağlantı yöntemi',
   recommended: 'Önerilen',
   experimental: 'Deneysel',
+  needsHelper: 'Yardımcı uygulama gerekir',
+  helperRequired: `Bu yöntem ${PRODUCT_NAME} yardımcı uygulamasında çalışır ve uygulama henüz bağlı değil. Kurulum sihirbazıyla kurun ya da onsuz çalışan API anahtarı yöntemini seçin.`,
   statusReady: 'Hazır',
   statusSetup: 'Kurulum gerekli',
   statusAction: 'Bağlantı gerekli',
@@ -30,40 +32,45 @@ export const aiTr: AiText = {
     methods: {
       chatgpt: {
         title: 'ChatGPT üyeliği',
-        summary: 'ChatGPT Plus veya Pro planınızın kullanım hakkıyla üretir.',
+        summary: 'ChatGPT planınızın kullanım hakkıyla üretir.',
         requirements: [
-          'ChatGPT Plus veya Pro aboneliği. Ücretsiz hesaplar plan kullanımını desteklemez.',
+          'ChatGPT Plus veya Pro aboneliği ya da bir Business, Enterprise veya Edu çalışma alanı. Ücretsiz hesaplar plan kullanımını desteklemez.',
           `Bu bilgisayarda ${PRODUCT_NAME} yardımcı uygulaması.`,
         ],
         steps: [
           'Yöntem olarak ChatGPT üyeliği’ni seçin.',
           '“Continue with ChatGPT” düğmesine basın. Tarayıcıda açılan sayfada hesabınızı seçip izin verin.',
+          'Business, Enterprise veya Edu çalışma alanında bunun yerine “Codex girişiyle bağlan” düğmesine basıp çalışma alanını seçin.',
           'Bu sayfaya dönün; hesap “Bağlı · Metin üretmeye hazır” görünür. Ardından modeli seçin.',
         ],
         notes: [
           'Kullanım ChatGPT planınızın limitlerinden düşer. ChatGPT → Ayarlar → Usage bölümünden takip edebilirsiniz.',
           'Planınızı yeni yükselttiyseniz etkinleşmesi birkaç dakika sürebilir.',
-          'OpenAI şu an yalnızca Plus ve Pro planlarını destekliyor. İş hesaplarında (Business, Enterprise) kuruluş politikası bağlantıyı engelleyebilir.',
+          'Continue with ChatGPT şu an Plus ve Pro planlarına hizmet veriyor; iş hesaplarında kuruluş politikası bunu engelliyor. Codex girişiyle bağlan seçeneği bunun yerine OpenAI’ın Codex uygulamasının girişini kullanır. Deneyseldir: OpenAI bu girişi başka uygulamalar için belgelemiyor ve değiştirebilir.',
+          'Codex girişiyle kullanım, planınızın Codex ve diğer iş özellikleriyle paylaşılan limitlerinden düşer. Business çalışma alanlarında haftalık limit dolunca kredi ile devam edilebilir; krediyi çalışma alanı sahipleri faturalandırma ayarlarından ekler.',
           'Erişimi istediğiniz zaman ChatGPT → Ayarlar → Security and login → Sign in with ChatGPT bölümünden kaldırabilirsiniz.',
         ],
       },
       'api-key': {
-        title: 'OpenAI API anahtarı',
-        summary: 'Kendi OpenAI Platform hesabınızla, kullandığınız kadar ödeyerek üretir.',
+        title: 'API anahtarı',
+        summary:
+          'Groq, OpenRouter veya OpenAI’dan aldığınız kendi anahtarınızla, doğrudan bu tarayıcıdan üretir. Yardımcı uygulama gerekmez.',
         requirements: [
-          'OpenAI Platform hesabı ve bir API anahtarı.',
-          `Bu bilgisayarda ${PRODUCT_NAME} yardımcı uygulaması.`,
+          'Groq, OpenRouter veya OpenAI’dan bir API anahtarı. Groq’un ücretsiz planı ve OpenRouter’ın ücretsiz modelleri ödeme yöntemi istemez.',
         ],
         steps: [
-          'OpenAI Platform’da bir API anahtarı oluşturun.',
-          'Yöntem olarak OpenAI API anahtarı’nı seçin, anahtarı yapıştırıp “Anahtarı bağla”ya basın.',
-          'Listeden modeli seçin.',
+          'Yöntem olarak API anahtarı’nı, ardından sağlayıcıyı seçin.',
+          'Sağlayıcının sitesinde bir anahtar oluşturun (bağlantılar aşağıda) ve yapıştırın.',
+          '“Anahtarı bağla”ya basın ve tarayıcının sağlayıcıya bağlanmasına izin verin.',
+          'Modeli seçin. Groq’ta OpenAI’ın ücretsiz açık ağırlıklı modeli openai/gpt-oss-120b sizin için seçilir.',
         ],
         notes: [
-          'API kullanımı ChatGPT aboneliğinden ayrıdır ve OpenAI tarafından ücretlendirilir.',
-          'Anahtar yalnızca bu bilgisayardaki yardımcı uygulamada saklanır; tarayıcıya geri gönderilmez.',
+          'Groq’un ücretsiz planında dakikalık ve günlük kullanım limitleri vardır. Uzun bir yazışma bu limiti aşabilir; bağlamdan bazı mesajları çıkarın veya biraz sonra yeniden deneyin.',
+          'OpenRouter’da ücretsiz modeller listenin başındadır. Metninizin hangi sağlayıcılara gidebileceğine OpenRouter gizlilik ayarlarınız karar verir; bazı ücretsiz modelleri yalnızca istemleri saklayabilen sağlayıcılar sunar.',
+          'Ücretli kullanım, ChatGPT veya Claude aboneliğinizden ayrı olarak sağlayıcı tarafından faturalandırılır. OpenAI modelleri her zaman ücretlidir; bu yüzden modeli siz seçersiniz.',
+          'Anahtar bu tarayıcıda şifreli saklanır ve yalnızca kendi sağlayıcısına gönderilir. Bir daha gösterilmez; değiştirmek için yeni anahtar bağlayın.',
+          'Tarayıcı profilinizi kullanabilen herkes kayıtlı anahtarla metin üretebilir. Harcama limiti olan bir anahtar tercih edin ve ortak bilgisayarlarda anahtarı kaldırın.',
         ],
-        linkLabel: 'API anahtarı oluştur',
       },
       'claude-code': {
         title: 'Claude aboneliği',
@@ -91,19 +98,26 @@ export const aiTr: AiText = {
     },
     helper: {
       title: 'Yardımcı uygulama nedir?',
-      summary: 'Bütün yöntemler için gereken, bilgisayarınızda çalışan küçük bir uygulama.',
+      summary:
+        'ChatGPT ve Claude üyelikleri için gereken, bilgisayarınızda çalışan küçük bir uygulama; API anahtarları onsuz çalışır.',
       requirements: ['macOS, Linux veya Windows. Başka bir yazılım gerekmez.'],
       steps: [
         'Ayarlar → Yardımcı uygulama bölümünden kurulum sihirbazını açın ve gösterdiği tek satırlık komutu çalıştırın.',
         'Yardımcı uygulama birkaç saniye içinde bağlı görünür; ardından burada bir yöntem seçin.',
       ],
       notes: [
-        'Giriş bilgileri ve API anahtarları tarayıcıda değil, yalnızca sizin erişebildiğiniz korumalı bir dosyada tutulur.',
+        'ChatGPT giriş bilgileri tarayıcıda değil, yalnızca sizin erişebildiğiniz korumalı bir dosyada tutulur.',
         'Yardımcı uygulama yalnızca siz üretim istediğinizde çalışır; arka planda e-posta okumaz veya göndermez.',
       ],
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Codex girişiyle bağlan',
+  codexHint:
+    'ChatGPT Business, Enterprise ve Edu çalışma alanları için. OpenAI’ın Codex uygulamasının girişini kullanır; Codex’in kurulu olması gerekmez. Deneysel.',
+  codexSignIn: 'Codex girişi',
+  codexConnectionHelp:
+    'Bu bağlantı Codex girişini kullanıyor. Kullanım planınızın Codex ile paylaşılan limitlerinden düşer; Business çalışma alanlarında limit dolunca kredi ile devam edilebilir. Oturumu buradan hesabı kaldırarak sonlandırabilirsiniz.',
   addAccount: 'Farklı hesap veya çalışma alanı ekle',
   reconnect: 'Yeniden bağlan',
   disconnect: 'Bağlantıyı kes',
@@ -137,9 +151,9 @@ export const aiTr: AiText = {
   planDisabled:
     'Hesap doğrulandı; üretim izni yok. Planla üretim için uygun bir Plus/Pro hesabı ve plan kullanım izni gerekir. Ücretsiz hesapla giriş yapmak üretim hakkı sağlamaz.',
   planNote:
-    'Uygun Plus ve Pro hesapları plan limitlerini kullanabilir. Kullanılabilirlik hesabınıza, çalışma alanınıza ve OpenAI erişimine bağlıdır.',
-  apiNote:
-    'API kullanımı OpenAI tarafından ayrıca ücretlendirilir. ChatGPT aboneliğinden bağımsızdır; bu yönteme otomatik geçilmez.',
+    'Uygun Plus ve Pro hesapları Continue with ChatGPT ile plan limitlerini kullanabilir. Business, Enterprise ve Edu çalışma alanları için Codex girişiyle bağlan seçeneğini kullanın.',
+  apiNote: (provider) =>
+    `Anahtarınız bu tarayıcıda şifreli saklanır ve yalnızca ${provider} hizmetine gönderilir. Ücretli kullanım, ChatGPT veya Claude aboneliğinizden ayrı olarak ${provider} tarafından faturalandırılır.`,
   claudeNote: `Bilgisayarınızda kurulu Claude Code, kendi Claude hesabınızla çalıştırılır; kullanım Claude planınızın limitlerinden düşer. ${PRODUCT_NAME} Claude hesap bilgilerinize erişmez ve bunları saklamaz. Giriş ve çıkış Claude Code üzerinden yapılır.`,
   claudeAccount: 'Claude Code hesabı',
   claudeNotInstalled:
@@ -150,10 +164,28 @@ export const aiTr: AiText = {
     'Claude Code şu an Claude aboneliği yerine API anahtarı gibi başka bir yöntemle oturum açmış; kullanım o hesaptan ücretlendirilir.',
   claudePrivacy:
     'Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam Claude Code üzerinden Anthropic’e gönderilir. Claude Code araçsız çalışır, dosyalarınıza erişmez ve oturum kaydı tutmaz. Pro ve Max planları Anthropic’in tüketici koşullarına tabidir: Claude gizlilik ayarlarından model eğitimini kapatmadıysanız içerik eğitimde kullanılabilir. Team ve Enterprise planları ticari koşullara tabidir.',
-  apiKeyLabel: 'API anahtarı',
+  provider: 'Sağlayıcı',
+  providerHints: {
+    groq: 'Hızlı; ücretsiz planında OpenAI’ın GPT-OSS’u gibi ücretsiz modeller var.',
+    openrouter: 'Pek çok sağlayıcıdan yüzlerce model; bazıları ücretsiz.',
+    openai: 'OpenAI’ın GPT modelleri; kullandıkça ödenir.',
+  },
+  apiKeyLabel: (provider) => `${provider} API anahtarı`,
+  createKey: (provider) => `${provider} API anahtarı oluştur`,
   saveKey: 'Anahtarı bağla',
   removeKey: 'Anahtarı kaldır',
-  keySaved: 'API anahtarı yardımcı uygulamada kayıtlı.',
+  keySaved: (provider) => `${provider} anahtarı bu tarayıcıda şifreli olarak kayıtlı.`,
+  replaceKeyHint:
+    'Başka bir anahtar kullanmak için yapıştırıp Anahtarı bağla’ya basın; kayıtlı anahtarın yerini alır.',
+  keyFromOtherProvider: (provider) =>
+    `Bu bir ${provider} anahtarına benziyor, bu yüzden gönderilmedi. Yukarıdan ${provider} hizmetini seçin ya da seçili sağlayıcının anahtarını yapıştırın.`,
+  accessNeeded: (provider) =>
+    `Tarayıcı, ${PRODUCT_NAME} uygulamasının ${provider} hizmetine bağlanmasına izin vermiyor. Kayıtlı anahtarı kullanmak için erişime izin verin.`,
+  grantAccess: 'Erişime izin ver',
+  freeModels: 'Ücretsiz modeller',
+  paidModels: 'Ücretli modeller',
+  apiPrivacy: (provider) =>
+    `Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam bu tarayıcıdan doğrudan ${provider} hizmetine, ${provider} koşullarına tabi olarak gönderilir. Anahtar, ${provider} kimlik doğrulaması dışında bu tarayıcıdan hiçbir yere çıkmaz.`,
   manageUsage: 'Kullanımı yönet',
   connectionHelp:
     'ChatGPT bağlantınızı Ayarlar → Security and login → Sign in with ChatGPT bölümünden yönetin. Bu bağlantı Plugins listesinde görünmez. İş hesabında kuruluş politikası ve plan uygunluğu ayrıca geçerlidir.',
@@ -163,7 +195,7 @@ export const aiTr: AiText = {
   privacy:
     'Üretim istediğinizde metniniz, talimatınız ve seçtiğiniz bağlam OpenAI’a gönderilir. Eklenti bunları diske kaydetmez. ChatGPT sohbet geçmişinize erişilmez.',
   usePlan: 'ChatGPT planı kullanılıyor',
-  useApi: 'OpenAI API kullanılıyor',
+  useApi: (provider) => `${provider} API anahtarı kullanılıyor`,
   useClaude: 'Claude aboneliği kullanılıyor',
   openSettings: 'AI ayarları',
   notReady: 'Üretim için AI hesabınızı bağlayın',

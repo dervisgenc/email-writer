@@ -3,7 +3,7 @@ import type { HelperText } from '@writehand/ui';
 export const helperEn: HelperText = {
   title: 'Helper app',
   description:
-    'This small program on your computer connects to ChatGPT, OpenAI or Claude and keeps your sign-in details safe.',
+    'This small program on your computer connects your ChatGPT or Claude plan and keeps your sign-in details safe. API keys work without it.',
   states: {
     checking: 'Checking…',
     permission: 'Permission needed',
@@ -32,7 +32,7 @@ export const helperEn: HelperText = {
   openWizard: 'Open setup wizard',
   uninstallTitle: 'How to uninstall',
   uninstallBody: (flag) =>
-    `This command removes the helper app from this computer and from all browsers. To also sign out of ChatGPT and delete saved keys, add ${flag} at the end.`,
+    `This command removes the helper app from this computer and from all browsers. To also sign out of ChatGPT and delete its saved sign-in details, add ${flag} at the end.`,
   copy: 'Copy',
   copied: 'Copied',
 };

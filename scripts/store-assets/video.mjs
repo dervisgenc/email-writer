@@ -207,7 +207,7 @@ const titleCard = (icon) => `
 const endCard = (icon) => `
   <div class="lockup"><img src="${icon}" alt=""><span>Writehand</span></div>
   <h1>Write better emails in Outlook on the web</h1>
-  <p>ChatGPT plan · OpenAI API key · Claude Code &nbsp;|&nbsp; Free and open source</p>
+  <p>API key · ChatGPT plan · Claude Code &nbsp;|&nbsp; Free and open source</p>
   <div class="url">github.com/dervisgenc/writehand</div>`;
 
 /** The video's flow. Each part opens with a caption; it clicks and types like a user. */

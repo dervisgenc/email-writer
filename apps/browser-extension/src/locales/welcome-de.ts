@@ -4,26 +4,37 @@ import type { WelcomeText } from './extension-text';
 
 export const welcomeDe: WelcomeText = {
   title: `Willkommen bei ${PRODUCT_NAME}`,
-  subtitle: 'In vier kurzen Schritten eingerichtet',
+  subtitle: 'In drei kurzen Schritten eingerichtet',
   stepsLabel: 'Einrichtungsschritte',
-  steps: ['Willkommen', 'Hilfs-App', 'Verbindung', 'Ausprobieren'],
+  steps: ['Willkommen', 'Verbindung', 'Ausprobieren'],
   back: 'Zurück',
   next: 'Weiter',
   intro: {
-    title: 'Warum eine Hilfs-App?',
-    lead: `${PRODUCT_NAME} arbeitet in Outlook im Web. Eine kleine Hilfs-App auf Ihrem Computer übernimmt, was eine Browsererweiterung allein nicht kann.`,
-    reasons: [
-      'Die Anmeldung mit ChatGPT braucht eine Rücksprungadresse auf Ihrem Computer, die eine Erweiterung nicht bereitstellen kann.',
-      'Ihre Anmeldedaten und API-Schlüssel bleiben geschützt auf Ihrem Computer, nicht im Browser.',
-      'Sie ist Open Source: Sie können jede Zeile ihres Codes lesen.',
-    ],
+    title: 'Zwei Wege zur Verbindung',
+    lead: `${PRODUCT_NAME} arbeitet in Outlook im Web und schreibt mit dem KI-Anbieter Ihrer Wahl. Wählen Sie im nächsten Schritt, was zu Ihnen passt; Sie können es jederzeit ändern.`,
+    apiKey: {
+      title: 'Ihr eigener API-Schlüssel',
+      points: [
+        'Funktioniert direkt im Browser; nichts muss installiert werden.',
+        'Groq und OpenRouter bieten kostenlose Modelle; OpenAI wird nach Nutzung bezahlt.',
+        'Der Schlüssel wird verschlüsselt in diesem Browser gespeichert und nur an seinen Anbieter gesendet.',
+      ],
+    },
+    plan: {
+      title: 'Ihr ChatGPT- oder Claude-Plan',
+      points: [
+        'Nutzt Ihr vorhandenes Abo: ChatGPT Plus oder Pro oder Claude über Claude Code.',
+        'Benötigt eine kleine Hilfs-App auf diesem Computer, installiert mit einem Befehl und ohne Administratorrechte.',
+        'Ihre Anmeldung bleibt auf diesem Computer, außerhalb des Browsers. Die Hilfs-App ist Open Source.',
+      ],
+    },
     source: 'Quellcode auf GitHub',
-    doesTitle: 'Was sie tut',
+    doesTitle: `Was ${PRODUCT_NAME} tut`,
     does: [
       'Sendet den von Ihnen gewählten Text an den von Ihnen gewählten Anbieter – nur auf Ihre Anforderung.',
-      'Hält Ihre Verbindung zu ChatGPT, OpenAI oder Claude.',
+      'Zeigt jedes Ergebnis zuerst als Vorschau; Ihr Entwurf ändert sich nur mit Ihrer Zustimmung.',
     ],
-    doesNotTitle: 'Was sie nie tut',
+    doesNotTitle: `Was ${PRODUCT_NAME} nie tut`,
     doesNot: [
       'E-Mails senden.',
       'Ihr Postfach im Hintergrund lesen.',
@@ -32,7 +43,7 @@ export const welcomeDe: WelcomeText = {
   },
   install: {
     title: 'Hilfs-App installieren',
-    lead: 'Ein Befehl installiert sie für Ihr Benutzerkonto. Administratorrechte sind nicht nötig.',
+    lead: 'Diese Methode benötigt eine kleine Hilfs-App auf diesem Computer. Ein Befehl installiert sie für Ihr Benutzerkonto; Administratorrechte sind nicht nötig.',
     system: 'Ihr System',
     command: 'Installationsbefehl',
     terminal: {

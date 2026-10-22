@@ -6,21 +6,22 @@ import {
 import {
   AiFailure,
   failureCode,
-  PLAN_SCOPE,
   type createOpenAiOAuth,
   type createOpenAiProvider,
+  type OpenAiConnection,
 } from '@writehand/ai-openai';
 import {
   aiAccountLabelSchema,
-  type AiCommand,
   type AiInput,
   type AiModel,
-  type AiStatus,
   type ErrorCode,
+  type HelperCommand,
+  type HelperStatus,
 } from '@writehand/contracts';
 
 import type { CredentialState, CredentialStore } from './credential-store';
 import { sameAccountLabel } from './account-label';
+import { accountIdOf, findAccount, planEnabled, signInOf } from './accounts';
 import { createSignIn, credentialsFrom } from './sign-in';
 
 export function createAiService(deps: {
@@ -54,16 +55,11 @@ export function createAiService(deps: {
   const stopRequests = () => {
     for (const abort of running.values()) abort.abort();
   };
-  /** OpenAI credentials; the Claude Code method never passes through here. */
+  /** The active ChatGPT account's credentials; the Claude Code method never passes through here. */
   const credential = async () => {
     const result = await deps.store.update(async (state) => {
       if (state.mode === 'claude-code') return null;
-      if (state.mode === 'api-key') {
-        return state.apiKey
-          ? { token: state.apiKey, key: 'api-key', mode: state.mode, model: state.apiModel }
-          : null;
-      }
-      const account = state.accounts.find((item) => item.clientId === state.activeAccountId);
+      const account = findAccount(state.accounts, state.activeAccountId);
       if (!account?.credentials) return null;
       if (account.credentials.expiresAt < Date.now() + 60_000) {
         if (!account.credentials.refreshToken) {
@@ -85,13 +81,12 @@ export function createAiService(deps: {
           throw caught;
         }
       }
-      if (!account.credentials.scopes.includes(PLAN_SCOPE)) throw new AiFailure('AI_PLAN_REQUIRED');
-      return {
-        token: account.credentials.accessToken,
-        key: account.clientId,
-        mode: 'chatgpt' as const,
-        model: account.model,
-      };
+      if (!planEnabled(account)) throw new AiFailure('AI_PLAN_REQUIRED');
+      const token = account.credentials.accessToken;
+      const connection: OpenAiConnection = account.codex
+        ? { kind: 'codex', token, workspaceId: account.codex.workspaceId }
+        : { kind: 'chatgpt', token };
+      return { connection, key: accountIdOf(account), model: account.model };
     });
     if (result === null) throw new AiFailure('AI_NOT_CONNECTED');
     return result;
@@ -102,23 +97,18 @@ export function createAiService(deps: {
     catalogKey = null;
     const auth = await credential();
     catalogAttemptKey = auth.key;
-    const available = await deps.provider.listModels(auth.token, auth.mode);
+    const available = await deps.provider.listModels(auth.connection);
     if (available.length === 0) throw new AiFailure('AI_MODEL_UNAVAILABLE');
     await deps.store.update((state) => {
       // Do not install a catalog fetched for an account that is no longer selected.
-      if (state.mode !== auth.mode || (auth.mode === 'chatgpt' && state.activeAccountId !== auth.key)) return;
+      if (state.mode !== 'chatgpt' || state.activeAccountId !== auth.key) return;
       models = available;
       catalogKey = auth.key;
-      const model = available.some((item) => item.id === auth.model)
-        ? auth.model
-        : auth.mode === 'chatgpt'
-          ? (available[0]?.id ?? null)
-          : null;
-      if (state.mode === 'api-key') state.apiModel = model;
-      else {
-        const account = state.accounts.find((item) => item.clientId === auth.key);
-        if (account) account.model = model;
-      }
+      const account = findAccount(state.accounts, auth.key);
+      if (account)
+        account.model = available.some((item) => item.id === auth.model)
+          ? auth.model
+          : (available[0]?.id ?? null);
     });
   };
   const refreshQuietly = async () => {
@@ -132,14 +122,11 @@ export function createAiService(deps: {
   const signIn = createSignIn({ ...deps, onComplete: refreshQuietly });
 
   const usage = (state: CredentialState) => {
-    const active = state.accounts.find((item) => item.clientId === state.activeAccountId);
+    const active = findAccount(state.accounts, state.activeAccountId);
     return {
       active,
       key: state.mode === 'chatgpt' ? state.activeAccountId : state.mode,
-      connected:
-        state.mode === 'api-key'
-          ? state.apiKey !== null
-          : state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE),
+      connected: state.mode === 'chatgpt' && active !== undefined && planEnabled(active),
     };
   };
 
@@ -149,21 +136,17 @@ export function createAiService(deps: {
       ? (state.claudeModel as string)
       : DEFAULT_CLAUDE_CODE_MODEL;
 
-  const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): AiStatus => {
+  const describe = (state: CredentialState, claude: ClaudeCodeStatus | null): HelperStatus => {
     const { active, key, connected } = usage(state);
     const claudeMode = state.mode === 'claude-code';
-    const selectedModel = claudeMode
-      ? claudeModelOf(state)
-      : state.mode === 'api-key'
-        ? state.apiModel
-        : (active?.model ?? null);
+    const selectedModel = claudeMode ? claudeModelOf(state) : (active?.model ?? null);
     // Claude Code resolves model aliases itself; there is no account catalog to load.
     const available = claudeMode ? [...deps.claude.models] : key === catalogKey ? models : [];
     const usable = claudeMode
       ? claude?.installed === true && claude.loggedIn
       : connected && key === catalogKey;
     // An installation that cannot be started safely is explained through the error field.
-    let claudeCode: AiStatus['claudeCode'] = null;
+    let claudeCode: HelperStatus['claudeCode'] = null;
     let claudeProblem: ErrorCode | null = null;
     if (claudeMode && claude) {
       const { problem, ...view } = claude;
@@ -173,27 +156,27 @@ export function createAiService(deps: {
     return {
       mode: state.mode,
       accounts: state.accounts.map((account) => ({
-        id: account.clientId,
+        id: accountIdOf(account),
         label: account.label,
         email: account.email,
         verified: account.subject !== null,
         connected: account.subject !== null && account.credentials !== null,
-        planEnabled: account.credentials?.scopes.includes(PLAN_SCOPE) ?? false,
+        planEnabled: planEnabled(account),
+        signIn: signInOf(account),
       })),
       activeAccountId: state.activeAccountId,
-      apiKeyConfigured: state.apiKey !== null,
       models: available,
       selectedModel,
       ready: usable && !signIn.pending() && available.some((model) => model.id === selectedModel),
       signingIn: signIn.pending(),
       needsPlanAcknowledgement:
-        state.mode === 'chatgpt' && !!active?.credentials?.scopes.includes(PLAN_SCOPE) && !active.welcomed,
+        state.mode === 'chatgpt' && active !== undefined && planEnabled(active) && !active.welcomed,
       claudeCode,
       error: signIn.error() ?? lastError ?? claudeProblem,
     };
   };
 
-  const status = async (): Promise<AiStatus> => {
+  const status = async (): Promise<HelperStatus> => {
     const state = await deps.store.read();
     if (state.mode === 'claude-code') return describe(state, await claudeStatus());
     const { key, connected } = usage(state);
@@ -239,7 +222,7 @@ export function createAiService(deps: {
 
   return {
     status,
-    async command(command: AiCommand): Promise<AiStatus> {
+    async command(command: HelperCommand): Promise<HelperStatus> {
       if (command.action === 'cancel-sign-in') {
         signIn.cancel();
         return status();
@@ -262,22 +245,19 @@ export function createAiService(deps: {
         if (command.action !== 'acknowledge-plan' && command.action !== 'rename-account') stopRequests();
         switch (command.action) {
           case 'connect':
-            await signIn.start(command.accountId);
+            await signIn.start(command.accountId, command.signIn);
             break;
           case 'select-account':
             {
-              const saved = (await deps.store.read()).accounts.find(
-                (account) => account.clientId === command.accountId,
-              );
+              const saved = findAccount((await deps.store.read()).accounts, command.accountId);
               if (!saved) throw new AiFailure('AI_NOT_CONNECTED');
               if (!saved.credentials || !saved.subject) {
-                await signIn.start(saved.clientId);
+                await signIn.start(command.accountId);
                 break;
               }
             }
             await deps.store.update((state) => {
-              if (!state.accounts.some((account) => account.clientId === command.accountId))
-                throw new AiFailure('AI_NOT_CONNECTED');
+              if (!findAccount(state.accounts, command.accountId)) throw new AiFailure('AI_NOT_CONNECTED');
               state.activeAccountId = command.accountId;
               state.mode = 'chatgpt';
             });
@@ -308,43 +288,17 @@ export function createAiService(deps: {
             if (!models.some((model) => model.id === command.model))
               throw new AiFailure('AI_MODEL_UNAVAILABLE');
             await deps.store.update((state) => {
-              if (state.mode === 'api-key') state.apiModel = command.model;
-              else {
-                const account = state.accounts.find((item) => item.clientId === state.activeAccountId);
-                if (account) account.model = command.model;
-              }
+              const account = findAccount(state.accounts, state.activeAccountId);
+              if (account) account.model = command.model;
             });
             break;
           }
-          case 'save-api-key': {
-            const available = await deps.provider.listModels(command.apiKey, 'api-key');
-            await deps.store.update((state) => {
-              state.apiKey = command.apiKey;
-              state.mode = 'api-key';
-              state.apiModel = null;
-            });
-            models = available;
-            catalogKey = 'api-key';
-            break;
-          }
-          case 'clear-api-key':
-            await deps.store.update((state) => {
-              state.apiKey = null;
-              state.apiModel = null;
-            });
-            models = [];
-            catalogKey = null;
-            break;
           case 'rename-account':
             await deps.store.update((state) => {
-              const account = state.accounts.find((item) => item.clientId === command.accountId);
+              const account = findAccount(state.accounts, command.accountId);
               if (!account) throw new AiFailure('AI_NOT_CONNECTED');
               const label = aiAccountLabelSchema.parse(command.label);
-              if (
-                state.accounts.some(
-                  (item) => item.clientId !== account.clientId && sameAccountLabel(item.label, label),
-                )
-              )
+              if (state.accounts.some((item) => item !== account && sameAccountLabel(item.label, label)))
                 throw new AiFailure('AI_ACCOUNT_NAME_TAKEN');
               account.label = label;
               account.customLabel = true;
@@ -353,7 +307,7 @@ export function createAiService(deps: {
           case 'disconnect':
           case 'remove-account':
             await deps.store.update(async (state) => {
-              const account = state.accounts.find((item) => item.clientId === command.accountId);
+              const account = findAccount(state.accounts, command.accountId);
               if (!account) throw new AiFailure('AI_NOT_CONNECTED');
               const refresh = account.credentials?.refreshToken;
               if (
@@ -363,7 +317,7 @@ export function createAiService(deps: {
                 lastError = 'AI_REVOKE_UNCONFIRMED';
               account.credentials = null;
               if (command.action === 'remove-account') {
-                state.accounts = state.accounts.filter((item) => item.clientId !== command.accountId);
+                state.accounts = state.accounts.filter((item) => item !== account);
                 if (state.activeAccountId === command.accountId) state.activeAccountId = null;
               }
             });
@@ -374,7 +328,7 @@ export function createAiService(deps: {
             break;
           case 'acknowledge-plan':
             await deps.store.update((state) => {
-              const active = state.accounts.find((item) => item.clientId === state.activeAccountId);
+              const active = findAccount(state.accounts, state.activeAccountId);
               if (active) active.welcomed = true;
             });
             break;
@@ -404,7 +358,7 @@ export function createAiService(deps: {
         if (!auth.model || !models.some((model) => model.id === auth.model))
           throw new AiFailure('AI_MODEL_UNAVAILABLE');
         abort.signal.throwIfAborted();
-        return { text: await deps.provider.generate(input, auth.model, auth.token, abort.signal) };
+        return { text: await deps.provider.generate(input, auth.model, auth.connection, abort.signal) };
       } finally {
         clearTimeout(timer);
         running.delete(generationId);

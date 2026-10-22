@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { aiAccountLabelSchema, type AiCommand, type AiStatus } from '@writehand/contracts';
+import { aiAccountLabelSchema, type AiCommand, type HelperStatus } from '@writehand/contracts';
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue';
 import type { AiText } from '../ai-text';
 
 const props = defineProps<{
-  account: AiStatus['accounts'][number];
+  account: HelperStatus['accounts'][number];
   text: AiText;
   busy: boolean;
 }>();

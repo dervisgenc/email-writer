@@ -1,14 +1,13 @@
 import { AiConnectionGuide, AiConnectionSettings } from '@writehand/ui';
-import type { AiStatus } from '@writehand/contracts';
+import type { AiMode, AiStatus, ApiKeyStatus, HelperStatus } from '@writehand/contracts';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { tr } from '../../../apps/browser-extension/src/locales/tr';
 
-const disconnected: AiStatus = {
+const disconnected: HelperStatus = {
   mode: 'chatgpt',
   accounts: [],
   activeAccountId: null,
-  apiKeyConfigured: false,
   models: [],
   selectedModel: null,
   ready: false,
@@ -17,9 +16,36 @@ const disconnected: AiStatus = {
   claudeCode: null,
   error: null,
 };
-const render = (status: AiStatus | null) =>
+const noApiKey: ApiKeyStatus = {
+  provider: 'groq',
+  savedKeys: [],
+  access: false,
+  models: [],
+  selectedModel: null,
+};
+/** The connection as the background reports it for a helper app method. */
+const viaHelper = (helper: HelperStatus): AiStatus => ({
+  mode: helper.mode,
+  ready: helper.ready,
+  error: helper.error,
+  helper,
+  apiKey: noApiKey,
+});
+const withApiKey = (apiKey: Partial<ApiKeyStatus> = {}, ready = false): AiStatus => ({
+  mode: 'api-key',
+  ready,
+  error: null,
+  helper: null,
+  apiKey: { ...noApiKey, ...apiKey },
+});
+const render = (status: HelperStatus | AiStatus | null) =>
   mount(AiConnectionSettings, {
-    props: { status, text: tr.ui.ai, busy: false, error: null },
+    props: {
+      status: status !== null && 'accounts' in status ? viaHelper(status) : status,
+      text: tr.ui.ai,
+      busy: false,
+      error: null,
+    },
   });
 
 describe('AI connection settings', () => {
@@ -61,12 +87,13 @@ describe('AI connection settings', () => {
     const input = wrapper.get('input[type=text]');
     // Polling pending sign-in must not discard an in-progress name edit.
     await input.setValue('İş');
+    const polled = wrapper.props('status')!.helper!;
     await wrapper.setProps({
-      status: {
-        ...wrapper.props('status')!,
+      status: viaHelper({
+        ...polled,
         signingIn: true,
-        accounts: wrapper.props('status')!.accounts.map((account) => ({ ...account })),
-      },
+        accounts: polled.accounts.map((account) => ({ ...account })),
+      }),
     });
     expect((wrapper.get('input[type=text]').element as HTMLInputElement).value).toBe('İş');
     await input.setValue('   ');
@@ -183,6 +210,41 @@ describe('AI connection settings', () => {
     expect(wrapper.emitted('command')?.[0]).toEqual([{ action: 'connect', accountId: null }]);
     wrapper.unmount();
   });
+  it('offers the Codex sign-in for work accounts, also while another sign-in is pending', async () => {
+    const wrapper = render({ ...disconnected, signingIn: true });
+    const codex = wrapper.findAll('button').find((button) => button.text() === tr.ui.ai.codexConnect)!;
+    expect(codex.attributes('disabled')).toBeUndefined();
+    expect(wrapper.text()).toContain(tr.ui.ai.codexHint);
+    await codex.trigger('click');
+    expect(wrapper.emitted('command')?.[0]).toEqual([
+      { action: 'connect', accountId: null, signIn: 'codex' },
+    ]);
+    wrapper.unmount();
+  });
+  it('marks Codex connections and explains how they are billed and ended', async () => {
+    const work = {
+      id: 'codex_work',
+      label: 'İş',
+      email: 'w@example.test',
+      verified: true,
+      connected: true,
+      planEnabled: true,
+      signIn: 'codex' as const,
+    };
+    const wrapper = render({
+      ...disconnected,
+      activeAccountId: 'codex_work',
+      // Helper apps released before the Codex sign-in do not report `signIn`.
+      accounts: [{ ...work, id: 'oaiapp_personal', label: 'Kişisel', signIn: undefined }, work],
+    });
+    const options = wrapper.findAll('option').map((option) => option.text());
+    expect(options).toContain(`İş · w@example.test · ${tr.ui.ai.codexSignIn}`);
+    expect(options).toContain('Kişisel · w@example.test');
+    expect(wrapper.text()).toContain(tr.ui.ai.codexConnectionHelp);
+    await wrapper.get('.ew-select').setValue('oaiapp_personal');
+    expect(wrapper.text()).toContain(tr.ui.ai.connectionHelp);
+    wrapper.unmount();
+  });
   it.each([
     [false, tr.ui.ai.planDisabled],
     [true, tr.ui.ai.generationUnavailable],
@@ -215,18 +277,7 @@ describe('AI connection settings', () => {
     expect(wrapper.find('a').attributes('href')).toBe('https://chatgpt.com/settings/usage');
     wrapper.unmount();
   });
-  it('clears API key input immediately after sending it to the connection', async () => {
-    const wrapper = render({ ...disconnected, mode: 'api-key' });
-    expect(wrapper.text()).toContain('ayrıca ücretlendirilir');
-    await wrapper.get('input[type=password]').setValue('sk-private-test-key');
-    await wrapper.get('form').trigger('submit');
-    expect(wrapper.emitted('command')?.[0]).toEqual([
-      { action: 'save-api-key', apiKey: 'sk-private-test-key' },
-    ]);
-    expect((wrapper.get('input[type=password]').element as HTMLInputElement).value).toBe('');
-    wrapper.unmount();
-  });
-  it('without the helper app shows that setup is needed, without developer instructions', () => {
+  it('without the background shows that setup is needed, without developer instructions', () => {
     const wrapper = render(null);
     expect(wrapper.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusSetup);
     expect(wrapper.find('details').exists()).toBe(false);
@@ -235,11 +286,24 @@ describe('AI connection settings', () => {
     wrapper.unmount();
   });
 
-  it('marks ChatGPT as recommended and Claude as experimental', () => {
+  it.each(['chatgpt', 'claude-code'] as const)(
+    'shows the helper slot in place of %s settings while the helper app is missing',
+    (mode: AiMode) => {
+      const wrapper = render({ ...withApiKey(), mode });
+      expect(wrapper.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusSetup);
+      expect(wrapper.text()).toContain(tr.ui.ai.helperRequired);
+      expect(wrapper.text()).not.toContain('Continue with ChatGPT');
+      wrapper.unmount();
+    },
+  );
+
+  it('marks ChatGPT as recommended, Claude as experimental and both as needing the helper app', () => {
     const wrapper = render(disconnected);
     const methods = wrapper.findAll('.ew-method');
     expect(methods[0]!.text()).toContain(tr.ui.ai.recommended);
+    expect(methods[1]!.text()).not.toContain(tr.ui.ai.needsHelper);
     expect(methods[2]!.text()).toContain(tr.ui.ai.experimental);
+    expect(methods.filter((method) => method.text().includes(tr.ui.ai.needsHelper))).toHaveLength(2);
     wrapper.unmount();
   });
   describe('Claude plan method', () => {
@@ -311,7 +375,7 @@ describe('AI connection settings', () => {
     });
   });
   it('shows a status badge: ready, setup needed or connection needed', () => {
-    const ready = render({ ...disconnected, mode: 'api-key', apiKeyConfigured: true, ready: true });
+    const ready = render(withApiKey({ savedKeys: ['groq'], access: true, selectedModel: 'm' }, true));
     expect(ready.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusReady);
     expect(ready.get('.ew-status-pill').attributes('data-tone')).toBe('success');
     ready.unmount();
@@ -321,6 +385,95 @@ describe('AI connection settings', () => {
     const signedOut = render(disconnected);
     expect(signedOut.get('.ew-status-pill').text()).toBe(tr.ui.ai.statusAction);
     signedOut.unmount();
+  });
+});
+
+describe('API key method', () => {
+  it('offers the providers without the helper app and links to the chosen provider’s key page', async () => {
+    const wrapper = render(withApiKey());
+    expect(wrapper.findAll('.ew-segmented__option').map((option) => option.text())).toEqual([
+      'Groq',
+      'OpenRouter',
+      'OpenAI',
+    ]);
+    expect(wrapper.text()).toContain(tr.ui.ai.providerHints.groq);
+    expect(wrapper.get('a.ew-ai-settings__usage').attributes('href')).toBe('https://console.groq.com/keys');
+    expect(wrapper.get('input[type=password]').attributes('placeholder')).toBe('gsk_…');
+    expect(wrapper.text()).toContain(tr.ui.ai.apiPrivacy('Groq'));
+    await wrapper.get('input[type=radio][value="openrouter"]').setValue(true);
+    expect(wrapper.emitted('command')).toEqual([[{ action: 'select-api-provider', provider: 'openrouter' }]]);
+    wrapper.unmount();
+  });
+
+  it('sends the key once with its provider, clears the field and never shows a saved key', async () => {
+    const wrapper = render(withApiKey());
+    const field = wrapper.get('input[type=password]');
+    await field.setValue('  gsk_private-test-key  ');
+    await wrapper.get('form').trigger('submit');
+    expect(wrapper.emitted('command')).toEqual([
+      [{ action: 'save-api-key', provider: 'groq', apiKey: 'gsk_private-test-key' }],
+    ]);
+    expect((field.element as HTMLInputElement).value).toBe('');
+    await wrapper.setProps({
+      status: withApiKey({ savedKeys: ['groq'], access: true, selectedModel: 'openai/gpt-oss-120b' }, true),
+    });
+    expect(wrapper.text()).toContain(tr.ui.ai.keySaved('Groq'));
+    expect(wrapper.text()).toContain(tr.ui.ai.replaceKeyHint);
+    expect(wrapper.html()).not.toContain('gsk_private-test-key');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === tr.ui.ai.removeKey)!
+      .trigger('click');
+    expect(wrapper.emitted('command')?.[1]).toEqual([{ action: 'remove-api-key', provider: 'groq' }]);
+    wrapper.unmount();
+  });
+
+  it('does not send a key in another provider’s format, and clears a typed key when the provider changes', async () => {
+    const wrapper = render(withApiKey());
+    await wrapper.get('input[type=password]').setValue('sk-or-v1-private-test-key');
+    expect(wrapper.text()).toContain(tr.ui.ai.keyFromOtherProvider('OpenRouter'));
+    expect(wrapper.get('button[type=submit]').attributes('disabled')).toBeDefined();
+    await wrapper.get('form').trigger('submit');
+    expect(wrapper.emitted('command')).toBeUndefined();
+    await wrapper.setProps({ status: withApiKey({ provider: 'openrouter' }) });
+    expect((wrapper.get('input[type=password]').element as HTMLInputElement).value).toBe('');
+    wrapper.unmount();
+  });
+
+  it('lists free models in their own group and changes the model', async () => {
+    const wrapper = render(
+      withApiKey(
+        {
+          provider: 'openrouter',
+          savedKeys: ['openrouter'],
+          access: true,
+          models: [
+            { id: 'vendor/free:free', label: 'Vendor (free)', free: true },
+            { id: 'vendor/paid', label: 'Vendor', free: false },
+          ],
+          selectedModel: 'vendor/free:free',
+        },
+        true,
+      ),
+    );
+    expect(wrapper.findAll('optgroup').map((group) => group.attributes('label'))).toEqual([
+      tr.ui.ai.freeModels,
+      tr.ui.ai.paidModels,
+    ]);
+    await wrapper.get('select').setValue('vendor/paid');
+    expect(wrapper.emitted('command')).toEqual([[{ action: 'set-model', model: 'vendor/paid' }]]);
+    wrapper.unmount();
+  });
+
+  it('asks for access again when the browser no longer lets the extension reach the provider', async () => {
+    const wrapper = render(withApiKey({ savedKeys: ['groq'], access: false }));
+    expect(wrapper.text()).toContain(tr.ui.ai.accessNeeded('Groq'));
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === tr.ui.ai.grantAccess)!
+      .trigger('click');
+    expect(wrapper.emitted('grant-access')).toEqual([['groq']]);
+    wrapper.unmount();
   });
 });
 
@@ -345,7 +498,11 @@ describe('AI connection guide', () => {
     // `claude` and `/login` are shown as commands.
     expect(claude.findAll('code').map((code) => code.text())).toEqual(['claude', '/login']);
     expect(claude.get('a').attributes('href')).toBe('https://code.claude.com/docs/en/setup');
-    expect(items[1]!.get('a').attributes('href')).toBe('https://platform.openai.com/api-keys');
+    expect(items[1]!.findAll('a').map((link) => link.attributes('href'))).toEqual([
+      'https://console.groq.com/keys',
+      'https://openrouter.ai/settings/keys',
+      'https://platform.openai.com/api-keys',
+    ]);
     expect(items[0]!.text()).toContain('Plus veya Pro');
     expect(items[3]!.text()).toContain('Windows');
     wrapper.unmount();

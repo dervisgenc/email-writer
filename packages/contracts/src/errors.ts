@@ -43,12 +43,22 @@ export const ERROR_CODES = [
   'AI_NOT_ELIGIBLE',
   'AI_ACCESS_DENIED',
   'AI_LIMIT_REACHED',
+  /** The ChatGPT workspace or the OpenAI API account has no credits left; a plan limit has not been reached. */
+  'AI_CREDITS_EXHAUSTED',
   'AI_UNAVAILABLE',
   'AI_NETWORK',
   'AI_MODEL_UNAVAILABLE',
   'AI_RESPONSE_INCOMPLETE',
   'AI_REVOKE_UNCONFIRMED',
   'AI_BUSY',
+  /** The provider did not accept the API key. */
+  'AI_KEY_INVALID',
+  /** The browser does not let the extension reach the API key's provider (optional host permission). */
+  'AI_PROVIDER_ACCESS_REQUIRED',
+  /** The browser could not store or read the API key protected. */
+  'AI_KEY_STORAGE_FAILED',
+  /** The request is larger than the provider allows for the model or plan (e.g. a free tier's tokens per minute). */
+  'AI_REQUEST_TOO_LARGE',
   'AI_CLAUDE_NOT_INSTALLED',
   'AI_CLAUDE_NOT_LOGGED_IN',
   /** Claude Code exists only as a command script (claude.cmd) that cannot start safely without a shell. */

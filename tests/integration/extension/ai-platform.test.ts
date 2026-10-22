@@ -1,4 +1,6 @@
 import {
+  appError,
+  err,
   PROTOCOL_VERSION,
   type AiInput,
   type PreparedAction,
@@ -14,6 +16,7 @@ import {
   type NativePort,
 } from '../../../apps/browser-extension/src/platform/native-client';
 import { createRequest } from '../../../apps/browser-extension/src/platform/runtime-messaging';
+import { createTestConnection } from './fake-ai';
 
 afterEach(() => vi.useRealTimers());
 
@@ -58,23 +61,15 @@ describe('AI message boundaries', () => {
   });
 
   it('restricts cancellation to the tab that started a generation', async () => {
-    let finish!: (value: unknown) => void;
-    const sendNative = vi
-      .fn<(request: RuntimeRequest) => Promise<unknown>>()
-      .mockImplementation((request) => {
-        if (request.type === 'AI_GENERATE')
-          return new Promise((resolve) => {
-            finish = (payload) =>
-              resolve({ protocolVersion: PROTOCOL_VERSION, requestId: request.requestId, ok: true, payload });
-          });
-        return Promise.resolve({
-          protocolVersion: PROTOCOL_VERSION,
-          requestId: request.requestId,
-          ok: true,
-          payload: { cancelled: true },
-        });
-      });
-    const handlers = createAiHandlers({ sendNative, openOptions: vi.fn() });
+    const { connection, helper, providers } = createTestConnection();
+    await connection.command({ action: 'save-api-key', provider: 'groq', apiKey: 'good-groq-key-0123' });
+    providers.groq.generate.mockImplementationOnce(
+      (_input, _model, _key, signal) =>
+        new Promise((resolve) =>
+          signal.addEventListener('abort', () => resolve(err(appError('READ_CANCELLED')))),
+        ),
+    );
+    const handlers = createAiHandlers({ connection, helper: helper.client, openOptions: vi.fn() });
     const owner = { tab: { id: 1 }, url: 'https://outlook.live.com/mail/' };
     const generationId = crypto.randomUUID();
     const result = handlers.AI_GENERATE!(
@@ -94,6 +89,7 @@ describe('AI message boundaries', () => {
       },
       owner,
     );
+    await vi.waitFor(() => expect(providers.groq.generate).toHaveBeenCalled());
     expect(await handlers.AI_CANCEL!({ generationId }, { ...owner, tab: { id: 2 } })).toEqual({
       ok: true,
       value: { cancelled: false },
@@ -102,8 +98,23 @@ describe('AI message boundaries', () => {
       ok: true,
       value: { cancelled: true },
     });
-    finish({ text: 'Complete' });
-    await result;
+    expect(await result).toEqual({ ok: false, error: { code: 'READ_CANCELLED' } });
+  });
+
+  it('answers status and summary from the connection and helper app requests from the helper app', async () => {
+    const { connection, helper } = createTestConnection();
+    const handlers = createAiHandlers({ connection, helper: helper.client, openOptions: vi.fn() });
+    const sender = { id: 'ours', url: 'chrome-extension://ours/options.html' };
+    expect(await handlers.AI_SUMMARY!({}, sender)).toEqual({
+      ok: true,
+      value: { mode: 'api-key', ready: false, selectedModel: null, provider: 'groq' },
+    });
+    expect(await handlers.HOST_INFO!({}, sender)).toEqual({
+      ok: false,
+      error: { code: 'AI_HOST_UNAVAILABLE' },
+    });
+    // Before any choice, the summary asks the helper app for its method; then the info is forwarded.
+    expect(helper.requests.map((request) => request.type)).toEqual(['AI_STATUS', 'HOST_INFO']);
   });
 
   it('correlates real results with the local action and sends only selected text', async () => {

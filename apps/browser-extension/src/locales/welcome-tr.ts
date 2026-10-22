@@ -4,24 +4,35 @@ import type { WelcomeText } from './extension-text';
 
 export const welcomeTr: WelcomeText = {
   title: 'Hoş geldiniz',
-  subtitle: `${PRODUCT_NAME} dört kısa adımda hazır`,
+  subtitle: `${PRODUCT_NAME} üç kısa adımda hazır`,
   stepsLabel: 'Kurulum adımları',
-  steps: ['Hoş geldiniz', 'Uygulama', 'Bağlantı', 'Deneyin'],
+  steps: ['Hoş geldiniz', 'Bağlantı', 'Deneyin'],
   back: 'Geri',
   next: 'Devam',
   intro: {
-    title: 'Neden yardımcı uygulama?',
-    lead: `${PRODUCT_NAME} Outlook Web’in içinde çalışır. Bir tarayıcı eklentisinin tek başına yapamadığı işi bilgisayarınızdaki küçük bir yardımcı uygulama yapar.`,
-    reasons: [
-      'ChatGPT ile giriş, bilgisayarınızda bir dönüş adresi ister; eklenti bunu sağlayamaz.',
-      'Oturum bilgileriniz ve API anahtarlarınız tarayıcıda değil, bilgisayarınızda korunur.',
-      'Açık kaynaktır: kodunun her satırını inceleyebilirsiniz.',
-    ],
+    title: 'Bağlanmanın iki yolu',
+    lead: `${PRODUCT_NAME} Outlook Web’in içinde çalışır ve seçtiğiniz AI sağlayıcısıyla yazar. Size uygun olanı sonraki adımda seçin; istediğiniz zaman değiştirebilirsiniz.`,
+    apiKey: {
+      title: 'Kendi API anahtarınız',
+      points: [
+        'Doğrudan tarayıcıda çalışır; hiçbir şey kurmanız gerekmez.',
+        'Groq ve OpenRouter ücretsiz modeller sunar; OpenAI kullandıkça ödenir.',
+        'Anahtar bu tarayıcıda şifreli saklanır ve yalnızca kendi sağlayıcısına gönderilir.',
+      ],
+    },
+    plan: {
+      title: 'ChatGPT veya Claude üyeliğiniz',
+      points: [
+        'Zaten sahip olduğunuz aboneliği kullanır: ChatGPT Plus veya Pro ya da Claude Code üzerinden Claude.',
+        'Bu bilgisayarda, tek komutla ve yönetici izni olmadan kurulan küçük bir yardımcı uygulama gerekir.',
+        'Oturumunuz tarayıcıda değil, bu bilgisayarda kalır. Yardımcı uygulama açık kaynaktır.',
+      ],
+    },
     source: 'GitHub’daki kaynak kodu',
     doesTitle: 'Ne yapar?',
     does: [
       'Siz istediğinizde, seçtiğiniz metni seçtiğiniz sağlayıcıya iletir.',
-      'ChatGPT, OpenAI veya Claude bağlantınızı saklar.',
+      'Her sonucu önce önizlemede gösterir; taslağınız yalnızca siz onaylayınca değişir.',
     ],
     doesNotTitle: 'Ne yapmaz?',
     doesNot: [
@@ -32,7 +43,7 @@ export const welcomeTr: WelcomeText = {
   },
   install: {
     title: 'Yardımcı uygulamayı kurun',
-    lead: 'Tek komut onu kullanıcı hesabınıza kurar. Yönetici izni gerekmez.',
+    lead: 'Bu yöntem için bilgisayarınızda küçük bir yardımcı uygulama gerekir. Tek komut onu kullanıcı hesabınıza kurar; yönetici izni gerekmez.',
     system: 'Sisteminiz',
     command: 'Kurulum komutu',
     terminal: {

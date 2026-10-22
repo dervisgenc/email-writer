@@ -268,7 +268,7 @@ export const de: ExtensionText = {
         'Die Identitätsantwort von OpenAI ließ sich nicht sicher prüfen. Das Konto wurde nicht verbunden (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'Die ChatGPT-Anmeldung wurde abgebrochen.',
       AI_POLICY_DENIED:
-        'Eine Organisationsrichtlinie blockiert diese ChatGPT-Verbindung. Bitten Sie die Administration Ihres Arbeitsbereichs, den Zugriff auf „Sign in with ChatGPT“ und die Planberechtigung zu prüfen; die Plugins-Berechtigung allein genügt nicht.',
+        'Eine Organisationsrichtlinie blockiert „Sign in with ChatGPT“ für diese App. ChatGPT-Business-Arbeitsbereiche haben derzeit keine Einstellung, um es zu erlauben; verwenden Sie stattdessen „Über Codex anmelden“. Bei Enterprise und Edu kann eine globale Administration die App in der OpenAI Admin Console unter „External access“ genehmigen.',
       AI_WORKSPACE_MISMATCH:
         'Diese Verbindung gehört zu einem anderen ChatGPT-Konto oder Arbeitsbereich. Fahren Sie mit dem Konto fort, das sie erstellt hat, oder wählen Sie „Anderes Konto oder anderen Arbeitsbereich hinzufügen“.',
       AI_ACCOUNT_NAME_TAKEN:
@@ -278,9 +278,11 @@ export const de: ExtensionText = {
       AI_NOT_ELIGIBLE:
         'OpenAI hat die Nutzung des ChatGPT-Plans für dieses Konto abgelehnt (subscription_sharing_user_not_eligible). Wenn Ihr Plus- oder Pro-Abo aktiv ist, wenden Sie sich mit diesem Code an den OpenAI-Support.',
       AI_ACCESS_DENIED:
-        'OpenAI hat den Zugriff auf diese Anfrage verweigert. Prüfen Sie App-Berechtigungen, Verbindungseinstellungen oder regionale Einschränkungen; dieser Fehler allein sagt nichts über die Abo-Berechtigung aus.',
+        'Der KI-Anbieter hat den Zugriff auf diese Anfrage verweigert. Prüfen Sie App-Berechtigungen, Verbindungseinstellungen oder regionale Einschränkungen; beim ChatGPT-Plan sagt dieser Fehler allein nichts über die Abo-Berechtigung aus.',
       AI_LIMIT_REACHED:
-        'Nutzungsgrenze erreicht. Bei ChatGPT öffnen Sie „Nutzung verwalten“; beim Claude-Plan versuchen Sie es nach dem Zurücksetzen der Grenze erneut; bei API-Schlüsseln prüfen Sie Ihre OpenAI-API-Limits.',
+        'Nutzungsgrenze erreicht. Bei ChatGPT sehen Sie unter „Nutzung verwalten“, wann sie zurückgesetzt wird; Arbeitsbereiche können auch mit Credits weitermachen. Beim Claude-Plan versuchen Sie es nach dem Zurücksetzen der Grenze erneut; bei einem API-Schlüssel warten Sie kurz oder prüfen Ihre Limits beim Anbieter.',
+      AI_CREDITS_EXHAUSTED:
+        'Keine Credits mehr. In einem ChatGPT-Arbeitsbereich können dessen Inhaber in den Abrechnungseinstellungen Credits hinzufügen oder das Ausgabenlimit erhöhen; bei einem API-Schlüssel laden Sie beim Anbieter Guthaben auf oder erhöhen das Ausgabenlimit.',
       AI_UNAVAILABLE:
         'Der KI-Dienst ist derzeit nicht verfügbar. Ihre Verbindung bleibt bestehen; versuchen Sie es später erneut.',
       AI_NETWORK:
@@ -292,6 +294,13 @@ export const de: ExtensionText = {
       AI_REVOKE_UNCONFIRMED:
         'Lokal abgemeldet; der Widerruf bei OpenAI ließ sich nicht bestätigen. Trennen Sie die App in den ChatGPT-Einstellungen.',
       AI_BUSY: 'Ein Vorgang der KI-Verbindung läuft. Warten Sie oder brechen Sie die Anmeldung ab.',
+      AI_KEY_INVALID:
+        'Der Anbieter hat diesen API-Schlüssel nicht akzeptiert. Prüfen Sie, ob Sie ihn vollständig kopiert haben und ob er noch aktiv ist, oder erstellen Sie einen neuen.',
+      AI_PROVIDER_ACCESS_REQUIRED: `${PRODUCT_NAME} braucht Ihre Erlaubnis, um sich mit dem Anbieter zu verbinden. Wählen Sie erneut „Schlüssel verbinden“ und erlauben Sie den Zugriff, wenn der Browser fragt.`,
+      AI_KEY_STORAGE_FAILED:
+        'Dieser Browser konnte den Schlüssel nicht sicher speichern oder lesen; es wurde nichts gespeichert. Prüfen Sie, ob der Browser Websitedaten für Erweiterungen behält, und versuchen Sie es erneut.',
+      AI_REQUEST_TOO_LARGE:
+        'Diese Anfrage ist größer, als der Anbieter für dieses Modell oder diesen Plan erlaubt. Entfernen Sie einige Kontextnachrichten, kürzen Sie den Text oder wählen Sie ein anderes Modell.',
       AI_CLAUDE_NOT_INSTALLED:
         'Claude Code wurde nicht gefunden. Installieren Sie Claude Code und führen Sie danach den Installationsbefehl der Hilfs-App erneut aus.',
       AI_CLAUDE_NOT_LOGGED_IN:
@@ -328,7 +337,7 @@ export const de: ExtensionText = {
     openSettings: 'Einstellungen',
     siteAccessMissing: 'Für diese Website wurde kein Websitezugriff gewährt.',
     developmentBuild: 'Entwicklungsversion',
-    setupNeeded: 'Die Hilfs-App ist noch nicht verbunden.',
+    setupNeeded: `Wählen Sie, wie sich ${PRODUCT_NAME} mit einem KI-Anbieter verbindet, um mit dem Schreiben zu beginnen.`,
     finishSetup: 'Einrichtung abschließen',
   },
   options: {
@@ -383,7 +392,8 @@ export const de: ExtensionText = {
     privacyPoints: [
       'Ihre Einstellungen werden nur auf diesem Gerät gespeichert.',
       'Geöffnete E-Mails bleiben nur, solange die Seite offen ist, im Arbeitsspeicher, um Kontext vorzuschlagen; sie werden nie auf die Festplatte geschrieben.',
-      'Text wird nur dann an den gewählten KI-Anbieter (OpenAI oder Anthropic) gesendet, wenn Sie „Überarbeiten“, „Übersetzen“ oder „Antwort schreiben“ wählen.',
+      'Text wird nur dann an den gewählten KI-Anbieter (OpenAI, Anthropic, Groq oder OpenRouter) gesendet, wenn Sie „Überarbeiten“, „Übersetzen“ oder „Antwort schreiben“ wählen.',
+      'Ein verbundener API-Schlüssel wird verschlüsselt in diesem Browser gespeichert und nur an seinen Anbieter gesendet.',
       'Ergebnisse erscheinen zuerst als Vorschau und werden nie ohne Ihre Zustimmung in Ihren Entwurf geschrieben.',
       `${PRODUCT_NAME} sendet nie E-Mails; das Senden bleibt immer Ihnen überlassen.`,
       'Solange die Update-Prüfung aktiv ist, fragt die Hilfs-App höchstens einmal täglich bei GitHub die neueste Versionsnummer ab; die Anfrage enthält keine E-Mails oder Kontodaten. Sie können sie auf der Karte der Hilfs-App ausschalten.',

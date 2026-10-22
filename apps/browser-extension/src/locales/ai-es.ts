@@ -4,18 +4,20 @@ import type { AiText } from '@writehand/ui';
 export const aiEs: AiText = {
   title: 'Conexión de IA',
   description:
-    'Escribe correos con tu plan de ChatGPT, tu propia clave de API de OpenAI o Claude Code en este equipo.',
+    'Escribe correos con tu propia clave de API de Groq, OpenRouter u OpenAI, tu plan de ChatGPT o Claude Code en este equipo.',
   chatgpt: 'Plan de ChatGPT',
-  apiKey: 'Clave de API de OpenAI',
+  apiKey: 'Clave de API',
   claudeCode: 'Plan de Claude',
   methodHints: {
-    chatgpt: 'Con tu plan Plus o Pro',
-    'api-key': 'Pago por uso',
+    chatgpt: 'Con tu plan Plus, Pro o Business',
+    'api-key': 'Groq, OpenRouter u OpenAI; también modelos gratuitos',
     'claude-code': 'Con Claude Code en este equipo',
   },
   methodLabel: 'Método de conexión',
   recommended: 'Recomendado',
   experimental: 'Experimental',
+  needsHelper: 'Necesita la aplicación auxiliar',
+  helperRequired: `Este método funciona en la aplicación auxiliar de ${PRODUCT_NAME}, que aún no está conectada. Instálala con el asistente de configuración o elige “Clave de API”, que funciona sin ella.`,
   statusReady: 'Listo',
   statusSetup: 'Falta la instalación',
   statusAction: 'Falta la conexión',
@@ -30,40 +32,45 @@ export const aiEs: AiText = {
     methods: {
       chatgpt: {
         title: 'Plan de ChatGPT',
-        summary: 'Genera texto con el uso incluido en tu plan ChatGPT Plus o Pro.',
+        summary: 'Genera texto con el uso incluido en tu plan de ChatGPT.',
         requirements: [
-          'Una suscripción ChatGPT Plus o Pro. Las cuentas gratuitas no permiten usar el plan.',
+          'Una suscripción ChatGPT Plus o Pro, o un espacio de trabajo Business, Enterprise o Edu. Las cuentas gratuitas no permiten usar el plan.',
           `La aplicación auxiliar de ${PRODUCT_NAME} en este equipo.`,
         ],
         steps: [
           'Elige “Plan de ChatGPT” como método.',
           'Elige “Continue with ChatGPT”. En la página que se abre, elige tu cuenta y permite el acceso.',
+          'En un espacio de trabajo Business, Enterprise o Edu, elige en su lugar “Iniciar sesión con Codex” y después el espacio de trabajo.',
           'Vuelve a esta página; la cuenta muestra “Conectado · Listo para generar texto”. Después elige un modelo.',
         ],
         notes: [
           'El uso se descuenta de los límites de tu plan de ChatGPT. Puedes seguirlo en ChatGPT → Configuración → Usage.',
           'Si acabas de mejorar tu plan, puede tardar unos minutos en activarse.',
-          'Por ahora OpenAI solo admite los planes Plus y Pro. En cuentas de trabajo (Business, Enterprise), una directiva de la organización puede bloquear la conexión.',
+          '“Continue with ChatGPT” admite por ahora los planes Plus y Pro; en cuentas de trabajo, una directiva de la organización lo bloquea. “Iniciar sesión con Codex” usa en su lugar el inicio de sesión de la aplicación Codex de OpenAI. Es experimental: OpenAI no lo documenta para otras aplicaciones y puede cambiarlo.',
+          'Con “Iniciar sesión con Codex”, el uso se descuenta de los límites de tu plan, que ChatGPT comparte con Codex y otras funciones de trabajo. En los espacios de trabajo Business, los créditos permiten seguir cuando se alcanza el límite semanal; sus propietarios los añaden en la configuración de facturación.',
           'Puedes quitar el acceso cuando quieras en ChatGPT → Configuración → Security and login → Sign in with ChatGPT.',
         ],
       },
       'api-key': {
-        title: 'Clave de API de OpenAI',
-        summary: 'Genera texto con tu propia cuenta de OpenAI Platform; pagas lo que usas.',
+        title: 'Clave de API',
+        summary:
+          'Genera texto con tu propia clave de Groq, OpenRouter u OpenAI, directamente desde este navegador. No necesitas la aplicación auxiliar.',
         requirements: [
-          'Una cuenta de OpenAI Platform y una clave de API.',
-          `La aplicación auxiliar de ${PRODUCT_NAME} en este equipo.`,
+          'Una clave de API de Groq, OpenRouter u OpenAI. El plan gratuito de Groq y los modelos gratuitos de OpenRouter no piden método de pago.',
         ],
         steps: [
-          'Crea una clave de API en OpenAI Platform.',
-          'Elige “Clave de API de OpenAI” como método, pega la clave y elige “Conectar clave”.',
-          'Elige un modelo de la lista.',
+          'Elige “Clave de API” como método y después el proveedor.',
+          'Crea una clave en el sitio del proveedor (enlaces abajo) y pégala.',
+          'Elige “Conectar clave” y permite que el navegador se conecte al proveedor.',
+          'Elige un modelo. Con Groq se selecciona por ti el modelo abierto gratuito de OpenAI openai/gpt-oss-120b.',
         ],
         notes: [
-          'El uso de la API es independiente de una suscripción de ChatGPT y lo factura OpenAI.',
-          'La clave se guarda solo en la aplicación auxiliar de este equipo y nunca se devuelve al navegador.',
+          'El plan gratuito de Groq tiene límites por minuto y por día. Una conversación larga puede superarlos; quita algunos mensajes del contexto o vuelve a intentarlo más tarde.',
+          'En OpenRouter, los modelos gratuitos aparecen primero. Tu configuración de privacidad de OpenRouter decide qué proveedores pueden recibir tu texto; algunos modelos gratuitos solo los ofrecen proveedores que pueden guardar las solicitudes.',
+          'El uso de pago lo factura el proveedor, aparte de cualquier suscripción de ChatGPT o Claude. Los modelos de OpenAI siempre son de pago, así que eliges tú el modelo.',
+          'La clave se guarda cifrada en este navegador y solo se envía a su proveedor. No se vuelve a mostrar; para cambiarla, conecta una clave nueva.',
+          'Cualquiera que pueda usar tu perfil del navegador puede generar texto con la clave guardada. Mejor usa una clave con límite de gasto y quítala en equipos compartidos.',
         ],
-        linkLabel: 'Crear una clave de API',
       },
       'claude-code': {
         title: 'Plan de Claude',
@@ -91,19 +98,26 @@ export const aiEs: AiText = {
     },
     helper: {
       title: '¿Qué es la aplicación auxiliar?',
-      summary: 'Una pequeña aplicación en tu equipo que necesitan todos los métodos.',
+      summary:
+        'Una pequeña aplicación en tu equipo que necesitan los planes de ChatGPT y Claude; las claves de API funcionan sin ella.',
       requirements: ['macOS, Linux o Windows. No necesitas ningún otro programa.'],
       steps: [
         'Abre el asistente de configuración desde Configuración → Aplicación auxiliar y ejecuta el comando de una línea que muestra.',
         'En unos segundos la aplicación auxiliar aparece como conectada; después elige un método aquí.',
       ],
       notes: [
-        'Los datos de inicio de sesión y las claves de API se guardan en un archivo protegido al que solo tú puedes acceder, no en el navegador.',
+        'Los datos de inicio de sesión de ChatGPT se guardan en un archivo protegido al que solo tú puedes acceder, no en el navegador.',
         'La aplicación auxiliar solo se ejecuta cuando pides texto; nunca lee ni envía correos en segundo plano.',
       ],
     },
   },
   connect: 'Continue with ChatGPT',
+  codexConnect: 'Iniciar sesión con Codex',
+  codexHint:
+    'Para espacios de trabajo ChatGPT Business, Enterprise y Edu. Usa el inicio de sesión de la aplicación Codex de OpenAI; no hace falta tener Codex instalado. Experimental.',
+  codexSignIn: 'Inicio de sesión con Codex',
+  codexConnectionHelp:
+    'Esta conexión usa el inicio de sesión de Codex. El uso se descuenta de los límites de tu plan compartidos con Codex; en los espacios de trabajo Business, los créditos permiten seguir cuando se agotan. Puedes cerrar la sesión quitando la cuenta aquí.',
   addAccount: 'Añadir otra cuenta o espacio de trabajo',
   reconnect: 'Volver a conectar',
   disconnect: 'Desconectar',
@@ -137,9 +151,9 @@ export const aiEs: AiText = {
   planDisabled:
     'Cuenta comprobada; la generación no está autorizada. Usar el plan requiere una cuenta Plus o Pro apta y permiso para usar su plan. Iniciar sesión con una cuenta gratuita no da acceso a la generación.',
   planNote:
-    'Las cuentas Plus y Pro aptas pueden usar la asignación de su plan. La disponibilidad depende de tu cuenta, tu espacio de trabajo y tu acceso a OpenAI.',
-  apiNote:
-    'OpenAI factura el uso de la API por separado. Es independiente de tu suscripción de ChatGPT; este método nunca se elige automáticamente.',
+    'Las cuentas Plus y Pro aptas pueden usar la asignación de su plan con “Continue with ChatGPT”. Para espacios de trabajo Business, Enterprise y Edu, usa “Iniciar sesión con Codex”.',
+  apiNote: (provider) =>
+    `Tu clave se guarda cifrada en este navegador y solo se envía a ${provider}. El uso de pago lo factura ${provider}, aparte de cualquier suscripción de ChatGPT o Claude.`,
   claudeNote: `Claude Code, instalado en este equipo, se ejecuta con tu propia cuenta de Claude; el uso se descuenta de los límites de tu plan de Claude. ${PRODUCT_NAME} no accede a tus credenciales de Claude ni las guarda. Inicias y cierras sesión a través de Claude Code.`,
   claudeAccount: 'Cuenta de Claude Code',
   claudeNotInstalled:
@@ -150,10 +164,27 @@ export const aiEs: AiText = {
     'Claude Code tiene la sesión iniciada con un método distinto de una suscripción de Claude, como una clave de API; el uso se factura a esa cuenta.',
   claudePrivacy:
     'Cuando pides una generación, tu texto, tus indicaciones y el contexto seleccionado se envían a Anthropic a través de Claude Code. Claude Code se ejecuta sin herramientas, no puede acceder a tus archivos y no guarda transcripciones de sesión. Los planes Pro y Max se rigen por las condiciones para consumidores de Anthropic: salvo que hayas desactivado el entrenamiento de modelos en tu configuración de privacidad de Claude, el contenido puede usarse para entrenar. Los planes Team y Enterprise se rigen por las condiciones comerciales.',
-  apiKeyLabel: 'Clave de API',
+  provider: 'Proveedor',
+  providerHints: {
+    groq: 'Rápido, con modelos gratuitos como GPT-OSS de OpenAI en su plan gratuito.',
+    openrouter: 'Cientos de modelos de muchos proveedores; algunos son gratuitos.',
+    openai: 'Los modelos GPT de OpenAI; pago por uso.',
+  },
+  apiKeyLabel: (provider) => `Clave de API de ${provider}`,
+  createKey: (provider) => `Crear una clave de API de ${provider}`,
   saveKey: 'Conectar clave',
   removeKey: 'Quitar clave',
-  keySaved: 'Clave de API guardada en la aplicación auxiliar.',
+  keySaved: (provider) => `Clave de ${provider} guardada, cifrada en este navegador.`,
+  replaceKeyHint: 'Para usar otra clave, pégala y elige “Conectar clave”; sustituye a la guardada.',
+  keyFromOtherProvider: (provider) =>
+    `Parece una clave de ${provider}, así que no se envió. Elige ${provider} arriba o pega una clave del proveedor seleccionado.`,
+  accessNeeded: (provider) =>
+    `El navegador no permite que ${PRODUCT_NAME} se conecte a ${provider}. Permite el acceso para usar la clave guardada.`,
+  grantAccess: 'Permitir acceso',
+  freeModels: 'Modelos gratuitos',
+  paidModels: 'Modelos de pago',
+  apiPrivacy: (provider) =>
+    `Cuando pides una generación, tu texto, tus indicaciones y el contexto seleccionado se envían desde este navegador directamente a ${provider}, según las condiciones de ${provider}. La clave solo sale de este navegador para autenticarse con ${provider}.`,
   manageUsage: 'Administrar uso',
   connectionHelp:
     'Administra esta conexión en la configuración de ChatGPT, en Security and login → Sign in with ChatGPT. No aparece en Plugins. Las cuentas de trabajo también dependen de la directiva de la organización y de la idoneidad del plan.',
@@ -163,7 +194,7 @@ export const aiEs: AiText = {
   privacy:
     'Cuando pides una generación, tu texto, tus indicaciones y el contexto seleccionado se envían a OpenAI. La extensión no los guarda en el disco. No tiene acceso a tu historial de conversaciones de ChatGPT.',
   usePlan: 'Usando el plan de ChatGPT',
-  useApi: 'Usando la API de OpenAI',
+  useApi: (provider) => `Usando la clave de API de ${provider}`,
   useClaude: 'Usando el plan de Claude',
   openSettings: 'Configuración de IA',
   notReady: 'Conecta una cuenta de IA para generar texto',

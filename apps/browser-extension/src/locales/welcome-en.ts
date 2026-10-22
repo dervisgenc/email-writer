@@ -4,24 +4,35 @@ import type { WelcomeText } from './extension-text';
 
 export const welcomeEn: WelcomeText = {
   title: `Welcome to ${PRODUCT_NAME}`,
-  subtitle: 'Ready in four short steps',
+  subtitle: 'Ready in three short steps',
   stepsLabel: 'Setup steps',
-  steps: ['Welcome', 'Helper app', 'Connection', 'Try it'],
+  steps: ['Welcome', 'Connection', 'Try it'],
   back: 'Back',
   next: 'Continue',
   intro: {
-    title: 'Why a helper app?',
-    lead: `${PRODUCT_NAME} works inside Outlook on the web. A small helper app on your computer does what a browser extension cannot do on its own.`,
-    reasons: [
-      'Signing in with ChatGPT needs a return address on your computer, which an extension cannot provide.',
-      'Your sign-in details and API keys stay protected on your computer, not in the browser.',
-      'It is open source: you can read every line of its code.',
-    ],
+    title: 'Two ways to connect',
+    lead: `${PRODUCT_NAME} works inside Outlook on the web and writes with the AI provider you choose. Pick what suits you in the next step; you can change it at any time.`,
+    apiKey: {
+      title: 'Your own API key',
+      points: [
+        'Works right in the browser; there is nothing to install.',
+        'Groq and OpenRouter offer free models; OpenAI is pay as you go.',
+        'The key is stored encrypted in this browser and sent only to its provider.',
+      ],
+    },
+    plan: {
+      title: 'Your ChatGPT or Claude plan',
+      points: [
+        'Uses the subscription you already have: ChatGPT Plus or Pro, or Claude through Claude Code.',
+        'Needs a small helper app on this computer, installed with one command and without administrator rights.',
+        'Your sign-in stays on this computer, outside the browser. The helper app is open source.',
+      ],
+    },
     source: 'Source code on GitHub',
     doesTitle: 'What it does',
     does: [
       'Sends the text you choose to the provider you choose, only when you ask.',
-      'Keeps your connection to ChatGPT, OpenAI or Claude.',
+      'Shows every result as a preview; your draft changes only when you approve it.',
     ],
     doesNotTitle: 'What it never does',
     doesNot: [
@@ -32,7 +43,7 @@ export const welcomeEn: WelcomeText = {
   },
   install: {
     title: 'Install the helper app',
-    lead: 'One command installs it for your user account. No administrator rights are needed.',
+    lead: 'This method needs a small helper app on this computer. One command installs it for your user account; no administrator rights are needed.',
     system: 'Your system',
     command: 'Install command',
     terminal: {

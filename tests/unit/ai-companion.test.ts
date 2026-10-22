@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { ClaudeCodeProvider, ClaudeCodeStatus } from '@writehand/ai-claude-code';
 import {
   AiFailure,
+  CODEX_CLIENT_ID,
   PLAN_SCOPE,
   type createOpenAiOAuth,
   type createOpenAiProvider,
@@ -16,6 +17,7 @@ import { createAiService } from '../../apps/ai-companion/src/ai-service';
 import { defaultAccountLabel } from '../../apps/ai-companion/src/account-label';
 import {
   createCredentialStore,
+  type Account,
   type CredentialState,
   type CredentialStore,
 } from '../../apps/ai-companion/src/credential-store';
@@ -60,8 +62,6 @@ const initial = (): CredentialState => ({
   ],
   activeAccountId: 'oaiapp_one',
   mode: 'chatgpt',
-  apiKey: 'private-api-key',
-  apiModel: null,
 });
 const claudeSignedIn: ClaudeCodeStatus = {
   installed: true,
@@ -175,7 +175,7 @@ describe('AI service and protected storage', () => {
     expect(deps.provider.listModels).not.toHaveBeenCalled();
   });
 
-  it('does not infer without plan permission, even when an API key is saved', async () => {
+  it('does not infer without plan permission', async () => {
     const state = initial();
     state.accounts[0]!.credentials!.scopes = ['openid'];
     const deps = dependencies(memoryStore(state));
@@ -235,7 +235,6 @@ describe('AI service and protected storage', () => {
       });
       expect(status.accounts.map((account) => account.id)).toEqual(['oaiapp_other']);
       expect(state.hostId).toBe('urn:uuid:host');
-      expect(state.apiKey).toBe('private-api-key');
       await expect(service.generate('after-removal', input)).rejects.toThrow('AI_NOT_CONNECTED');
     },
   );
@@ -662,6 +661,164 @@ describe('Loopback sign-in', () => {
   });
 });
 
+describe('Codex sign-in', () => {
+  const workAccount = (): Account => ({
+    clientId: CODEX_CLIENT_ID,
+    codex: { id: 'codex_one', workspaceId: 'workspace-1' },
+    subject: 'work-subject',
+    email: 'w@example.test',
+    label: 'Work',
+    credentials: {
+      accessToken: 'codex-access',
+      refreshToken: 'codex-refresh',
+      idToken: 'codex-id',
+      expiresAt: Date.now() + 3600_000,
+      scopes: ['openid', 'offline_access'],
+    },
+    model: 'allowed',
+    welcomed: true,
+  });
+  const workIdentity = (workspaceId = 'workspace-1') => ({
+    sub: 'work-subject',
+    name: 'Ada Work',
+    'https://api.openai.com/profile': { email: 'w@example.test' },
+    'https://api.openai.com/auth': { chatgpt_account_id: workspaceId },
+  });
+  const codexDependencies = (state: CredentialState) => {
+    const deps = dependencies(memoryStore(state));
+    deps.oauth.exchange.mockResolvedValue({
+      access_token: 'issued-access',
+      refresh_token: 'issued-refresh',
+      id_token: 'issued-id',
+      token_type: 'bearer',
+      expires_in: 864_000,
+    });
+    deps.oauth.verifyIdentity.mockResolvedValue(workIdentity());
+    return deps;
+  };
+  /** Answers the sign-in page opened as the `call`-th browser window, as OpenAI would redirect. */
+  const returnFromSignIn = async (deps: ReturnType<typeof dependencies>, call = 0) => {
+    const authorize = new URL(deps.openBrowser.mock.calls[call]![0]);
+    const callback = new URL(authorize.searchParams.get('redirect_uri')!);
+    callback.search = new URLSearchParams({
+      state: authorize.searchParams.get('state')!,
+      code: 'c',
+    }).toString();
+    return { authorize, callback, response: await fetch(callback) };
+  };
+
+  it('adds a work account through the Codex client and generates for its workspace', async () => {
+    const state = initial();
+    const deps = codexDependencies(state);
+    const service = createAiService(deps);
+    try {
+      expect(await service.command({ action: 'connect', accountId: null, signIn: 'codex' })).toMatchObject({
+        signingIn: true,
+      });
+      const { authorize, callback, response } = await returnFromSignIn(deps);
+      expect(authorize.searchParams.get('client_id')).toBe(CODEX_CLIENT_ID);
+      expect(['1455', '1457']).toContain(callback.port);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain('check text generation availability');
+      expect(deps.oauth.verifyIdentity).toHaveBeenCalledWith('issued-id', CODEX_CLIENT_ID, null);
+
+      const status = await service.status();
+      const work = status.accounts.find((account) => account.signIn === 'codex')!;
+      expect(work).toMatchObject({
+        label: 'Ada Work',
+        email: 'w@example.test',
+        verified: true,
+        connected: true,
+        planEnabled: true,
+      });
+      expect(status).toMatchObject({ activeAccountId: work.id, ready: true, needsPlanAcknowledgement: true });
+      // The Sign in with ChatGPT registration is kept and stays apart.
+      expect(status.accounts.find((account) => account.id === 'oaiapp_one')?.signIn).toBe('siwc');
+
+      await service.generate('00000000-0000-4000-8000-000000000010', input);
+      const connection = { kind: 'codex', token: 'issued-access', workspaceId: 'workspace-1' };
+      expect(deps.provider.listModels).toHaveBeenLastCalledWith(connection);
+      expect(deps.provider.generate).toHaveBeenCalledWith(
+        input,
+        'allowed',
+        connection,
+        expect.any(AbortSignal),
+      );
+    } finally {
+      service.dispose();
+    }
+  });
+
+  it('replaces the tokens of the same user and workspace instead of adding the account twice', async () => {
+    const state = initial();
+    state.accounts.push(workAccount());
+    const deps = codexDependencies(state);
+    const signIn = createSignIn({ ...deps, onComplete: vi.fn().mockResolvedValue(undefined) });
+    try {
+      await signIn.start(null, 'codex');
+      expect((await returnFromSignIn(deps)).response.status).toBe(200);
+      expect(state.accounts.filter((account) => account.codex)).toHaveLength(1);
+      expect(state.accounts[1]).toMatchObject({
+        label: 'Work',
+        credentials: { accessToken: 'issued-access' },
+      });
+      expect(state.activeAccountId).toBe('codex_one');
+    } finally {
+      signIn.cancel();
+    }
+  });
+
+  it('signs a saved work account in again only to its own workspace', async () => {
+    const state = initial();
+    state.accounts = [{ ...workAccount(), credentials: null }];
+    const deps = codexDependencies(state);
+    deps.oauth.verifyIdentity.mockResolvedValue(workIdentity('workspace-2'));
+    const signIn = createSignIn({ ...deps, onComplete: vi.fn() });
+    try {
+      await signIn.start('codex_one');
+      const { authorize, response } = await returnFromSignIn(deps);
+      expect(authorize.searchParams.get('allowed_workspace_id')).toBe('workspace-1');
+      expect(response.status).toBe(400);
+      expect(await response.text()).toContain('AI_WORKSPACE_MISMATCH');
+      await vi.waitFor(() =>
+        expect(deps.oauth.revoke).toHaveBeenCalledWith(CODEX_CLIENT_ID, 'issued-refresh'),
+      );
+      expect(state.accounts[0]?.credentials).toBeNull();
+    } finally {
+      signIn.cancel();
+    }
+  });
+
+  it('refreshes expired Codex tokens with the Codex client', async () => {
+    const state = initial();
+    const work = workAccount();
+    work.credentials!.expiresAt = 0;
+    state.accounts.push(work);
+    state.activeAccountId = 'codex_one';
+    const deps = dependencies(memoryStore(state));
+    await createAiService(deps).generate('00000000-0000-4000-8000-000000000011', input);
+    expect(deps.oauth.refresh).toHaveBeenCalledWith(CODEX_CLIENT_ID, 'codex-refresh');
+    expect(deps.provider.generate).toHaveBeenCalledWith(
+      input,
+      'allowed',
+      { kind: 'codex', token: 'rotated-access', workspaceId: 'workspace-1' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('keeps Codex accounts in the credential file', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
+    temporary.push(directory);
+    const store = createCredentialStore(directory);
+    const work = workAccount();
+    await store.update((state) => {
+      Object.assign(state, initial());
+      state.accounts.push(work);
+    });
+    expect((await store.read()).accounts[1]).toEqual(work);
+  });
+});
+
 describe('Native framing', () => {
   it('decodes fragmented and concatenated UTF-8 messages', async () => {
     const decoder = new NativeMessageDecoder();
@@ -812,12 +969,27 @@ describe('Claude Code method', () => {
   it('reads credential files written before Claude Code support', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
     temporary.push(directory);
-    const legacy: Record<string, unknown> = { ...initial() };
+    const legacy: Record<string, unknown> = { ...initial(), apiKey: null, apiModel: null };
     delete legacy.claudeModel;
     await writeFile(join(directory, 'credentials.json'), JSON.stringify(legacy), { mode: 0o600 });
 
     const state = await createCredentialStore(directory).read();
     expect(state.mode).toBe('chatgpt');
     expect(state.claudeModel).toBeUndefined();
+  });
+
+  it('drops the OpenAI API key that helper app 0.1.0 kept, in a file 0.1.0 can still read', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'writehand-store-'));
+    temporary.push(directory);
+    const file = join(directory, 'credentials.json');
+    const legacy = { ...initial(), mode: 'api-key', apiKey: 'sk-private-legacy-key', apiModel: 'gpt-test' };
+    await writeFile(file, JSON.stringify(legacy), { mode: 0o600 });
+
+    const store = createCredentialStore(directory);
+    // The key now belongs in the extension; the helper app falls back to its default method.
+    expect(await store.read()).toMatchObject({ mode: 'chatgpt', activeAccountId: 'oaiapp_one' });
+    const written = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
+    expect(written).toMatchObject({ version: 1, mode: 'chatgpt', apiKey: null, apiModel: null });
+    expect(JSON.stringify(written)).not.toContain('sk-private-legacy-key');
   });
 });

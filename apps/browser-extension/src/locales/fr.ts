@@ -261,7 +261,7 @@ export const fr: ExtensionText = {
         'La réponse d’identité d’OpenAI n’a pas pu être vérifiée de façon sûre. Le compte n’a pas été connecté (AI_AUTH_IDENTITY_FAILED).',
       AI_AUTH_CANCELLED: 'La connexion ChatGPT a été annulée.',
       AI_POLICY_DENIED:
-        'Une stratégie de l’organisation bloque cette connexion ChatGPT. Demandez à l’administrateur de votre espace de travail de vérifier l’accès à « Sign in with ChatGPT » et l’éligibilité du forfait ; l’autorisation Plugins seule ne suffit pas.',
+        'Une stratégie de l’organisation bloque « Sign in with ChatGPT » pour cette application. Les espaces de travail ChatGPT Business n’ont actuellement aucun paramètre pour l’autoriser ; utilisez plutôt « Se connecter via Codex ». Avec Enterprise et Edu, un administrateur global peut approuver l’application dans l’OpenAI Admin Console, sous External access.',
       AI_WORKSPACE_MISMATCH:
         'Cette connexion appartient à un autre compte ou espace de travail ChatGPT. Continuez avec le compte qui l’a créée ou choisissez « Ajouter un autre compte ou espace de travail ».',
       AI_ACCOUNT_NAME_TAKEN: 'Une autre connexion utilise déjà ce nom. Choisissez un nom distinct.',
@@ -270,9 +270,11 @@ export const fr: ExtensionText = {
       AI_NOT_ELIGIBLE:
         'OpenAI a refusé l’utilisation du forfait ChatGPT pour ce compte (subscription_sharing_user_not_eligible). Si votre abonnement Plus ou Pro est actif, contactez l’assistance OpenAI avec ce code.',
       AI_ACCESS_DENIED:
-        'OpenAI a refusé l’accès à cette requête. Vérifiez les autorisations de l’application, la configuration de la connexion ou les restrictions régionales ; cette erreur seule ne prouve rien sur l’éligibilité de l’abonnement.',
+        'Le fournisseur d’IA a refusé l’accès à cette requête. Vérifiez les autorisations de l’application, la configuration de la connexion ou les restrictions régionales ; pour un forfait ChatGPT, cette erreur seule ne prouve rien sur l’éligibilité de l’abonnement.',
       AI_LIMIT_REACHED:
-        'Limite d’utilisation atteinte. Pour ChatGPT, ouvrez « Gérer l’utilisation » ; avec un forfait Claude, réessayez quand votre limite est réinitialisée ; pour une clé API, vérifiez vos limites d’API OpenAI.',
+        'Limite d’utilisation atteinte. Pour ChatGPT, ouvrez « Gérer l’utilisation » pour voir quand elle est réinitialisée ; les espaces de travail peuvent aussi continuer avec des crédits. Avec un forfait Claude, réessayez quand votre limite est réinitialisée ; pour une clé API, patientez un instant ou vérifiez vos limites auprès du fournisseur.',
+      AI_CREDITS_EXHAUSTED:
+        'Plus aucun crédit. Pour un espace de travail ChatGPT, ses propriétaires peuvent ajouter des crédits ou relever la limite de dépenses dans les paramètres de facturation ; avec une clé API, ajoutez des crédits ou relevez la limite de dépenses auprès du fournisseur.',
       AI_UNAVAILABLE:
         'Le service d’IA est actuellement indisponible. Votre connexion est conservée ; réessayez plus tard.',
       AI_NETWORK: 'Impossible de joindre le service d’IA. Vérifiez votre connexion Internet et réessayez.',
@@ -283,6 +285,13 @@ export const fr: ExtensionText = {
       AI_REVOKE_UNCONFIRMED:
         'Déconnecté localement ; la révocation chez OpenAI n’a pas pu être confirmée. Déconnectez l’application dans les paramètres ChatGPT.',
       AI_BUSY: 'Une opération de connexion IA est en cours. Patientez ou annulez la connexion.',
+      AI_KEY_INVALID:
+        'Le fournisseur n’a pas accepté cette clé API. Vérifiez que vous l’avez copiée en entier et qu’elle est toujours active, ou créez-en une nouvelle.',
+      AI_PROVIDER_ACCESS_REQUIRED: `${PRODUCT_NAME} a besoin de votre autorisation pour se connecter au fournisseur. Choisissez de nouveau « Connecter la clé » et autorisez l’accès quand le navigateur le demande.`,
+      AI_KEY_STORAGE_FAILED:
+        'Ce navigateur n’a pas pu enregistrer ou lire la clé de façon sécurisée ; rien n’a été enregistré. Vérifiez que le navigateur conserve les données de site des extensions, puis réessayez.',
+      AI_REQUEST_TOO_LARGE:
+        'Cette requête dépasse ce que le fournisseur autorise pour ce modèle ou ce forfait. Retirez quelques messages du contexte, raccourcissez le texte ou choisissez un autre modèle.',
       AI_CLAUDE_NOT_INSTALLED:
         'Claude Code est introuvable. Installez Claude Code, puis exécutez à nouveau la commande d’installation de l’application d’assistance.',
       AI_CLAUDE_NOT_LOGGED_IN:
@@ -318,7 +327,7 @@ export const fr: ExtensionText = {
     openSettings: 'Paramètres',
     siteAccessMissing: 'L’accès à ce site n’a pas été accordé.',
     developmentBuild: 'Version de développement',
-    setupNeeded: 'L’application d’assistance n’est pas encore connectée.',
+    setupNeeded: `Choisissez comment ${PRODUCT_NAME} se connecte à un fournisseur d’IA pour commencer à écrire.`,
     finishSetup: 'Terminer la configuration',
   },
   options: {
@@ -373,7 +382,8 @@ export const fr: ExtensionText = {
     privacyPoints: [
       'Vos préférences sont enregistrées uniquement sur cet appareil.',
       'Les e-mails que vous ouvrez restent en mémoire uniquement tant que la page est ouverte, pour suggérer du contexte ; ils ne sont jamais écrits sur le disque.',
-      'Le texte est envoyé au fournisseur d’IA choisi (OpenAI ou Anthropic) uniquement quand vous choisissez Corriger, Traduire ou Rédiger la réponse.',
+      'Le texte est envoyé au fournisseur d’IA choisi (OpenAI, Anthropic, Groq ou OpenRouter) uniquement quand vous choisissez Corriger, Traduire ou Rédiger la réponse.',
+      'Une clé API connectée est enregistrée chiffrée dans ce navigateur et envoyée uniquement à son fournisseur.',
       'Les résultats s’affichent d’abord en aperçu et ne sont jamais écrits dans votre brouillon sans votre accord.',
       `${PRODUCT_NAME} n’envoie jamais d’e-mail ; l’envoi reste toujours votre décision.`,
       'Tant que la recherche de mises à jour est active, l’application d’assistance demande à GitHub le dernier numéro de version au plus une fois par jour ; la requête ne contient ni e-mail ni informations de compte. Vous pouvez la désactiver sur la carte de l’application d’assistance.',

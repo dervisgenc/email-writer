@@ -18,7 +18,7 @@ import { reportDiagnostic } from '../platform/diagnostics';
 import {
   addRuntimeMessageListener,
   isOwnExtensionPage,
-  localSettingsArea,
+  localStorageArea,
   onSettingsStorageChanged,
 } from '../platform/extension-browser';
 import { createRuntimeHandler, toMessageListener } from '../platform/runtime-messaging';
@@ -41,7 +41,7 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   const { ctx, provider, processor } = options;
   const { connector } = provider;
   const ids = createRandomIds();
-  const settingsStore = createSettingsStore(localSettingsArea);
+  const settingsStore = createSettingsStore(localStorageArea);
   const settings = shallowRef((await settingsStore.read()).settings);
 
   const siteEnabled = computed(() => settings.value.siteEnabled[provider.siteId]);

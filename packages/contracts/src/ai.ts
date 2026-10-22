@@ -1,15 +1,32 @@
 import { z } from 'zod';
 
 import { MAX_REFINEMENT_LENGTH, OPERATIONS, TONES, type PreparedAction } from './actions';
+import { API_PROVIDERS } from './api-providers';
 import { ERROR_CODES } from './errors';
 import { targetLanguageSchema } from './languages';
 import { MAX_WRITING_INSTRUCTIONS } from './settings';
 
-/** Generation method: a ChatGPT plan, an OpenAI API key or Claude Code on the user's computer. */
+/**
+ * Generation method: a ChatGPT plan, the user's own API key or Claude Code on the user's
+ * computer. The API key method runs in the extension itself; the other two need the helper app.
+ */
 export const AI_MODES = ['chatgpt', 'api-key', 'claude-code'] as const;
 export type AiMode = (typeof AI_MODES)[number];
+/** Methods the helper app runs. */
+export const HELPER_AI_MODES = ['chatgpt', 'claude-code'] as const;
+export type HelperAiMode = (typeof HELPER_AI_MODES)[number];
+export function isHelperMode(mode: AiMode): mode is HelperAiMode {
+  return (HELPER_AI_MODES as readonly AiMode[]).includes(mode);
+}
+/**
+ * How a ChatGPT account is signed in. `siwc`: OpenAI's Sign in with ChatGPT for open-source
+ * apps, which registers this app per account and currently serves Plus and Pro plans.
+ * `codex`: the sign-in of OpenAI's Codex CLI, which also serves Business, Enterprise and Edu
+ * workspaces; OpenAI does not document it for other apps.
+ */
+export const CHATGPT_SIGN_INS = ['siwc', 'codex'] as const;
+export type ChatGptSignIn = (typeof CHATGPT_SIGN_INS)[number];
 export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
-export const OPENAI_API_KEYS_URL = 'https://platform.openai.com/api-keys';
 export const CLAUDE_CODE_SETUP_URL = 'https://code.claude.com/docs/en/setup';
 
 /**
@@ -109,25 +126,70 @@ export function toAiInput(action: PreparedAction, preferences: AiPreferences): A
 
 const id = z.string().min(1).max(256);
 export const aiAccountLabelSchema = z.string().trim().min(1).max(80);
-export const aiCommandSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('connect'), accountId: id.nullable() }).strict(),
+/** An API key becomes an HTTP header value: printable ASCII without spaces. */
+export const apiKeySchema = z
+  .string()
+  .min(10)
+  .max(512)
+  .regex(/^[\x21-\x7e]+$/);
+
+/** Account and model commands, shared by the settings pages and the helper app. */
+const accountAndModelCommands = [
+  z
+    .object({
+      action: z.literal('connect'),
+      accountId: id.nullable(),
+      /** Sign-in for a new account (default `siwc`); a saved account keeps its own. */
+      signIn: z.enum(CHATGPT_SIGN_INS).optional(),
+    })
+    .strict(),
   z.object({ action: z.literal('cancel-sign-in') }).strict(),
   z.object({ action: z.literal('select-account'), accountId: id }).strict(),
   z.object({ action: z.literal('disconnect'), accountId: id }).strict(),
   z.object({ action: z.literal('remove-account'), accountId: id }).strict(),
   z.object({ action: z.literal('rename-account'), accountId: id, label: aiAccountLabelSchema }).strict(),
   z.object({ action: z.literal('set-model'), model: id }).strict(),
-  z.object({ action: z.literal('set-mode'), mode: z.enum(AI_MODES) }).strict(),
-  z.object({ action: z.literal('save-api-key'), apiKey: z.string().min(10).max(512) }).strict(),
-  z.object({ action: z.literal('clear-api-key') }).strict(),
   z.object({ action: z.literal('refresh-models') }).strict(),
   z.object({ action: z.literal('acknowledge-plan') }).strict(),
+] as const;
+
+/** Commands the background forwards to the helper app over native messaging. */
+export const helperCommandSchema = z.discriminatedUnion('action', [
+  ...accountAndModelCommands,
+  z.object({ action: z.literal('set-mode'), mode: z.enum(HELPER_AI_MODES) }).strict(),
+]);
+export type HelperCommand = z.infer<typeof helperCommandSchema>;
+
+/**
+ * Commands from the extension's own pages. The background handles the method choice and the
+ * API key commands itself and forwards the rest to the helper app; model commands apply to
+ * the chosen method.
+ */
+export const aiCommandSchema = z.discriminatedUnion('action', [
+  ...accountAndModelCommands,
+  z.object({ action: z.literal('set-mode'), mode: z.enum(AI_MODES) }).strict(),
+  z.object({ action: z.literal('select-api-provider'), provider: z.enum(API_PROVIDERS) }).strict(),
+  z
+    .object({ action: z.literal('save-api-key'), provider: z.enum(API_PROVIDERS), apiKey: apiKeySchema })
+    .strict(),
+  z.object({ action: z.literal('remove-api-key'), provider: z.enum(API_PROVIDERS) }).strict(),
 ]);
 export type AiCommand = z.infer<typeof aiCommandSchema>;
-export const aiModelSchema = z.object({ id, label: z.string().min(1).max(256) }).strict();
-export type AiModel = z.infer<typeof aiModelSchema>;
-export const aiStatusSchema = z
+
+export const aiModelSchema = z
   .object({
+    id,
+    label: z.string().min(1).max(256),
+    /** Free to use, as the provider states it (OpenRouter's free variants). Absent when unknown. */
+    free: z.boolean().optional(),
+  })
+  .strict();
+export type AiModel = z.infer<typeof aiModelSchema>;
+
+/** The helper app's methods as the helper app reports them. Never contains credentials. */
+export const helperStatusSchema = z
+  .object({
+    /** Helper app 0.1.0 may still report its retired `api-key` method. */
     mode: z.enum(AI_MODES),
     accounts: z
       .array(
@@ -139,12 +201,15 @@ export const aiStatusSchema = z
             verified: z.boolean(),
             connected: z.boolean(),
             planEnabled: z.boolean(),
+            /** Missing from helper apps released before the Codex sign-in, which have only `siwc`. */
+            signIn: z.enum(CHATGPT_SIGN_INS).optional(),
           })
           .strict(),
       )
       .max(100),
     activeAccountId: id.nullable(),
-    apiKeyConfigured: z.boolean(),
+    /** Reported only by helper app 0.1.0, which kept an OpenAI API key itself. */
+    apiKeyConfigured: z.boolean().optional(),
     models: z.array(aiModelSchema).max(500),
     selectedModel: id.nullable(),
     ready: z.boolean(),
@@ -166,8 +231,49 @@ export const aiStatusSchema = z
     error: z.enum(ERROR_CODES).nullable(),
   })
   .strict();
+export type HelperStatus = z.infer<typeof helperStatusSchema>;
+
+/**
+ * The extension's own API key connection. Keys never leave the background; the status only
+ * says which providers have one.
+ */
+export const apiKeyStatusSchema = z
+  .object({
+    provider: z.enum(API_PROVIDERS),
+    savedKeys: z.array(z.enum(API_PROVIDERS)).max(API_PROVIDERS.length),
+    /** Whether the browser lets the extension reach the selected provider (optional host permission). */
+    access: z.boolean(),
+    /** The selected provider's models; empty until they are loaded with its key. */
+    models: z.array(aiModelSchema).max(1_000),
+    selectedModel: id.nullable(),
+  })
+  .strict();
+export type ApiKeyStatus = z.infer<typeof apiKeyStatusSchema>;
+
+/** The AI connection as the extension's pages see it: the chosen method and both ways to reach a model. */
+export const aiStatusSchema = z
+  .object({
+    mode: z.enum(AI_MODES),
+    ready: z.boolean(),
+    /** What keeps the chosen method from generating, if anything. */
+    error: z.enum(ERROR_CODES).nullable(),
+    /** The helper app's state; null while the helper app cannot be reached. */
+    helper: helperStatusSchema.nullable(),
+    apiKey: apiKeyStatusSchema,
+  })
+  .strict();
 export type AiStatus = z.infer<typeof aiStatusSchema>;
 
 /** Safe for the content script: no account identity, credentials or OAuth URL. */
-export const aiSummarySchema = aiStatusSchema.pick({ mode: true, ready: true, selectedModel: true });
+export const aiSummarySchema = z.union([
+  z
+    .object({
+      mode: z.literal('api-key'),
+      ready: z.boolean(),
+      selectedModel: id.nullable(),
+      provider: z.enum(API_PROVIDERS),
+    })
+    .strict(),
+  z.object({ mode: z.enum(HELPER_AI_MODES), ready: z.boolean(), selectedModel: id.nullable() }).strict(),
+]);
 export type AiSummary = z.infer<typeof aiSummarySchema>;

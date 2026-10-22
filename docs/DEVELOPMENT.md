@@ -44,7 +44,7 @@ All commands run from the repository root.
 | `pnpm test:e2e` | Test build, then Playwright with Chromium on the synthetic Outlook page |
 | `pnpm test:firefox` | Test build, then a headless Firefox smoke test over WebDriver BiDi |
 | `pnpm lint:firefox` | Production build, then Mozilla's `web-ext lint` on the Firefox package |
-| `pnpm verify:packages` | Checks the production packages: permissions, content script matches, no development code or local origins, Firefox ID and data collection declaration |
+| `pnpm verify:packages` | Checks the production packages: permissions (including the optional provider origins), content script matches, no development code or local origins, Firefox ID and data collection declaration |
 | `pnpm outlook:firefox [--restart]` | Starts Firefox with a persistent profile and WebDriver BiDi for live Outlook inspection |
 | `pnpm outlook:dev [--restart]` | Runs the extension with live reload in that Firefox window |
 | `pnpm outlook:inspect <command>` | Runs the extension's reading code on the live Outlook page with masked output; see [Live inspection](#live-inspection) |
@@ -102,21 +102,27 @@ flowchart TD
     CORE --> CONTRACTS[packages/contracts]
     UI --> CONTRACTS
     MAIL --> CONTRACTS
+    EXT --> OPENAI
+    EXT --> CHAT[packages/ai-chat-completions]
     HOST[apps/ai-companion<br/>helper app] --> OPENAI[packages/ai-openai]
     HOST --> CLAUDE[packages/ai-claude-code]
     HOST --> CONTRACTS
     OPENAI --> CONTRACTS
+    CHAT --> CONTRACTS
     CLAUDE --> CONTRACTS
 ```
 
+The extension imports only the browser-safe part of `ai-openai` (`@writehand/ai-openai/api-key`: the Responses API, without OAuth or Node.js code).
+
 | Package | Responsibility | Must not use (enforced by ESLint) |
 | --- | --- | --- |
-| `contracts` | Shared types, the `MailConnector` and `TextProcessor` interfaces, Zod boundary schemas (settings, runtime messages, previews), error codes, brand and external IDs, the AI prompt | Vue, WXT, browser or DOM globals, other internal packages |
+| `contracts` | Shared types, the `MailConnector` and `TextProcessor` interfaces, Zod boundary schemas (settings, runtime messages, the host protocol, previews), error codes, brand and external IDs, API key providers and their permissions, the AI prompt | Vue, WXT, browser or DOM globals, other internal packages |
 | `core` | `buildContext`, `prepareAction`, `reduceSession`, apply and undo validation, capabilities. Pure functions; clock and ID generator are passed in | Vue, WXT, Zod, browser globals, `ui`, `outlook-web` |
 | `ui` | Vue panel, toolbar, result card, settings and setup components. Receives read-only view data and emits events; all text comes from the locale dictionaries | WXT, `core`, `outlook-web`, `chrome`, `browser`, `document`, `navigator`, web storage |
 | `outlook-web` | Page detection, reading, selection, observation, controlled writing and undo. Every selector lives in `src/discovery/selectors.ts` | Vue, WXT, `core`, `ui`, extension APIs, `window`, web storage |
 | `email-format` | Parses the model's limited Markdown and produces email-safe HTML, plain text and the text used to verify a write (pure functions) | Vue, WXT, browser globals, other internal packages (Zod only) |
-| `ai-openai` | ChatGPT OAuth (PKCE, OIDC), model discovery, Responses API streaming, stable error codes | Browser globals, UI or mailbox packages, the other provider package |
+| `ai-openai` | ChatGPT OAuth (PKCE, OIDC), model discovery, Responses API streaming, stable error codes; `api-key.ts` is the browser-safe entry for OpenAI API keys | Browser globals, UI or mailbox packages, the other provider packages; in the browser-safe files also Node.js modules and `jose` |
+| `ai-chat-completions` | Groq and OpenRouter: OpenAI-compatible Chat Completions streaming, model lists, free default models, stable error codes. Runs in the browser and in Node.js | Browser page globals, Node.js modules, UI or mailbox packages, the other provider packages |
 | `ai-claude-code` | Finds the user's Claude Code, reads its sign-in status and runs it in restricted print mode | Browser globals, UI or mailbox packages, the other provider package |
 | `apps/ai-companion` | The helper app: native messaging host, loopback sign-in, credential store, installer, updater. OS differences live only in `src/platform.ts` | Browser globals, UI or mailbox packages; `process.platform` and `process.arch` outside `platform.ts` |
 | `apps/browser-extension` | Wires the parts together (`src/bootstrap/create-extension-session.ts`); browser APIs only in `src/platform/` and the entry points | `chrome` and `browser` globals in `controllers`, `composables`, `mounting`, `bootstrap`, `locales`, `development` |
@@ -128,13 +134,27 @@ Dependencies are passed as function parameters. There is no dependency injection
 | Context | Location | Role |
 | --- | --- | --- |
 | Content script | `entrypoints/outlook.content.ts` | Outlook connector, panel session, toolbar and launchers. Email session and AI previews live in memory only |
-| Background | `entrypoints/background.ts` | Install events, settings reads and writes, routing AI messages to the helper app over native messaging. Service worker in Chromium, background script in Firefox |
+| Background | `entrypoints/background.ts` | Install events, settings reads and writes, the AI connection: the API key method itself (vault, provider requests) and the helper app's methods over native messaging. Service worker in Chromium, background script in Firefox |
 | Popup | `entrypoints/popup/` | Page support status, **Open panel on this page**, link to settings; selector diagnostics in development builds |
-| Welcome wizard | `entrypoints/welcome/` | Opens on first install (`runtime.onInstalled`); reopened from settings and the popup. Explains the helper app, shows the install command, requests the optional `nativeMessaging` permission, chooses a connection method and runs a sample revision |
-| Settings | `entrypoints/options/` | Helper app card (status, version, update, uninstall), AI connection, interface language, default and favourite translation languages, standing writing instructions, tone, theme, per-site switch. Settings schema v2; v1 records are migrated |
+| Welcome wizard | `entrypoints/welcome/` | Opens on first install (`runtime.onInstalled`); reopened from settings and the popup. Three steps: the two ways to connect, the connection (an API key, or for the ChatGPT and Claude plans the helper app install with the optional `nativeMessaging` permission) and a sample revision |
+| Settings | `entrypoints/options/` | AI connection, helper app card (status, version, update, uninstall), interface language, default and favourite translation languages, standing writing instructions, tone, theme, per-site switch. Settings schema v3; earlier records are migrated |
 | Helper app | `apps/ai-companion` | A separate process the browser starts on demand; see [Helper app](./HELPER_APP.md) |
 
-Messages between contexts are defined in `packages/contracts/src/runtime-messages.ts`: `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`, the `AI_*` requests and `HOST_INFO`, `HOST_UPDATE_CHECK` and `HOST_UPDATE` for the helper app. Every message is validated against its schema and checked against the sender the browser reports (`src/platform/ai-sender-policy.ts`): a content script on a mail page may only send `AI_SUMMARY`, `AI_GENERATE`, `AI_CANCEL` and `OPEN_OPTIONS`; account management, API keys and updates are accepted only from the extension's own pages. `AI_SUMMARY` returns the method, model and readiness without any credentials. The envelope carries `PROTOCOL_VERSION`; see [version compatibility](./RELEASING.md#version-compatibility).
+Messages between contexts are defined in `packages/contracts/src/runtime-messages.ts`: `GET_PAGE_STATUS`, `OPEN_PANEL`, `GET_SELECTOR_REPORT`, `GET_SETTINGS`, `PATCH_SETTINGS`, the `AI_*` requests and `HOST_INFO`, `HOST_UPDATE_CHECK` and `HOST_UPDATE` for the helper app. Every message is validated against its schema and checked against the sender the browser reports (`src/platform/ai-sender-policy.ts`): a content script on a mail page may only send `AI_SUMMARY`, `AI_GENERATE`, `AI_CANCEL` and `OPEN_OPTIONS`; account management, API keys and updates are accepted only from the extension's own pages. `AI_SUMMARY` returns the method, model and readiness without any credentials.
+
+The background answers `AI_STATUS`, `AI_COMMAND` and `AI_GENERATE` itself (`src/platform/ai-connection.ts`): it keeps the method chosen in this browser, runs the API key method (`api-key-connection.ts`) and talks to the helper app through `helper-client.ts`. Native messaging uses its own, narrower protocol (`packages/contracts/src/host-protocol.ts`) whose wire format stays readable by every supported helper app. Both protocols share the envelope and `PROTOCOL_VERSION` (`protocol.ts`); see [version compatibility](./RELEASING.md#version-compatibility).
+
+### API keys
+
+The API key method runs entirely in the extension's background; no helper app is involved.
+
+- **Providers.** `API_PROVIDERS` in `contracts/src/api-providers.ts`: Groq and OpenRouter through `packages/ai-chat-completions` (OpenAI-compatible Chat Completions), OpenAI through `@writehand/ai-openai/api-key` (Responses API with `store: false`). Every request streams, and a result is accepted only after a normal finish (`finish_reason: stop`, `response.completed`). Speech, safety classifier and compound models (which search the web with the prompt) are not offered on Groq; OpenRouter routers with variable prices are not offered.
+- **Default model.** Only a model that is free to use is selected by itself: `openai/gpt-oss-120b` on Groq, its `:free` variant on OpenRouter. OpenAI models are always paid, so the user chooses one.
+- **Permissions.** Each provider's API origin is an `optional_host_permissions` entry. The settings page asks for it inside the **Connect key** click (`requestProviderAccess`) before the key is sent; without it the background refuses the key (`AI_PROVIDER_ACCESS_REQUIRED`). A permission removed in the browser's settings is reported, and **Allow access** asks again.
+- **Checking a key.** A key is saved only after the provider accepted it by listing models (OpenRouter's model list is public, so `GET /key` checks the key first). The key must be printable ASCII without spaces, since it becomes a header value, and the page does not send a key that has another provider's format (`apiProviderOfKey`).
+- **Storage.** `src/platform/secret-vault.ts`: AES-GCM with a random IV and the provider's name as additional authenticated data, so an entry cannot be moved to another provider. The 256-bit key is generated non-extractable and kept as a `CryptoKey` in the IndexedDB of the extension's origin (`indexed-db-key-store.ts`), which web pages and content scripts cannot open; `storage.local`, which content scripts can read, holds only ciphertext. Secrets whose key was lost (site data cleared) are removed and the user connects again. The method choice, provider and model per provider are a separate record (`ai-connection-store.ts`); none of this is synchronized.
+- **Exposure.** Only the background decrypts a key, just before sending it to its own provider. Status and summary say which providers have a key, never the key; a saved key is never shown again. This protects the key from web pages, Outlook and the content script, not from someone who can use the browser profile or read its files: unlike the helper app's credentials file, the browser has no operating-system secret store. The guide recommends keys with a spending limit.
+- **Limits.** At most four generations at once and 120 seconds each, like the helper app; a cancellation that arrives before the request was sent stops it.
 
 ### Module boundaries
 
@@ -209,7 +229,11 @@ Automated tests verify context selection, routing and the prompt passed to provi
 3. Add `entrypoints/<name>.content.ts` that creates a `MailPageProvider` and calls `createExtensionSession`, and add the site to `SITE_IDS` in `contracts/src/settings.ts`.
 4. The panel, context rules, preview and write rules are reused as they are.
 
-**A new AI provider:** providers live in their own packages (`packages/ai-openai`, `packages/ai-claude-code`) and `apps/ai-companion` routes requests to the selected method. A new provider gets its own package that depends only on `contracts` and uses the shared prompt. The extension talks to providers only through the `TextProcessor` interface (`contracts/src/text-processor.ts`) returned by `loadTextProcessor()` in the content script. If the data flow changes, the Firefox data collection declaration (`wxt.config.ts` → `data_collection_permissions`) and `PRIVACY.md` must be updated. `ui`, `core` and the mail connectors do not change.
+**A new AI provider:** providers live in their own packages (`packages/ai-openai`, `packages/ai-claude-code`, `packages/ai-chat-completions`) that depend only on `contracts` and use the shared prompt. The content script talks to them only through the `TextProcessor` interface (`contracts/src/text-processor.ts`) returned by `loadTextProcessor()`; `ui` (apart from texts), `core` and the mail connectors do not change.
+
+- An API key provider with an OpenAI-compatible API: add it to `API_PROVIDERS` and `API_PROVIDER_DETAILS` (`contracts/src/api-providers.ts`), give it a model list parser and a free default in `ai-chat-completions` (like `groq.ts`), register it in `apps/browser-extension/src/platform/api-key-providers.ts`, add its origin to `OPTIONAL_HOST_PERMISSIONS` in `scripts/verify-packages.mjs` and its hint to the `providerHints` texts. A provider with another API gets its own package that returns the same `ApiKeyProvider` shape (`listModels`, `defaultModel`, `generate`, all as `Result`).
+- A method that needs a local program goes into the helper app (`apps/ai-companion/src/ai-service.ts`) and `HELPER_AI_MODES`.
+- If the data flow changes, update the Firefox data collection declaration (`wxt.config.ts` → `data_collection_permissions`) and `PRIVACY.md` in the same change.
 
 **A new interface language:**
 
@@ -303,10 +327,10 @@ These rules apply to every change. See also [SECURITY.md](../SECURITY.md) and [P
 - **Real email content stays out of the repository and out of output.** Never print, log or commit real messages, subjects, addresses or account details: not in fixtures, tests, screenshots, issues or commit messages. Use made-up text and anonymized structures.
 - **Logs carry no content.** Diagnostics hold only error codes, areas and content-free numbers; never a body, subject, address, source text, preview, full URL or credential.
 - **Nothing about email is persisted.** Email content, context, previews and undo data live in memory only. Settings are kept in `storage.local` as a single versioned record.
-- **Text goes only to the chosen provider** (OpenAI or Anthropic) and only when the user requests a generation. There is no Writehand server, analytics, error reporting or remote configuration. Opening an email or reading the connection status never sends a generation request. If the data flow changes, update the Firefox data collection declaration and `PRIVACY.md` in the same change.
-- **Credentials stay in the helper app.** OAuth tokens and API keys are never stored in browser storage and never sent back to the extension; the content script cannot send account commands.
+- **Text goes only to the chosen provider** (OpenAI, Anthropic, Groq or OpenRouter) and only when the user requests a generation. There is no Writehand server, analytics, error reporting or remote configuration. Opening an email or reading the connection status never sends a generation request. If the data flow changes, update the Firefox data collection declaration and `PRIVACY.md` in the same change.
+- **Credentials are never exposed.** ChatGPT tokens stay in the helper app and are never sent back to the extension. API keys are stored encrypted in the browser, decrypted only by the background and sent only to their own provider; no page receives them. The content script cannot send account or key commands.
 - **Incoming email is untrusted.** It is never run as HTML, links and images in it are not opened, and instructions inside it are not followed. The prompt marks source, draft, conversation and previous result as untrusted data and neutralizes imitated tags.
-- **Permissions stay narrow:** `storage`, optional `nativeMessaging` (requested by the welcome wizard) and static content script matches for `outlook.live.com`, `outlook.office.com`, `outlook.office365.com` and `outlook.cloud.microsoft`. No `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`, `downloads` or `clipboardRead`; no remote code. `pnpm verify:packages` enforces this.
+- **Permissions stay narrow:** `storage`, optional `nativeMessaging` (requested for the helper app's methods), optional host access to `api.groq.com`, `openrouter.ai` and `api.openai.com` (requested when a key for that provider is connected) and static content script matches for `outlook.live.com`, `outlook.office.com`, `outlook.office365.com` and `outlook.cloud.microsoft`. No `host_permissions`, `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`, `downloads` or `clipboardRead`; no remote code. `pnpm verify:packages` enforces this.
 - **Updates are verified.** The helper app asks GitHub for the latest version number at most once a day (no email or account data in the request) and installs only releases of this repository whose signature and checksum verify.
 
 ## Known limitations
