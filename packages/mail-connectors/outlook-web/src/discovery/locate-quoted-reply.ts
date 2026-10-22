@@ -1,4 +1,5 @@
-import type { IdentityRegistry } from '../identity/identity-registry';
+import type { IdentityRegistry } from '@writehand/mail-dom';
+
 import { locateComposers } from './locate-composers';
 import type { LocatedThread } from './locate-thread';
 import { queryAll, queryFirst } from './selectors';

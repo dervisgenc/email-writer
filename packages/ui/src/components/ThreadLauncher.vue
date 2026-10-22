@@ -13,7 +13,7 @@ const text = useUiText();
   <button
     type="button"
     class="ew-thread-launcher"
-    :title="text.threadLauncher.tooltip"
+    :title="`${text.threadLauncher.tooltip}\n${text.threadLauncher.dragHint}`"
     :aria-label="text.threadLauncher.tooltip"
     @click="emit('open')"
   >

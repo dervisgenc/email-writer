@@ -1,8 +1,13 @@
-import { API_PROVIDER_PERMISSIONS, FIREFOX_EXTENSION_ID, HELPER_COMMAND } from '@writehand/contracts';
+import {
+  API_PROVIDER_PERMISSIONS,
+  FIREFOX_EXTENSION_ID,
+  HELPER_COMMAND,
+  SITE_IDS,
+} from '@writehand/contracts';
 import { defineConfig } from 'wxt';
 
 import { version } from '../../package.json';
-import { DEVELOPMENT_MATCHES, OUTLOOK_WEB_MATCHES } from './src/bootstrap/supported-sites';
+import { DEVELOPMENT_MATCHES, SITE_MATCHES } from './src/bootstrap/supported-sites';
 import { manifestMessages } from './src/locales';
 
 /**
@@ -12,7 +17,7 @@ import { manifestMessages } from './src/locales';
  *
  * Permissions are deliberately narrow: `storage`, optional `nativeMessaging`, optional access
  * to the API key providers' API origins, and static content script matches for the supported
- * Outlook addresses. `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`
+ * Outlook on the web and Gmail addresses. `<all_urls>`, `tabs`, `scripting`, `activeTab`, `cookies`, `webRequest`
  * and `clipboardRead` are not requested.
  */
 export default defineConfig({
@@ -62,7 +67,8 @@ export default defineConfig({
         });
       }
     },
-    // The local test page is a supported origin only in development/test builds.
+    // The local test pages are supported origins only in development, test and demo builds;
+    // each site's content script gets its own local path (`DEVELOPMENT_MATCHES`).
     // The matches are added to the entrypoint options rather than the manifest: in MV3
     // `wxt` (dev) does not write the content script to the manifest but registers it at
     // runtime from these options. The manifest's content script, host permissions and the
@@ -76,8 +82,9 @@ export default defineConfig({
           continue;
         }
         const { matches } = entry.options;
-        if (matches?.some((pattern) => (OUTLOOK_WEB_MATCHES as readonly string[]).includes(pattern))) {
-          entry.options.matches = [...matches, ...DEVELOPMENT_MATCHES];
+        const site = SITE_IDS.find((id) => matches?.some((pattern) => SITE_MATCHES[id].includes(pattern)));
+        if (matches !== undefined && site !== undefined) {
+          entry.options.matches = [...matches, ...DEVELOPMENT_MATCHES[site]];
         }
       }
     },

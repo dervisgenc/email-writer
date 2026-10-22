@@ -1,0 +1,17 @@
+{
+  "name": "@writehand/gmail-web",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Gmail connector: reads and observes the page and writes to drafts in a controlled way",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@writehand/contracts": "workspace:*",
+    "@writehand/mail-dom": "workspace:*"
+  }
+}

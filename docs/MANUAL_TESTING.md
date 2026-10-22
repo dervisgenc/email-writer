@@ -12,7 +12,7 @@ See also: [Releasing](./RELEASING.md), [Helper app](./HELPER_APP.md), [Developme
 
 ## Test matrix
 
-Cover at least these combinations for a release. Every helper app archive (macOS arm64 and x64, Linux x64 and arm64, Windows x64) is also installed by CI on each change.
+Cover at least these combinations for a release, plus the Gmail checks in [section 4](#4-gmail) in at least one Chromium browser and Firefox. Every helper app archive (macOS arm64 and x64, Linux x64 and arm64, Windows x64) is also installed by CI on each change.
 
 | # | System | Browser | Outlook account | Outlook language |
 | --- | --- | --- | --- | --- |
@@ -143,15 +143,44 @@ Use an English message such as "The service is still unavailable. Please let us 
 
 Assess language, request direction, use of relevant context, factual fidelity and naturalness separately. Prompt tests and mocked provider responses are not substitutes for this check. Unknown quote structures, pop-outs and iframe editors still need real Outlook verification.
 
-## 4. Settings
+## 4. Gmail
+
+Gmail support is new. Reading a conversation and finding a compose window are verified on one configuration (personal account, English interface, Firefox on macOS, 2026-10-23); everything else below still needs a recorded check. Record every check here and in the selector registry (`verifiedOn`). Use a personal Google account and a Google Workspace account with made-up mail only. One connection method per run is enough; the API key method needs no helper app.
+
+**Selectors (masked, read-only):** sign in with `pnpm gmail:firefox --sign-in` and quit that window, then run `pnpm gmail:dev`, which opens Gmail in the inspection window with the extension. With a made-up conversation of three or more messages open:
+
+- [ ] `pnpm gmail:inspect selectors`: `mainArea`, `threadSubject`, `message`, `messageBody`, `messageSender`, `messageDate` and `composeEditor` (with a reply open) have rendered matches. Note which selector of each key matched.
+- [ ] `pnpm gmail:inspect read`: page `ready`, a `thread-` key, the subject's shape, every expanded message with a sender and a date shape, signature and quote blocks recognized, collapsed messages counted. Note the read/on-screen character ratio.
+- [ ] Open a reply (**Reply** under the last message): `pnpm gmail:inspect composers` shows one draft bound to the conversation; with the quote trimmed, `canReplaceBody` is true when the reply is empty or has text. Press "Show trimmed content" and run it again: the quote is not part of the editable length.
+- [ ] Open **Compose**: a second, unbound draft appears with `canInsertIntoEmptyBody` true.
+- [ ] Switch Gmail to a dark theme and back: `pnpm gmail:inspect theme` reports `dark` and `light`. With a picture theme it may report nothing (`null`).
+- [ ] Repeat `read` with the reading pane set to **Right of inbox** and with conversation view turned off.
+
+**Writing (the extension on Gmail):**
+
+- [ ] A **Draft reply** button appears at the end of the open conversation's subject row, lined up with and just before Gmail's print and new-window buttons; it covers neither them nor the subject. It looks like Gmail's tonal Compose button.
+- [ ] Drag the button elsewhere: it moves, the panel does not open, and after reloading Gmail it is still there. Drop it near its first place: it snaps back. A plain click still opens the panel. The inline reply and every compose window get a Writehand toolbar; the search box gets none.
+- [ ] **Draft reply** opens the panel with the expanded messages as context; senders show names, never addresses; collapsed messages are counted, not read.
+- [ ] **Write reply** in the inline reply: the result is applied above the signature; after closing and reopening the draft (Gmail saves it), the text is still there.
+- [ ] **Revise** a selected phrase in the reply: only that phrase changes. **Undo last apply** restores it.
+- [ ] **Revise** the whole reply with the quote trimmed and again after "Show trimmed content": the signature and the quote stay unchanged.
+- [ ] **Compose → Write:** the result goes into the empty body above the signature.
+- [ ] **Change the result → Make a table**, then apply: the draft shows a table, and so does the saved draft in **Drafts**.
+- [ ] Note what **Ctrl+Z** (**Cmd+Z**) does right after an apply.
+- [ ] Gmail keyboard shortcuts (for example `c`, `r`, `/`) do not fire while typing in the panel or the card.
+- [ ] Opening another conversation restarts the session for it; Google Chat (`/chat/`) shows no buttons.
+- [ ] In Firefox: everything above, especially writing a table (Gmail enforces Trusted Types; Firefox exempts content scripts only partly).
+- [ ] Discard every test draft. Nothing was sent.
+
+## 5. Settings
 
 - [ ] The helper app card shows **Connected**, the version and system, and the registered browsers.
-- [ ] After changing the interface language (Automatic, English, Türkçe, Deutsch, Français, Español), the settings page and the Outlook toolbar use it (reload the Outlook tab if needed).
+- [ ] After changing the interface language (Automatic, English, Türkçe, Deutsch, Français, Español), the settings page and the Outlook and Gmail toolbars use it (reload the mail tab if needed).
 - [ ] Favourite translation languages appear in the **Translate** menu; standing writing instructions affect the next result.
-- [ ] Turning the extension off for the site hides the buttons and panel in Outlook.
+- [ ] Turning the extension off for Outlook hides the buttons and panel in Outlook and not in Gmail; turning it off for Gmail does the same the other way round.
 - [ ] **Check for updates** can be turned off. With an older helper app installed and a newer release published, **Update** reports "Updated to version x.y.z" and the card shows the new version.
 
-## 5. Uninstall
+## 6. Uninstall
 
 - [ ] Run the command from **Settings → Helper app → How to uninstall** without the data option. The program and all browser registrations are removed, the credentials folder (`~/.config/writehand`, `%LOCALAPPDATA%\writehand`) remains, and the card shows **Not installed**.
 - [ ] Install again, then uninstall with `--delete-data` (PowerShell: `-DeleteData`): the credentials folder is removed too.

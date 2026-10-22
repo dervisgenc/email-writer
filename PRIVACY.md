@@ -1,8 +1,8 @@
 # Privacy policy
 
-_Effective date: October 21, 2026_
+_Effective date: October 23, 2026_
 
-Writehand is a free, open-source writing assistant for Outlook on the web. It consists of a browser extension and, for the ChatGPT and Claude plans, a small helper app that runs on your computer. This policy covers both.
+Writehand is a free, open-source writing assistant for Outlook on the web and Gmail. It consists of a browser extension and, for the ChatGPT and Claude plans, a small helper app that runs on your computer. This policy covers both.
 
 **In short:** Writehand has no server, no account system, no analytics, no advertising and no error reporting. The developer never receives your emails, your text or your sign-in details. Your text goes only to the AI provider you choose, and only when you ask for it.
 
@@ -27,7 +27,7 @@ With an API key, the extension sends this request from your browser directly to 
 
 How the provider processes and retains your request is governed by its own terms and by your account settings with that provider.
 
-Nothing is sent when you only open or read an email. To suggest context, the extension keeps the emails you open in memory while the Outlook tab is open; they are never written to disk and are discarded when the tab is closed or reloaded.
+Nothing is sent when you only open or read an email. To suggest context, the extension keeps the emails you open in memory while the Outlook or Gmail tab is open; they are never written to disk and are discarded when the tab is closed or reloaded.
 
 If a reply draft is already open and its earlier conversation was not captured, a recognized quote inside that draft can provide context instead. It is shown as partial context for review; the editable draft and the signature before the quote are excluded from that conversation context. It is sent only when you request generation, under the same rules as other selected context.
 
@@ -35,7 +35,7 @@ Writehand never sends email. Results are shown as a preview first and are writte
 
 ### Settings
 
-Your preferences (interface language, translation languages, tone, standing instructions, theme) and your connection choice (method, API key provider and model) are stored in your browser's extension storage on your device. They are not synchronized or sent anywhere.
+Your preferences (interface language, translation languages, tone, standing instructions, theme, and where you dragged the **Draft reply** button) and your connection choice (method, API key provider and model) are stored in your browser's extension storage on your device. They are not synchronized or sent anywhere.
 
 ### Sign-in details and API keys
 
@@ -52,7 +52,7 @@ While update checks are turned on (the default), the helper app asks GitHub at m
 
 | Permission | Why it is needed |
 | --- | --- |
-| Access to `outlook.office.com`, `outlook.office365.com`, `outlook.live.com` and `outlook.cloud.microsoft` | To show the Writehand buttons in Outlook on the web, read the draft or the emails you work with, and write approved results into your draft. Writehand does not run on any other website. |
+| Access to `outlook.office.com`, `outlook.office365.com`, `outlook.live.com`, `outlook.cloud.microsoft` and `mail.google.com` | To show the Writehand buttons in Outlook on the web and Gmail, read the draft or the emails you work with, and write approved results into your draft. Writehand does not run on any other website. |
 | Storage | To save your preferences on your device. |
 | Native messaging (optional, requested when you choose the ChatGPT or Claude plan) | To talk to the helper app on your computer, which holds those connections. |
 | Access to `api.groq.com`, `openrouter.ai` or `api.openai.com` (optional, requested when you connect an API key for that provider) | To send your generation requests to the provider whose key you connected. Writehand does not get access to any other site. |

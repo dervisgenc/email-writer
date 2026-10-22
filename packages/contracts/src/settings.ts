@@ -7,13 +7,13 @@ import { targetLanguageSchema, UI_LANGUAGE_PREFERENCES } from './languages';
  * Preferences persisted on the device. Email, context, source text, preview and undo
  * data are never added to this record.
  */
-export const SETTINGS_SCHEMA_VERSION = 3;
+export const SETTINGS_SCHEMA_VERSION = 4;
 
 export const THEMES = ['system', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** Email environments the extension can be enabled on. */
-export const SITE_IDS = ['outlook-web'] as const;
+export const SITE_IDS = ['outlook-web', 'gmail-web'] as const;
 export type SiteId = (typeof SITE_IDS)[number];
 
 /** Maximum number of languages featured in the "Translate" menu and the language picker. */
@@ -24,8 +24,12 @@ export const MAX_WRITING_INSTRUCTIONS = 1_000;
 const siteEnabledSchema = z
   .object({
     'outlook-web': z.boolean(),
+    'gmail-web': z.boolean(),
   })
   .strict();
+
+/** The per-site switch of schema versions 1 to 3, which knew only Outlook on the web. */
+const legacySiteEnabledSchema = z.object({ 'outlook-web': z.boolean() }).strict();
 
 const favoriteLanguagesSchema = z
   .array(targetLanguageSchema)
@@ -55,8 +59,13 @@ export const settingsSchema = z
 
 export type Settings = z.infer<typeof settingsSchema>;
 
+/** Version 3 record: differs from version 4 only by the switch for Gmail, which it does not have. */
+export const settingsV3Schema = settingsSchema
+  .extend({ schemaVersion: z.literal(3), siteEnabled: legacySiteEnabledSchema })
+  .strict();
+
 /** Version 2 record: differs from version 3 only by the missing update check preference. */
-export const settingsV2Schema = settingsSchema
+export const settingsV2Schema = settingsV3Schema
   .omit({ checkHelperUpdates: true })
   .extend({ schemaVersion: z.literal(2) })
   .strict();
@@ -70,7 +79,7 @@ export const settingsV1Schema = z
     targetLanguage: z.enum(['tr', 'en', 'de', 'fr', 'es']),
     tone: z.enum(TONES),
     theme: z.enum(THEMES),
-    siteEnabled: siteEnabledSchema,
+    siteEnabled: legacySiteEnabledSchema,
     onboardingSeen: z.boolean(),
   })
   .strict();
@@ -86,7 +95,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   writingInstructions: '',
   tone: 'neutral',
   theme: 'system',
-  siteEnabled: Object.freeze({ 'outlook-web': true }),
+  siteEnabled: Object.freeze({ 'outlook-web': true, 'gmail-web': true }),
   onboardingSeen: false,
   checkHelperUpdates: true,
 });

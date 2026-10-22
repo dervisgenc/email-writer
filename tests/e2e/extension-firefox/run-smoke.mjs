@@ -2,7 +2,8 @@
 // to Chromium, so the Firefox package is tried separately in a real Firefox.
 // A headless Firefox starts, the test build is loaded as a temporary add-on, and
 // the select → Revise → sample result → apply to draft flow is tried on the
-// synthetic Outlook fixture page. Passing it does not mean the real Outlook page is verified.
+// synthetic Outlook and Gmail fixture pages. Passing it does not mean the real Outlook or
+// Gmail page is verified.
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,6 +15,7 @@ import { firefoxVersion, launchFirefox } from '../../support/firefox/firefox-pro
 const root = resolve(import.meta.dirname, '../../..');
 const extensionPath = resolve(root, 'apps/browser-extension/.output/firefox-mv3-test');
 const fixtureUrl = 'http://127.0.0.1:4517/mail/inbox';
+const gmailFixtureUrl = 'http://127.0.0.1:4517/gmail/mail/u/0/#inbox/FMfcgzQXJWDsKmBvTkRbHnPLvXqZcwTt';
 const bidiPort = Number(process.env.FIREFOX_BIDI_PORT ?? 9333);
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -253,6 +255,51 @@ try {
       signatureFirstLine === '--' &&
       outcome.includes('yerleştirildi'),
     JSON.stringify({ previewTable, written, signatureFirstLine, outcome }),
+  );
+
+  // Gmail: the content script for Gmail runs on its page; a selection in the inline reply is revised.
+  await bidi.send('browsingContext.navigate', { context, url: gmailFixtureUrl, wait: 'complete' });
+  const gmailLaunchers = await waitFor(async () => {
+    const count = await evaluate(`document.querySelectorAll('writehand-launcher').length`);
+    return count >= 3 ? count : 0;
+  }, 'Gmail launcher buttons').catch(() => 0);
+  await evaluate(`(() => {
+    const line = document.querySelector('[data-fixture="reply-editor"] div');
+    const text = line.firstChild;
+    const start = text.textContent.indexOf('toplantı odası');
+    const range = document.createRange();
+    range.setStart(text, start);
+    range.setEnd(text, start + 'toplantı odası'.length);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    // The reply's toolbar is the one that offers "Yanıt yaz" (Write reply).
+    const bar = [...document.querySelectorAll('writehand-launcher')]
+      .map((host) => host.shadowRoot?.querySelector('.ew-compose-bar'))
+      .find((element) => element && [...element.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Yanıt yaz'));
+    [...bar.querySelectorAll('button')].find((button) => button.textContent.trim() === 'Düzelt').click();
+    return true;
+  })()`);
+  await waitFor(
+    () => evaluate(`${cardQuery}?.querySelector('.ew-rich-preview__source')?.value ?? ''`),
+    'Gmail result card',
+  ).catch(() => '');
+  await clickIn('.ew-card', 'Taslağa uygula');
+  const gmailApplied = await waitFor(async () => {
+    const text = await evaluate(`document.querySelector('[data-fixture="reply-editor"] div').textContent`);
+    return text.includes('Toplantıyı yarın yapabiliriz.') ? text : '';
+  }, 'writing to the Gmail draft').catch(() => '');
+  const gmailKept = await evaluate(`(() => {
+    const editor = document.querySelector('[data-fixture="reply-editor"]');
+    return editor.querySelector('.gmail_signature')?.textContent === 'Ayşe Kaya' &&
+      Boolean(document.querySelector('[data-fixture="trimmed-toggle"]'));
+  })()`);
+  record(
+    'Gmail: launchers were added and the selection in the inline reply was revised; the signature was kept',
+    gmailLaunchers === 3 &&
+      gmailApplied ===
+        'Toplantı odası olarak B-204 uygun, Toplantıyı yarın yapabiliriz. rezervasyonunu ben yaparım.' &&
+      gmailKept,
+    JSON.stringify({ gmailLaunchers, gmailApplied, gmailKept }),
   );
 } catch (error) {
   record('The smoke test could not finish', false, error instanceof Error ? error.message : String(error));

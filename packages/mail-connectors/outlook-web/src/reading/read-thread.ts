@@ -12,11 +12,11 @@ import {
   type ThreadSnapshot,
 } from '@writehand/contracts';
 
+import { extractTextBlocks, labelText, type ElementRole, type IdentityRegistry } from '@writehand/mail-dom';
+
 import { messageBodies, type LocatedThread } from '../discovery/locate-thread';
 import { queryAll, queryFirst } from '../discovery/selectors';
-import type { IdentityRegistry } from '../identity/identity-registry';
-import { extractTextBlocks, type ElementRole } from './extract-text-blocks';
-import { labelText, messageContainerOf, messageKeyOf, readMessageHeader } from './message-header';
+import { messageContainerOf, messageKeyOf, readMessageHeader } from './message-header';
 
 /** Initial read budget; not a measured product limit. */
 export const READ_LIMITS = Object.freeze({ maxMessages: 100, maxTextLength: 250_000 });

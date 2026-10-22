@@ -7,6 +7,8 @@ import type {
   ThreadRef,
 } from '@writehand/contracts';
 
+import type { UiSkin } from '../mounting/appearance';
+
 /** Marks the extension's own UI roots so they are excluded from page observation. */
 export const OWN_UI_ATTRIBUTE = 'data-writehand-ui';
 export const OWN_UI_SELECTOR = `[${OWN_UI_ATTRIBUTE}]`;
@@ -22,6 +24,8 @@ export interface LauncherAnchor {
   readonly element: HTMLElement;
   /** The button's corner relative to the element. */
   readonly placement: 'top-end' | 'bottom-end';
+  /** The mail app's own controls at the end of the region; the button is placed before them. */
+  readonly obstacles?: readonly HTMLElement[];
   readonly target:
     | { readonly kind: 'thread'; readonly thread: ThreadRef }
     | { readonly kind: 'composer'; readonly composer: ComposerRef };
@@ -36,4 +40,6 @@ export interface MailPageProvider {
   selectorReport(): readonly SelectorReport['entries'][number][];
   /** The mail app's current theme colors; `null` if they cannot be read. */
   readTheme(): PageTheme | null;
+  /** The design language the extension UI follows on this mail service (default `fluent`). */
+  readonly skin?: UiSkin;
 }

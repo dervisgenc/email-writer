@@ -113,7 +113,7 @@ Submission is manual. Submit to **Firefox Add-ons (AMO)** and **Microsoft Edge A
 For every store listing:
 
 - **Privacy policy:** link to [PRIVACY.md](../PRIVACY.md) on GitHub (`https://github.com/dervisgenc/writehand/blob/main/PRIVACY.md`). Keep the stores' data use answers consistent with it: text is sent to the AI provider the user chose only on request; there is no analytics or server. The Firefox manifest declares `personalCommunications` and `authenticationInfo`.
-- **Permission justification:** `storage` holds the settings; the optional `nativeMessaging` permission lets the extension talk to the open-source helper app that holds the AI connection on the user's computer, and the welcome wizard asks for it with an explanation. Content scripts run only on the four Outlook on the web origins.
+- **Permission justification:** `storage` holds the settings; the optional `nativeMessaging` permission lets the extension talk to the open-source helper app that holds the AI connection on the user's computer, and the welcome wizard asks for it with an explanation. Content scripts run only on the four Outlook on the web origins and on Gmail (`mail.google.com`).
 - **Review notes:** `web-ext lint` reports warnings from library code only (Zod's `eval` capability probe, disabled with `jitless`, and Vue's runtime `innerHTML` path).
 
 ### Adding the store IDs

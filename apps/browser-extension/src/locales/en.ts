@@ -10,7 +10,7 @@ const count = countWith('en');
 
 export const en: ExtensionText = {
   description:
-    'Revise, translate and write emails in Outlook on the web with ChatGPT or Claude. Results are previewed first; nothing is sent.',
+    'Revise, translate and write emails in Outlook on the web and Gmail with the AI you choose. Previewed first; nothing is sent.',
   ui: {
     locale: 'en',
     ai: aiEn,
@@ -20,6 +20,7 @@ export const en: ExtensionText = {
     threadLauncher: {
       label: 'Draft reply',
       tooltip: 'Draft a reply to this conversation and review the context',
+      dragHint: 'Drag to move it.',
     },
     compose: {
       toolbarLabel: PRODUCT_NAME,
@@ -309,7 +310,7 @@ export const en: ExtensionText = {
   },
   options: {
     title: `${PRODUCT_NAME} settings`,
-    subtitle: 'Writing assistant for Outlook on the web',
+    subtitle: 'Writing assistant for Outlook on the web and Gmail',
     preferencesTitle: 'Writing preferences',
     preferencesDescription: 'Language, tone and appearance used for new work.',
     uiLanguage: 'Interface language',
@@ -342,12 +343,13 @@ export const en: ExtensionText = {
     instructionsCount: (count, limit) => `${count}/${limit}`,
     tone: 'Default tone',
     theme: 'Theme',
-    themes: { system: 'Automatic (same as Outlook)', light: 'Light', dark: 'Dark' },
+    themes: { system: 'Automatic (same as your mail)', light: 'Light', dark: 'Dark' },
     themeOptions: { system: 'Automatic', light: 'Light', dark: 'Dark' },
     themeHint:
-      'With Automatic, the panel in Outlook follows Outlook’s theme and this page follows your system theme.',
-    siteEnabled: 'Show the writing assistant on Outlook Web',
-    siteEnabledHint: 'When off, the buttons and panel are hidden in Outlook.',
+      'With Automatic, the panel follows the theme of your mail page and this page follows your system theme.',
+    siteNames: { 'outlook-web': 'Outlook on the web', 'gmail-web': 'Gmail' },
+    siteEnabled: (site) => `Show the writing assistant on ${site}`,
+    siteEnabledHint: (site) => `When off, the buttons and panel are hidden in ${site}.`,
     unsaved: 'You have unsaved changes.',
     save: 'Save',
     saved: 'Settings saved.',

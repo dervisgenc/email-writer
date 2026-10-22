@@ -1,5 +1,6 @@
-import type { IdentityRegistry } from '../identity/identity-registry';
-import { labelText, messageContainerOf, messageKeyOf } from '../reading/message-header';
+import { labelText, type IdentityRegistry } from '@writehand/mail-dom';
+
+import { messageContainerOf, messageKeyOf } from '../reading/message-header';
 import { locateQuotedReply } from './locate-quoted-reply';
 import { locateThread, messageBodies, selectedRowConversationId, type LocatedThread } from './locate-thread';
 import { queryAll, queryFirst } from './selectors';

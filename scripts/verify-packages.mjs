@@ -34,11 +34,13 @@ const FORBIDDEN_PERMISSIONS = [
   'history',
   'bookmarks',
 ];
+// Must match SITE_MATCHES in apps/browser-extension/src/bootstrap/supported-sites.ts.
 const SUPPORTED_MATCHES = [
   'https://outlook.live.com/*',
   'https://outlook.office.com/*',
   'https://outlook.office365.com/*',
   'https://outlook.cloud.microsoft/*',
+  'https://mail.google.com/*',
 ];
 const DEVELOPMENT_MARKERS = ['writehand-development-fixture', 'localhost', '127.0.0.1'];
 
@@ -110,6 +112,11 @@ for (const [browser, directory] of Object.entries(outputs)) {
       if (!SUPPORTED_MATCHES.includes(pattern)) fail(browser, `unsupported content script match: ${pattern}`);
     }
     if (script.all_frames === true) fail(browser, 'all_frames must stay off for now.');
+  }
+  // Every supported site has its content script; none is dropped by accident.
+  const covered = new Set((manifest.content_scripts ?? []).flatMap((script) => script.matches ?? []));
+  for (const pattern of SUPPORTED_MATCHES) {
+    if (!covered.has(pattern)) fail(browser, `no content script for the supported site: ${pattern}`);
   }
   for (const resource of manifest.web_accessible_resources ?? []) {
     for (const pattern of resource.matches ?? []) {

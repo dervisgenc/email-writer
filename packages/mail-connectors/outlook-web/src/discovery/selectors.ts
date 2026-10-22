@@ -16,8 +16,13 @@
  * - `role="textbox"` alone does not mean an email editor.
  */
 
-export type SelectorStatus = 'candidate' | 'verified';
-export type EvidenceLevel = 'high' | 'medium' | 'low';
+import {
+  selectorQueries,
+  type EvidenceLevel,
+  type SelectorDefinition as GenericSelectorDefinition,
+} from '@writehand/mail-dom';
+
+export type { SelectorStatus } from '@writehand/mail-dom';
 
 export interface VerificationRecord {
   readonly accountType: 'work' | 'personal';
@@ -31,16 +36,7 @@ export interface VerificationRecord {
   readonly date: string;
 }
 
-export interface SelectorDefinition {
-  /** Tried in order; the first match wins. */
-  readonly selectors: readonly string[];
-  readonly status: SelectorStatus;
-  /** Strength of the evidence from public sources (not a substitute for verification). */
-  readonly evidence: EvidenceLevel;
-  readonly languageDependent: boolean;
-  readonly note: string;
-  readonly verifiedOn: readonly VerificationRecord[];
-}
+export type SelectorDefinition = GenericSelectorDefinition<VerificationRecord>;
 
 function candidate(
   selectors: readonly string[],
@@ -270,7 +266,9 @@ export const OUTLOOK_SELECTORS = {
 
 export type SelectorKey = keyof typeof OUTLOOK_SELECTORS;
 
-export const SELECTOR_KEYS = Object.keys(OUTLOOK_SELECTORS) as readonly SelectorKey[];
+const queries = selectorQueries<SelectorKey>(OUTLOOK_SELECTORS);
+
+export const SELECTOR_KEYS = queries.keys;
 
 /** Non-mail Outlook modules: no button is added on these paths. */
 export const NON_MAIL_PATH_PREFIXES = ['/calendar', '/people', '/files', '/tasks', '/bookings', '/todo'];
@@ -278,51 +276,4 @@ export const NON_MAIL_PATH_PREFIXES = ['/calendar', '/people', '/files', '/tasks
 /** Item id in the URL: `/mail/<folder>/id/<id>`, `/deeplink/read/<id>`, `/deeplink/readconv/<id>`. */
 export const URL_ITEM_ID = /\/(?:id|read|readconv)\/([^/?#]+)/;
 
-export function selectorList(key: SelectorKey): string {
-  return OUTLOOK_SELECTORS[key].selectors.join(', ');
-}
-
-/** Returns the first element matched by the first matching selector. */
-export function queryFirst(root: ParentNode, key: SelectorKey): HTMLElement | null {
-  for (const selector of OUTLOOK_SELECTORS[key].selectors) {
-    const found = root.querySelector<HTMLElement>(selector);
-    if (found !== null) {
-      return found;
-    }
-  }
-  return null;
-}
-
-/**
- * Returns the first element outside `excluded`, trying the selectors in order.
- * This keeps look-alike markers in the email body out of a message header lookup.
- */
-export function queryFirstOutside(root: ParentNode, excluded: Node, key: SelectorKey): HTMLElement | null {
-  for (const selector of OUTLOOK_SELECTORS[key].selectors) {
-    for (const found of Array.from(root.querySelectorAll<HTMLElement>(selector))) {
-      if (!excluded.contains(found)) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
-
-/** Returns the matches of all selectors in document order, without duplicates. */
-export function queryAll(root: ParentNode, key: SelectorKey): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(selectorList(key)));
-}
-
-export function matches(element: Element, key: SelectorKey): boolean {
-  return OUTLOOK_SELECTORS[key].selectors.some((selector) => element.matches(selector));
-}
-
-export function closest(element: Element, key: SelectorKey): HTMLElement | null {
-  for (const selector of OUTLOOK_SELECTORS[key].selectors) {
-    const found = element.closest<HTMLElement>(selector);
-    if (found !== null) {
-      return found;
-    }
-  }
-  return null;
-}
+export const { queryFirst, queryFirstOutside, queryAll, matches, closest } = queries;

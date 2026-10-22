@@ -13,9 +13,23 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'mail-dom',
+          environment: 'jsdom',
+          include: ['tests/integration/mail-dom/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
           name: 'outlook-web',
           environment: 'jsdom',
           include: ['tests/integration/outlook-web/**/*.test.ts'],
+        },
+      },
+      {
+        test: {
+          name: 'gmail-web',
+          environment: 'jsdom',
+          include: ['tests/integration/gmail-web/**/*.test.ts'],
         },
       },
       {

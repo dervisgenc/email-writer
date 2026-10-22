@@ -21,7 +21,21 @@ export interface LauncherCallbacks {
   readonly onOpenPanel: (anchor: LauncherAnchor, opener: HTMLElement | null) => void;
 }
 
+/** How far the user moved a button from its default place, in CSS pixels. */
+export interface LauncherOffset {
+  readonly dx: number;
+  readonly dy: number;
+}
+
 export interface LauncherOptions extends LauncherCallbacks {
+  /**
+   * Where the user dragged the conversation button. `get` is read on every placement; `set`
+   * stores a new place, or `null` once the button is dropped back near its default place.
+   */
+  readonly threadPosition: {
+    get(): LauncherOffset | null;
+    set(offset: LauncherOffset | null): void;
+  };
   readonly text: Readonly<Ref<UiText>>;
   readonly appearance: Readonly<Ref<Appearance>>;
   readonly session: PanelSessionDependencies;
@@ -50,6 +64,17 @@ interface MountedLauncher {
    * under the pointer, releasing it does not produce a click.
    */
   pressed: boolean;
+  /** A drag of the conversation button in progress (pointer id, start point and start place). */
+  drag: {
+    readonly pointerId: number;
+    readonly startX: number;
+    readonly startY: number;
+    readonly left: number;
+    readonly top: number;
+    moved: boolean;
+  } | null;
+  /** The click that ends a drag must not open the panel. */
+  suppressClick: boolean;
 }
 
 /** How many clipping ancestors are observed; more distant ones change with the window size. */
@@ -77,6 +102,12 @@ function clippingAncestors(element: HTMLElement): HTMLElement[] {
 
 /** Gap between the button and the region's edge (px). */
 const OFFSET = 8;
+/** A region at most this tall is a row (e.g. a subject line): the button is centered in it. */
+const ROW_MAX_HEIGHT = 72;
+/** The pointer must move this far before a press becomes a drag (px). */
+const DRAG_THRESHOLD = 5;
+/** Dropped this close to its default place, the button snaps back and the moved place is forgotten (px). */
+const SNAP_DISTANCE = 24;
 /** The button is hidden unless this much of the region is visible; a one-line draft still counts. */
 const MIN_VISIBLE_WIDTH = 44;
 const MIN_VISIBLE_HEIGHT = 12;
@@ -129,46 +160,96 @@ function visibleRect(element: HTMLElement): VisibleRect | null {
 }
 
 /**
+ * The room left for the button at the region's end: its right edge is the region's end or the
+ * start of the mail app's own controls there; `middle` is the vertical center of those controls,
+ * so the button lines up with them.
+ */
+function endRoom(entry: MountedLauncher, visible: VisibleRect): { right: number; middle: number | null } {
+  let right = visible.right;
+  let middle: number | null = null;
+  for (const obstacle of entry.anchor.obstacles ?? []) {
+    if (!obstacle.isConnected) continue;
+    const box = obstacle.getBoundingClientRect();
+    const overlapsRow = box.width > 0 && box.bottom > visible.top && box.top < visible.bottom;
+    if (overlapsRow && box.left < right) {
+      right = box.left;
+      middle = (box.top + box.bottom) / 2;
+    }
+  }
+  return { right, middle };
+}
+
+interface Placement {
+  /** The container's right edge (it is shifted left by its own width) and top edge. */
+  readonly left: number;
+  readonly top: number;
+  readonly transform: string;
+}
+
+/** The region's visible part, or `null` while the button must be hidden. */
+function visibleRegion(entry: MountedLauncher): VisibleRect | null {
+  return entry.anchor.element.isConnected ? visibleRect(entry.anchor.element) : null;
+}
+
+/**
+ * The default place at the region's corner, before any move by the user. The host must be
+ * displayed: its size decides where it goes.
+ */
+function basePlacement(entry: MountedLauncher, host: HTMLElement, visible: VisibleRect): Placement {
+  const height = visible.bottom - visible.top;
+  const room = endRoom(entry, visible);
+  const left = Math.max(room.right - OFFSET, host.offsetWidth + OFFSET);
+  if (entry.anchor.placement === 'top-end') {
+    // In a row (e.g. Gmail's subject line) the button lines up with the row's own controls, or
+    // is centered in the row without them.
+    const middle = room.middle ?? visible.top + height / 2;
+    const top = height <= ROW_MAX_HEIGHT ? middle - host.offsetHeight / 2 : visible.top + OFFSET;
+    return { left, top, transform: 'translateX(-100%)' };
+  }
+  // In a short region (e.g. a one-line reply) the toolbar goes right below the region so it
+  // does not cover the text, or right above it if there is no room below.
+  if (height >= TOOLBAR_ROOM) {
+    return { left, top: visible.bottom - OFFSET, transform: 'translate(-100%, -100%)' };
+  }
+  if (window.innerHeight - visible.bottom >= TOOLBAR_ROOM) {
+    return { left, top: visible.bottom + OFFSET / 2, transform: 'translateX(-100%)' };
+  }
+  return { left, top: visible.top - OFFSET / 2, transform: 'translate(-100%, -100%)' };
+}
+
+/** Keeps a moved button on screen: its right edge is `left`, its top edge `top`. */
+function clampToViewport(host: HTMLElement, left: number, top: number): { left: number; top: number } {
+  return {
+    left: Math.min(Math.max(left, host.offsetWidth + OFFSET), window.innerWidth - OFFSET),
+    top: Math.min(Math.max(top, OFFSET), window.innerHeight - host.offsetHeight - OFFSET),
+  };
+}
+
+/**
  * The position is set on the container inside the shadow root: WXT applies
  * `all: initial !important` to the shadow host, and since the inner context wins
  * for important rules in shadow DOM, a position set on the host has no effect.
  */
-function position(entry: MountedLauncher): void {
+function position(entry: MountedLauncher, offset: LauncherOffset | null): void {
   const host = entry.ui?.uiContainer;
   if (host === undefined || entry.pressed) {
     return;
   }
-  const visible = entry.anchor.element.isConnected ? visibleRect(entry.anchor.element) : null;
+  const visible = visibleRegion(entry);
   host.style.display = visible === null ? 'none' : 'block';
   if (visible === null) {
     return;
   }
-  const isTop = entry.anchor.placement === 'top-end';
-  // In a short region (e.g. a one-line reply) the toolbar goes right below the region so it
-  // does not cover the text, or right above it if there is no room below.
-  const roomInside = visible.bottom - visible.top >= TOOLBAR_ROOM;
-  const roomBelow = window.innerHeight - visible.bottom >= TOOLBAR_ROOM;
-  let top: number;
-  let transform: string;
-  if (isTop) {
-    top = visible.top + OFFSET;
-    transform = 'translateX(-100%)';
-  } else if (roomInside) {
-    top = visible.bottom - OFFSET;
-    transform = 'translate(-100%, -100%)';
-  } else if (roomBelow) {
-    top = visible.bottom + OFFSET / 2;
-    transform = 'translateX(-100%)';
-  } else {
-    top = visible.top - OFFSET / 2;
-    transform = 'translate(-100%, -100%)';
-  }
-  host.style.top = `${top}px`;
+  const base = basePlacement(entry, host, visible);
+  // A conversation button the user moved keeps its distance from the default place.
+  const moved = entry.target.value.kind === 'thread' && offset !== null;
+  const place = moved ? clampToViewport(host, base.left + offset.dx, base.top + offset.dy) : base;
+  host.style.top = `${place.top}px`;
   // Right-aligned, but never overflowing the left of the screen in a narrow pane or with long labels.
-  host.style.left = `${Math.max(visible.right - OFFSET, host.offsetWidth + OFFSET)}px`;
-  host.style.transform = transform;
+  host.style.left = `${place.left}px`;
+  host.style.transform = base.transform;
   // The result card opens above the toolbar; cap its height so it does not overflow the top of the screen.
-  host.style.setProperty('--ew-space-above', `${Math.max(160, top - 2 * OFFSET - 40)}px`);
+  host.style.setProperty('--ew-space-above', `${Math.max(160, place.top - 2 * OFFSET - 40)}px`);
 }
 
 function sameTarget(a: LauncherTarget, b: LauncherTarget): boolean {
@@ -200,7 +281,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
   const repositionAll = () => {
     frame = null;
     for (const entry of mounted.values()) {
-      position(entry);
+      position(entry, options.threadPosition.get());
     }
   };
   const scheduleReposition = () => {
@@ -227,12 +308,52 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
   };
   ctx.addEventListener(window, 'scroll', scheduleReposition, { capture: true, passive: true });
   ctx.addEventListener(window, 'resize', scheduleReposition, { passive: true });
+  /** Moves the conversation button with the pointer once the press has become a drag. */
+  const drag = (event: PointerEvent) => {
+    for (const entry of mounted.values()) {
+      const state = entry.drag;
+      const host = entry.ui?.uiContainer;
+      if (state === null || host === undefined || state.pointerId !== event.pointerId) continue;
+      const dx = event.clientX - state.startX;
+      const dy = event.clientY - state.startY;
+      if (!state.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) continue;
+      state.moved = true;
+      host.dataset.dragging = 'true';
+      const place = clampToViewport(host, state.left + dx, state.top + dy);
+      host.style.left = `${place.left}px`;
+      host.style.top = `${place.top}px`;
+    }
+  };
+  ctx.addEventListener(window, 'pointermove', drag, { capture: true, passive: true });
+
+  /** Ends a drag: stores the new place, or forgets it when the button is dropped near its default place. */
+  const drop = (entry: MountedLauncher) => {
+    const state = entry.drag;
+    const host = entry.ui?.uiContainer;
+    entry.drag = null;
+    if (state === null || !state.moved || host === undefined) return;
+    delete host.dataset.dragging;
+    entry.suppressClick = true;
+    ctx.setTimeout(() => {
+      entry.suppressClick = false;
+    }, 0);
+    const visible = visibleRegion(entry);
+    if (visible === null) return;
+    const base = basePlacement(entry, host, visible);
+    const offset = {
+      dx: Number.parseFloat(host.style.left) - base.left,
+      dy: Number.parseFloat(host.style.top) - base.top,
+    };
+    options.threadPosition.set(Math.hypot(offset.dx, offset.dy) < SNAP_DISTANCE ? null : offset);
+  };
+
   // On release, apply the pending position in the next animation frame, i.e. after the click is handled.
   const release = () => {
     let wasPressed = false;
     for (const entry of mounted.values()) {
       wasPressed ||= entry.pressed;
       entry.pressed = false;
+      drop(entry);
     }
     if (wasPressed) scheduleReposition();
   };
@@ -260,6 +381,8 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
       removed: false,
       observed: [],
       pressed: false,
+      drag: null,
+      suppressClick: false,
     };
     mounted.set(anchor.key, entry);
     let shadowRoot: ShadowRoot | null = null;
@@ -284,10 +407,32 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
         });
         container.addEventListener(
           'pointerdown',
-          () => {
+          (event) => {
             entry.pressed = true;
+            // The conversation button can be dragged out of the way; a short press stays a click.
+            if (entry.target.value.kind === 'thread' && event.button === 0) {
+              entry.drag = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                left: Number.parseFloat(container.style.left) || 0,
+                top: Number.parseFloat(container.style.top) || 0,
+                moved: false,
+              };
+            }
           },
           { passive: true },
+        );
+        container.addEventListener(
+          'click',
+          (event) => {
+            if (entry.suppressClick) {
+              entry.suppressClick = false;
+              event.stopPropagation();
+              event.preventDefault();
+            }
+          },
+          { capture: true },
         );
         const app = createApp(LauncherHost, {
           text: options.text,
@@ -316,7 +461,7 @@ export function createLauncherMounter(ctx: ContentScriptContext, options: Launch
       ui.mount();
       entry.observed = [anchor.element, ...clippingAncestors(anchor.element)];
       entry.observed.forEach(observe);
-      position(entry);
+      position(entry, options.threadPosition.get());
     });
   };
 

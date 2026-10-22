@@ -1,46 +1,20 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import {
   createOutlookWebConnector,
   type EditorWriter,
   type OutlookWebConnection,
 } from '@writehand/outlook-web';
 
-export const OWN_UI_SELECTOR = '[data-writehand-ui]';
+import {
+  createDomWriter,
+  fixtureElement,
+  loadFixture as loadMailFixture,
+  OWN_UI_SELECTOR,
+} from '../../support/mail-page';
+
+export { createDomWriter, never, OWN_UI_SELECTOR, selectText, typeInto } from '../../support/mail-page';
 
 export function loadFixture(name: string): void {
-  // Tests run from the repository root (vitest.config.ts).
-  const html = readFileSync(resolve(process.cwd(), 'tests/fixtures/outlook', name), 'utf8');
-  document.body.innerHTML = html;
-}
-
-/**
- * The editor writer for the test environment. jsdom lacks the `execCommand`
- * method used in the real Outlook editor, so this writer replaces the range
- * with DOM operations. The connector's pre-check and post-write verification
- * rules work unchanged with it.
- */
-export function createDomWriter(): EditorWriter & { calls: number } {
-  const writer = {
-    id: 'test-dom-writer',
-    calls: 0,
-    replaceRange(_editor: HTMLElement, range: Range, text: string) {
-      writer.calls += 1;
-      range.deleteContents();
-      if (text.length > 0) {
-        range.insertNode(range.startContainer.ownerDocument!.createTextNode(text));
-      }
-      return true;
-    },
-    insertHtml(_editor: HTMLElement, range: Range, html: string) {
-      writer.calls += 1;
-      range.deleteContents();
-      range.insertNode(range.createContextualFragment(html));
-      return true;
-    },
-  };
-  return writer;
+  loadMailFixture('outlook', name);
 }
 
 let counter = 0;
@@ -57,40 +31,5 @@ export function createConnection(writer: EditorWriter = createDomWriter()): Outl
 }
 
 export function editor(fixtureName = 'reply-editor'): HTMLElement {
-  const element = document.querySelector<HTMLElement>(`[data-fixture="${fixtureName}"]`);
-  if (element === null) {
-    throw new Error(`Fixture editor not found: ${fixtureName}`);
-  }
-  return element;
+  return fixtureElement(fixtureName);
 }
-
-/** Selects a phrase from a text node in the document. */
-export function selectText(root: Element, phrase: string, occurrence = 0): void {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let seen = 0;
-  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-    const text = node.textContent ?? '';
-    let index = text.indexOf(phrase);
-    while (index >= 0) {
-      if (seen === occurrence) {
-        const range = document.createRange();
-        range.setStart(node, index);
-        range.setEnd(node, index + phrase.length);
-        const selection = document.getSelection()!;
-        selection.removeAllRanges();
-        selection.addRange(range);
-        return;
-      }
-      seen += 1;
-      index = text.indexOf(phrase, index + 1);
-    }
-  }
-  throw new Error(`Phrase not found: ${phrase}`);
-}
-
-/** Simulates the user typing in the editor (observers see the DOM change). */
-export function typeInto(target: HTMLElement, text: string): void {
-  target.querySelector('div')?.append(document.createTextNode(text));
-}
-
-export const never = { aborted: false };

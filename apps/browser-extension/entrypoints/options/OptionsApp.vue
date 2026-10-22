@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   MAX_FAVORITE_LANGUAGES,
   MAX_WRITING_INSTRUCTIONS,
+  SITE_IDS,
   THEMES,
   TONES,
   UI_LANGUAGE_NAMES,
@@ -10,6 +11,7 @@ import {
   type ErrorCode,
   type Settings,
   type SettingsChanges,
+  type SiteId,
   type TargetLanguage,
 } from '@writehand/contracts';
 import { AppIcon, ExtensionPage, LanguagePicker, languageLabel, provideUiText } from '@writehand/ui';
@@ -101,6 +103,10 @@ function removeFavorite(language: TargetLanguage): void {
     'favoriteLanguages',
     current.value.favoriteLanguages.filter((item) => item !== language),
   );
+}
+
+function setSiteEnabled(site: SiteId, enabled: boolean): void {
+  change('siteEnabled', { ...current.value.siteEnabled, [site]: enabled });
 }
 
 function setInstructions(value: string): void {
@@ -327,17 +333,19 @@ async function save(): Promise<void> {
           </div>
         </div>
         <p class="ew-muted">{{ text.options.defaultsNote }} {{ text.options.themeHint }}</p>
-        <label class="ew-switch-row">
+        <label v-for="site in SITE_IDS" :key="site" class="ew-switch-row" :data-site="site">
           <span class="ew-switch-row__text">
-            <span class="ew-switch-row__label">{{ text.options.siteEnabled }}</span>
-            <span class="ew-muted">{{ text.options.siteEnabledHint }}</span>
+            <span class="ew-switch-row__label">{{
+              text.options.siteEnabled(text.options.siteNames[site])
+            }}</span>
+            <span class="ew-muted">{{ text.options.siteEnabledHint(text.options.siteNames[site]) }}</span>
           </span>
           <input
             type="checkbox"
             role="switch"
             class="ew-switch"
-            :checked="current.siteEnabled['outlook-web']"
-            @change="change('siteEnabled', { 'outlook-web': checkedValue($event) })"
+            :checked="current.siteEnabled[site]"
+            @change="setSiteEnabled(site, checkedValue($event))"
           />
         </label>
       </section>

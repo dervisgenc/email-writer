@@ -6,6 +6,11 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ### Added
 
+- **Gmail on the web** (`mail.google.com`), for personal Google accounts and Google Workspace: the same toolbar, card and panel as in Outlook on the web, with the open conversation's expanded messages as context, inline replies and compose windows as drafts, and Gmail's signature and trimmed quote kept out of what is replaced. Gmail support is new: its page markers come from open-source Gmail extensions; reading a conversation and finding a compose window are checked on a real Gmail account, replies are not yet.
+- A switch per mail service in the settings (Outlook on the web, Gmail); the welcome wizard links to Gmail too.
+- On Gmail the extension looks like Gmail (Google Sans, Gmail's colors, rounded buttons), and the **Draft reply** button sits at the end of the subject row, next to Gmail's own buttons.
+- The **Draft reply** button can be dragged out of the way; its place is remembered per mail service, and dropping it near its first place puts it back.
+- `pnpm gmail:inspect` runs the extension's reading code on a live Gmail tab with masked output, for checking Gmail's page markers.
 - API keys work in the extension itself, without the helper app: connect a key from Groq, OpenRouter or OpenAI in the settings or the welcome wizard. Groq's free plan and OpenRouter's free models need no payment method; with Groq, OpenAI's free open-weight model `openai/gpt-oss-120b` is selected by itself.
 - Keys are checked with the provider before they are saved, stored encrypted in the browser (AES-GCM with a non-extractable key in the extension's own storage) and sent only to their provider. The browser asks for access to a provider's API only when you connect a key for it.
 - **Sign in through Codex** (experimental) for ChatGPT Business, Enterprise and Edu workspaces, where OpenAI's Sign in with ChatGPT is blocked by organization policy. It uses the sign-in of OpenAI's Codex CLI, without installing Codex, and generates on ChatGPT's Codex backend for the chosen workspace.
@@ -13,6 +18,9 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ### Changed
 
+- The extension now asks for access to `mail.google.com`. Chromium browsers ask existing users to accept this new permission when the extension updates.
+- Settings schema version 4 adds the Gmail switch, turned on; the Outlook switch keeps its value.
+- The shared parts of the mail connectors (text extraction, drafts, selection, writing, undo) moved into one package used by both, and a signature split by a line break is read as one block.
 - The welcome wizard has three steps. The helper app is installed only for the ChatGPT and Claude plans, from the connection step; without it, the API key method is preselected.
 - The connection method is chosen per browser profile; the helper app follows the method of the browser that uses it.
 - The helper app no longer keeps an OpenAI API key. A key saved by helper app 0.1.0 is deleted the next time the helper app writes its credentials file; connect it again in the extension, where OpenAI is preselected for you.

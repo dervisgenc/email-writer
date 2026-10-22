@@ -9,13 +9,13 @@ import {
   openOptionsPage,
   openWelcomePage,
 } from '../../src/platform/extension-browser';
+import { SITE_MATCHES } from '../../src/bootstrap/supported-sites';
 import {
   fetchAiSummary,
   fetchSelectorReport,
-  isSupportedUrl,
   queryPageStatus,
   requestOpenPanel,
-  SUPPORTED_ORIGINS,
+  siteOfUrl,
 } from '../../src/platform/extension-client';
 
 const props = defineProps<{
@@ -39,7 +39,8 @@ onMounted(async () => {
     setupNeeded.value = summary.ok && !summary.value.ready;
   });
   const tab = await activeTab();
-  if (tab === null || !isSupportedUrl(tab.url)) {
+  const site = siteOfUrl(tab?.url);
+  if (tab === null || site === null) {
     status.value = 'not-mail-site';
     return;
   }
@@ -48,7 +49,7 @@ onMounted(async () => {
   if (!result.ok) {
     // Explain missing site access or the need to reload instead of silently looking broken.
     status.value = 'unreachable';
-    siteAccessMissing.value = !(await hasSiteAccess(SUPPORTED_ORIGINS));
+    siteAccessMissing.value = !(await hasSiteAccess(SITE_MATCHES[site]));
     return;
   }
   status.value = result.value.support;

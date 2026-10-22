@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, REPOSITORY_URL, type Settings } from '@writehand/cont
 import { AppIcon, ExtensionPage, provideUiText, StepList } from '@writehand/ui';
 import { computed, onMounted, onUnmounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 
-import { OUTLOOK_WEB_START } from '../../src/bootstrap/supported-sites';
+import { GMAIL_WEB_START, OUTLOOK_WEB_START } from '../../src/bootstrap/supported-sites';
 import { textFor, uiLanguageFor } from '../../src/locales';
 import AiSettings from '../../src/pages/AiSettings.vue';
 import HelperInstall from '../../src/pages/HelperInstall.vue';
@@ -196,6 +196,9 @@ async function tryRevision() {
           </a>
           <a class="ew-btn" :href="OUTLOOK_WEB_START.personal" target="_blank" rel="noopener noreferrer">
             {{ welcome.tryIt.personalOutlook }}
+          </a>
+          <a class="ew-btn" :href="GMAIL_WEB_START" target="_blank" rel="noopener noreferrer">
+            {{ welcome.tryIt.openGmail }}
           </a>
           <button type="button" class="ew-btn ew-btn--subtle" @click="openOptionsPage">
             {{ welcome.tryIt.openSettings }}

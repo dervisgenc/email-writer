@@ -11,7 +11,7 @@ export const welcomeTr: WelcomeText = {
   next: 'Devam',
   intro: {
     title: 'Bağlanmanın iki yolu',
-    lead: `${PRODUCT_NAME} Outlook Web’in içinde çalışır ve seçtiğiniz AI sağlayıcısıyla yazar. Size uygun olanı sonraki adımda seçin; istediğiniz zaman değiştirebilirsiniz.`,
+    lead: `${PRODUCT_NAME} Outlook Web’in ve Gmail’in içinde çalışır ve seçtiğiniz AI sağlayıcısıyla yazar. Size uygun olanı sonraki adımda seçin; istediğiniz zaman değiştirebilirsiniz.`,
     apiKey: {
       title: 'Kendi API anahtarınız',
       points: [
@@ -69,10 +69,12 @@ export const welcomeTr: WelcomeText = {
       'Merhaba Deniz,\n\nmesajın için teşekürler. Raporu perşembe gönderebilirim ama önce ekibinden son rakamlar lazım. Çarşambaya kadar paylaşabilirmisin?\n\nSevgiler,\nAlex',
     run: 'Örneği düzelt',
     running: 'Düzeltiliyor…',
-    success: 'Her şey çalışıyor. Outlook’ta bir taslak açın; araç çubuğu taslağın yanında görünür.',
+    success:
+      'Her şey çalışıyor. Outlook’ta ya da Gmail’de bir taslak açın; araç çubuğu taslağın yanında görünür.',
     resultLabel: 'Sonuç',
     openOutlook: 'Outlook’u aç',
     personalOutlook: 'Outlook.com (kişisel)',
+    openGmail: 'Gmail’i aç',
     openSettings: 'Ayarlar',
   },
 };

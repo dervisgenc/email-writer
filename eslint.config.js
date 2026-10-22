@@ -13,11 +13,16 @@ const INTERNAL_PACKAGES = [
   '@writehand/core',
   '@writehand/ui',
   '@writehand/outlook-web',
+  '@writehand/gmail-web',
+  '@writehand/mail-dom',
   '@writehand/ai-openai',
   '@writehand/ai-claude-code',
   '@writehand/ai-chat-completions',
   '@writehand/email-format',
 ];
+
+/** Every mail connector; none of them imports another. */
+const MAIL_CONNECTOR_PACKAGES = ['@writehand/outlook-web', '@writehand/gmail-web'];
 
 /** Every AI provider package; none of them imports another. */
 const AI_PROVIDER_PACKAGES = [
@@ -93,7 +98,7 @@ export default tseslint.config(
         {
           object: 'document',
           property: 'execCommand',
-          message: 'Allowed only in outlook-web/writing/editor-writer.ts.',
+          message: 'Allowed only in mail-dom/writing/editor-writer.ts.',
         },
       ],
     },
@@ -182,14 +187,15 @@ export default tseslint.config(
   },
   {
     // The mail connector knows nothing about Vue components, business rules or the text service.
+    // Connectors share DOM building blocks only through mail-dom; they never import each other.
     files: ['packages/mail-connectors/**/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: restrictImports(
-            ['vue', 'wxt', '#imports', '@writehand/ui', '@writehand/core'],
-            'The connector works only with contracts and the DOM.',
+            ['vue', 'wxt', '#imports', '@writehand/ui', '@writehand/core', ...MAIL_CONNECTOR_PACKAGES],
+            'A connector works only with contracts, mail-dom and the DOM.',
           ),
           patterns: [
             deepImportBan,
@@ -201,8 +207,32 @@ export default tseslint.config(
     },
   },
   {
+    // mail-dom is shared by the connectors, so it cannot depend on any of them either.
+    files: ['packages/mail-connectors/mail-dom/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: restrictImports(
+            [
+              'vue',
+              'wxt',
+              '#imports',
+              '@writehand/ui',
+              '@writehand/core',
+              '@writehand/mail-dom',
+              ...MAIL_CONNECTOR_PACKAGES,
+            ],
+            'mail-dom works only with contracts and the DOM.',
+          ),
+          patterns: [deepImportBan],
+        },
+      ],
+    },
+  },
+  {
     // The single write path: execCommand is allowed only here.
-    files: ['packages/mail-connectors/outlook-web/src/writing/editor-writer.ts'],
+    files: ['packages/mail-connectors/mail-dom/src/writing/editor-writer.ts'],
     rules: {
       'no-restricted-properties': ['error', { property: 'innerHTML' }, { property: 'outerHTML' }],
     },

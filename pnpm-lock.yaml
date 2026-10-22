@@ -199,6 +199,12 @@ importers:
       '@writehand/email-format':
         specifier: workspace:*
         version: link:packages/email-format
+      '@writehand/gmail-web':
+        specifier: workspace:*
+        version: link:packages/mail-connectors/gmail-web
+      '@writehand/mail-dom':
+        specifier: workspace:*
+        version: link:packages/mail-connectors/mail-dom
       '@writehand/outlook-web':
         specifier: workspace:*
         version: link:packages/mail-connectors/outlook-web
@@ -293,6 +299,9 @@ importers:
       '@writehand/email-format':
         specifier: workspace:*
         version: link:../../packages/email-format
+      '@writehand/gmail-web':
+        specifier: workspace:*
+        version: link:../../packages/mail-connectors/gmail-web
       '@writehand/outlook-web':
         specifier: workspace:*
         version: link:../../packages/mail-connectors/outlook-web
@@ -364,11 +373,29 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
+  packages/mail-connectors/gmail-web:
+    dependencies:
+      '@writehand/contracts':
+        specifier: workspace:*
+        version: link:../../contracts
+      '@writehand/mail-dom':
+        specifier: workspace:*
+        version: link:../mail-dom
+
+  packages/mail-connectors/mail-dom:
+    dependencies:
+      '@writehand/contracts':
+        specifier: workspace:*
+        version: link:../../contracts
+
   packages/mail-connectors/outlook-web:
     dependencies:
       '@writehand/contracts':
         specifier: workspace:*
         version: link:../../contracts
+      '@writehand/mail-dom':
+        specifier: workspace:*
+        version: link:../mail-dom
 
   packages/ui:
     dependencies:
