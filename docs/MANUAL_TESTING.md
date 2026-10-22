@@ -147,7 +147,7 @@ Assess language, request direction, use of relevant context, factual fidelity an
 
 Gmail support is new and **no Gmail selector has been verified on a real account yet**. Record every check here and in the selector registry (`verifiedOn`); until then Gmail support is unverified. Use a personal Google account and a Google Workspace account with made-up mail only. One connection method per run is enough; the API key method needs no helper app.
 
-**Selectors (masked, read-only):** in the window of `pnpm outlook:firefox`, open `https://mail.google.com/mail/` and sign in. With a made-up conversation of three or more messages open:
+**Selectors (masked, read-only):** sign in with `pnpm gmail:firefox --sign-in` and quit that window, then run `pnpm gmail:dev`, which opens Gmail in the inspection window with the extension. With a made-up conversation of three or more messages open:
 
 - [ ] `pnpm gmail:inspect selectors`: `mainArea`, `threadSubject`, `message`, `messageBody`, `messageSender`, `messageDate` and `composeEditor` (with a reply open) have rendered matches. Note which selector of each key matched.
 - [ ] `pnpm gmail:inspect read`: page `ready`, a `thread-` key, the subject's shape, every expanded message with a sender and a date shape, signature and quote blocks recognized, collapsed messages counted. Note the read/on-screen character ratio.

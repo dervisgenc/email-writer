@@ -1,12 +1,13 @@
-// Runs the extension with live reload in the inspection Firefox that holds the Outlook session.
+// Runs the extension with live reload in the inspection Firefox that holds the mail session.
 //
 // The WXT dev server starts without opening a browser, and the development build is
 // loaded as a temporary add-on over WebDriver BiDi. Once the background script connects
-// to the server, WXT registers the content script and reloads the Outlook tab; the
+// to the server, WXT registers the content scripts and reloads the mail tabs; the
 // extension reloads itself as the code changes. It uses the same output folder as
 // `pnpm dev:firefox`, so the two cannot run at the same time.
 //
 // Usage: pnpm outlook:dev [--restart]     Ctrl+C removes the extension and stops the server.
+//        pnpm gmail:dev [--restart]       the same, opening Gmail if Firefox is started
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
@@ -15,7 +16,7 @@ import { parseArgs } from 'node:util';
 
 import { withBidiSession } from '../../support/firefox/bidi-client.mjs';
 import { isPortInUse } from '../../support/firefox/firefox-process.mjs';
-import { LIVE_BIDI_PORT } from './live-config.mjs';
+import { GMAIL_MAIL_URL, LIVE_BIDI_PORT, OUTLOOK_MAIL_URL } from './live-config.mjs';
 import { ensureLiveFirefox } from './live-firefox.mjs';
 
 const extensionRoot = resolve(import.meta.dirname, '../../../apps/browser-extension');
@@ -41,7 +42,13 @@ const installExtension = () =>
 const uninstallExtension = (extension) =>
   withBidiSession(LIVE_BIDI_PORT, (bidi) => bidi.send('webExtension.uninstall', { extension }));
 
-const { values } = parseArgs({ options: { restart: { type: 'boolean', default: false } } });
+const { values } = parseArgs({
+  options: {
+    restart: { type: 'boolean', default: false },
+    gmail: { type: 'boolean', default: false },
+  },
+});
+const mail = values.gmail ? 'Gmail' : 'Outlook';
 
 // Two sessions build into the same output folder and install the same extension ID, breaking each other.
 if (await isPortInUse(devServerPort)) {
@@ -50,9 +57,12 @@ if (await isPortInUse(devServerPort)) {
   );
   process.exit(1);
 }
-const firefox = await ensureLiveFirefox({ restart: values.restart });
+const firefox = await ensureLiveFirefox({
+  restart: values.restart,
+  urls: [values.gmail ? GMAIL_MAIL_URL : OUTLOOK_MAIL_URL],
+});
 if (firefox.started) {
-  console.log(`${firefox.version} started. If you are not signed in to Outlook, sign in first.`);
+  console.log(`${firefox.version} started. If you are not signed in to ${mail}, sign in first.`);
 }
 
 const { createServer } = await loadWxt();
@@ -76,7 +86,7 @@ if (!existsSync(resolve(devOutput, 'manifest.json'))) {
 }
 
 const extension = await installExtension();
-console.log(`Extension installed in the inspection Firefox (${extension}). The Outlook tab will reload.`);
+console.log(`Extension installed in the inspection Firefox (${extension}). The ${mail} tab will reload.`);
 console.log('The extension reloads itself as the code changes. Press Ctrl+C to stop.');
 
 // WXT's content script reload is unreliable in Firefox: even after the tab reloads,
@@ -88,7 +98,7 @@ reinstallAfterBuild = () => {
   clearTimeout(reinstallTimer);
   reinstallTimer = setTimeout(() => {
     installExtension()
-      .then(() => console.log('Extension reinstalled; reloading the Outlook tab.'))
+      .then(() => console.log(`Extension reinstalled; reloading the ${mail} tab.`))
       .catch((error) => console.error(`Could not reinstall the extension: ${error.message}`));
   }, 300);
 };
@@ -103,7 +113,7 @@ async function stop() {
   await uninstallExtension(extension).catch(() => {});
   await server.stop();
   // The page is not reloaded automatically: a draft being written could be lost.
-  console.log('\nExtension removed. Buttons left on the page go away when the Outlook tab reloads.');
+  console.log(`\nExtension removed. Buttons left on the page go away when the ${mail} tab reloads.`);
   process.exit(0);
 }
 process.on('SIGINT', stop);

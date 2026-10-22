@@ -45,8 +45,9 @@ All commands run from the repository root.
 | `pnpm test:firefox` | Test build, then a headless Firefox smoke test over WebDriver BiDi |
 | `pnpm lint:firefox` | Production build, then Mozilla's `web-ext lint` on the Firefox package |
 | `pnpm verify:packages` | Checks the production packages: permissions (including the optional provider origins), content script matches, no development code or local origins, Firefox ID and data collection declaration |
-| `pnpm outlook:firefox [--restart]` | Starts Firefox with a persistent profile and WebDriver BiDi for live Outlook inspection |
-| `pnpm outlook:dev [--restart]` | Runs the extension with live reload in that Firefox window |
+| `pnpm outlook:firefox [--restart] [--sign-in]` | Starts Firefox with a persistent profile and WebDriver BiDi for live Outlook inspection; `--sign-in` opens the profile without remote control, for signing in |
+| `pnpm gmail:firefox [--restart] [--sign-in]` | The same window, opening Gmail |
+| `pnpm outlook:dev [--restart]` / `pnpm gmail:dev` | Runs the extension with live reload in that Firefox window |
 | `pnpm outlook:inspect <command>` | Runs the extension's reading code on the live Outlook page with masked output; see [Live inspection](#live-inspection) |
 | `pnpm gmail:inspect <command>` | The same, read-only, on a live Gmail tab in that Firefox window; see [Live inspection](#live-inspection) |
 | `pnpm release:version <x.y.z>` | Sets the version in the root `package.json` and opens its section in `CHANGELOG.md`; see [Releasing](./RELEASING.md) |
@@ -329,7 +330,7 @@ pnpm outlook:inspect diagnose-reply  # connector state across "Reply" (opens an 
 - The profile lives outside the repository at `~/.writehand/firefox-outlook-profile` (override with `OUTLOOK_LIVE_PROFILE`) and contains Outlook session cookies. The BiDi port is `9223` (`OUTLOOK_LIVE_BIDI_PORT`); the `outlook:dev` server uses port `3123` (`OUTLOOK_DEV_PORT`).
 - `pnpm outlook:dev` starts the WXT dev server without opening a browser and loads the development build into the inspection window as a temporary add-on. It reloads the extension from disk after every build, because WXT's content script reload is not reliable in Firefox. It cannot run twice at once or together with `pnpm dev:firefox` (same output folder).
 - If the window was closed or a stale automation session blocks the connection, run `pnpm outlook:firefox --restart`.
-- **Gmail:** open `https://mail.google.com/mail/` in a tab of the same window and sign in once; the session stays in the profile. `pnpm outlook:dev` runs the extension on that tab too. `pnpm gmail:inspect` only reads (it never clicks or types): `read`, `selectors [key]` (all and rendered matches), `composers` (the drafts found and how they are split), `theme`, `structure [target]` (default `threadView`; `--bodies`, `--depth N`, `--lines N`). Google may refuse to sign in to a browser under automation; if it does, sign in once in the same profile without the inspection tools and start them again.
+- **Gmail:** Google refuses to sign in to a browser under remote control, so sign in first with `pnpm gmail:firefox --sign-in` (the same profile, no automation), quit that window, then start `pnpm gmail:firefox` or `pnpm gmail:dev`; the session stays in the profile. `pnpm gmail:dev` runs the extension on the Gmail tab. `pnpm gmail:inspect` only reads (it never clicks or types): `read`, `selectors [key]` (all and rendered matches), `composers` (the drafts found and how they are split), `theme`, `structure [target]` (default `threadView`; `--bodies`, `--depth N`, `--lines N`).
 
 Rules for live inspection:
 

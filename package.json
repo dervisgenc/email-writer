@@ -29,6 +29,8 @@
     "outlook:dev": "node tests/manual/live/dev-extension.mjs",
     "outlook:inspect": "node tests/manual/live/outlook-inspect.mjs",
     "gmail:inspect": "node tests/manual/live/gmail-inspect.mjs",
+    "gmail:firefox": "node tests/manual/live/launch-firefox.mjs --gmail",
+    "gmail:dev": "node tests/manual/live/dev-extension.mjs --gmail",
     "verify:packages": "node scripts/verify-packages.mjs",
     "release:version": "node scripts/release-version.mjs",
     "store:assets": "node scripts/store-assets/build.mjs",
