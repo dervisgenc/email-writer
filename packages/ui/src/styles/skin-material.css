@@ -1,0 +1,164 @@
+/*
+ * Material skin for Gmail (`data-skin='material'` on `.ew-root`). Gmail's own look: Google
+ * Sans, Gmail's blues and tonal surfaces, larger radii, pill-shaped buttons and Material
+ * elevation. Only design tokens and the shapes of controls change; layout and behavior are
+ * the same as with the Fluent skin. When Gmail's background and text colors can be read,
+ * they still override these fallbacks inline.
+ */
+.ew-root[data-skin='material'] {
+  --ew-font: 'Google Sans', Roboto, RobotoDraft, Helvetica, Arial, sans-serif;
+
+  --ew-radius-small: 8px;
+  --ew-radius-medium: 12px;
+  --ew-radius-large: 16px;
+
+  --ew-color-bg: #ffffff;
+  --ew-color-surface: #f6f8fc;
+  --ew-color-surface-hover: #eaf1fb;
+  --ew-color-surface-pressed: #d3e3fd;
+  --ew-color-border: #dadce0;
+  --ew-color-border-strong: #c4c7c5;
+  --ew-color-text: #1f1f1f;
+  --ew-color-muted: #444746;
+  --ew-color-disabled: #a8abaf;
+  --ew-color-accent: #0b57d0;
+  --ew-color-accent-hover: #0842a0;
+  --ew-color-on-accent: #ffffff;
+  --ew-color-accent-soft: #d3e3fd;
+  --ew-color-link: #0b57d0;
+  --ew-color-focus: #0b57d0;
+  /* Gmail's tonal "Compose" color, used for the conversation button. */
+  --ew-color-tonal: #c2e7ff;
+  --ew-color-on-tonal: #001d35;
+  --ew-color-tonal-hover: #b3dcf7;
+
+  --ew-shadow-2: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
+  --ew-shadow-4: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
+  --ew-shadow-16: 0 2px 6px 2px rgb(60 64 67 / 0.15), 0 1px 2px 0 rgb(60 64 67 / 0.3);
+  --ew-shadow-28: 0 4px 8px 3px rgb(60 64 67 / 0.15), 0 1px 3px 0 rgb(60 64 67 / 0.3);
+}
+
+.ew-root[data-skin='material'][data-theme='dark'] {
+  --ew-color-bg: #1f1f1f;
+  --ew-color-surface: #282a2c;
+  --ew-color-surface-hover: #333537;
+  --ew-color-surface-pressed: #3c4043;
+  --ew-color-border: #444746;
+  --ew-color-border-strong: #5f6368;
+  --ew-color-text: #e3e3e3;
+  --ew-color-muted: #c4c7c5;
+  --ew-color-disabled: #5f6368;
+  --ew-color-accent: #a8c7fa;
+  --ew-color-accent-hover: #d3e3fd;
+  --ew-color-on-accent: #062e6f;
+  --ew-color-accent-soft: #0842a0;
+  --ew-color-link: #a8c7fa;
+  --ew-color-focus: #a8c7fa;
+  --ew-color-tonal: #004a77;
+  --ew-color-on-tonal: #c2e7ff;
+  --ew-color-tonal-hover: #005a8f;
+
+  --ew-shadow-2: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --ew-shadow-4: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+  --ew-shadow-16: 0 2px 6px 2px rgb(0 0 0 / 0.15), 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --ew-shadow-28: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ew-root[data-skin='material'][data-theme='system'] {
+    --ew-color-bg: #1f1f1f;
+    --ew-color-surface: #282a2c;
+    --ew-color-surface-hover: #333537;
+    --ew-color-surface-pressed: #3c4043;
+    --ew-color-border: #444746;
+    --ew-color-border-strong: #5f6368;
+    --ew-color-text: #e3e3e3;
+    --ew-color-muted: #c4c7c5;
+    --ew-color-disabled: #5f6368;
+    --ew-color-accent: #a8c7fa;
+    --ew-color-accent-hover: #d3e3fd;
+    --ew-color-on-accent: #062e6f;
+    --ew-color-accent-soft: #0842a0;
+    --ew-color-link: #a8c7fa;
+    --ew-color-focus: #a8c7fa;
+    --ew-color-tonal: #004a77;
+    --ew-color-on-tonal: #c2e7ff;
+    --ew-color-tonal-hover: #005a8f;
+  }
+}
+
+/* Buttons are pills, as in Gmail. */
+.ew-root[data-skin='material'] .ew-btn,
+.ew-root[data-skin='material'] .ew-bar-btn,
+.ew-root[data-skin='material'] .ew-compose-bar,
+.ew-root[data-skin='material'] .ew-thread-launcher {
+  border-radius: var(--ew-radius-circular);
+  font-weight: 500;
+}
+
+.ew-root[data-skin='material'] .ew-btn {
+  min-height: 36px;
+  padding: 0 var(--ew-space-4);
+  border-color: var(--ew-color-border-strong);
+}
+
+.ew-root[data-skin='material'] .ew-btn--small {
+  min-height: 28px;
+  padding: 0 var(--ew-space-3);
+}
+
+.ew-root[data-skin='material'] .ew-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.ew-root[data-skin='material'] .ew-btn--icon.ew-btn--small {
+  width: 28px;
+}
+
+.ew-root[data-skin='material'] .ew-btn--primary,
+.ew-root[data-skin='material'] .ew-btn--subtle {
+  border-color: transparent;
+}
+
+.ew-root[data-skin='material'] .ew-compose-bar {
+  padding: 3px;
+  border: 0;
+  box-shadow: var(--ew-shadow-2);
+}
+
+.ew-root[data-skin='material'] .ew-bar-btn {
+  height: 32px;
+  padding: 0 var(--ew-space-3);
+}
+
+.ew-root[data-skin='material'] .ew-bar-btn--icon {
+  width: 32px;
+  padding: 0;
+}
+
+/* The conversation button looks like Gmail's tonal "Compose" button. */
+.ew-root[data-skin='material'] .ew-thread-launcher {
+  height: 32px;
+  padding: 0 var(--ew-space-4) 0 var(--ew-space-3);
+  border: 0;
+  background: var(--ew-color-tonal);
+  box-shadow: none;
+  color: var(--ew-color-on-tonal);
+  font-size: var(--ew-font-size-300);
+}
+
+.ew-root[data-skin='material'] .ew-thread-launcher .ew-icon {
+  color: var(--ew-color-on-tonal);
+}
+
+.ew-root[data-skin='material'] .ew-thread-launcher:hover {
+  background: var(--ew-color-tonal-hover);
+  box-shadow: var(--ew-shadow-2);
+}
+
+.ew-root[data-skin='material'] .ew-input,
+.ew-root[data-skin='material'] .ew-textarea,
+.ew-root[data-skin='material'] .ew-select {
+  border-radius: var(--ew-radius-small);
+}

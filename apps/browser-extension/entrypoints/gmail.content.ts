@@ -24,6 +24,7 @@ export default defineContentScript({
       locateLauncherAnchors: gmail.locateLauncherAnchors,
       selectorReport: gmail.selectorReport,
       readTheme: gmail.readTheme,
+      skin: 'material',
     });
   },
 });

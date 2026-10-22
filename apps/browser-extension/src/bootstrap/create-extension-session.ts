@@ -22,6 +22,7 @@ import {
   onSettingsStorageChanged,
 } from '../platform/extension-browser';
 import { createRuntimeHandler, toMessageListener } from '../platform/runtime-messaging';
+import { createLauncherPositionStore, type LauncherOffset } from '../platform/launcher-position-store';
 import { createSettingsStore, parseStoredSettings, SETTINGS_STORAGE_KEY } from '../platform/settings-store';
 import { createRandomIds, systemClock } from '../platform/system-dependencies';
 import type { MailPageProvider } from './mail-provider';
@@ -73,7 +74,9 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
   const refreshPageTheme = () => {
     pageTheme.value = provider.readTheme();
   };
-  const appearance = computed(() => resolveAppearance(settings.value.theme, pageTheme.value));
+  const appearance = computed(() =>
+    resolveAppearance(settings.value.theme, pageTheme.value, provider.skin ?? 'fluent'),
+  );
   const surface = shallowRef(panel.surface());
 
   // Remove UI orphaned by a previous (stopped) script before mounting the new one.
@@ -86,11 +89,24 @@ export async function createExtensionSession(options: ExtensionSessionOptions): 
     mountedPanel.setOpen(next.kind === 'panel');
   });
 
+  // Where the user dragged the conversation button on this mail service; kept on the device.
+  const positions = createLauncherPositionStore(localStorageArea, provider.siteId);
+  let threadOffset: LauncherOffset | null = await positions.load().catch(() => null);
+
   const launchers = createLauncherMounter(ctx, {
     text,
     appearance,
     session,
     surface,
+    threadPosition: {
+      get: () => threadOffset,
+      set(offset) {
+        threadOffset = offset;
+        void positions
+          .save(offset)
+          .catch(() => reportDiagnostic({ code: 'UNEXPECTED', area: 'content-script' }));
+      },
+    },
     defaultLanguage: computed(() => settings.value.targetLanguage),
     favoriteLanguages: computed(() => settings.value.favoriteLanguages),
     onOpenThread(anchor, opener) {

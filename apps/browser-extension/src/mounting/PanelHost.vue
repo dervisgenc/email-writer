@@ -19,7 +19,12 @@ const isOpen = toRef(() => props.open.value);
 </script>
 
 <template>
-  <div class="ew-root" :data-theme="appearance.value.theme" :style="appearance.value.style">
+  <div
+    class="ew-root"
+    :data-theme="appearance.value.theme"
+    :data-skin="appearance.value.skin"
+    :style="appearance.value.style"
+  >
     <WriterPanel
       v-if="isOpen"
       :view="view"

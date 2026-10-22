@@ -29,6 +29,8 @@ export interface UiText {
   readonly threadLauncher: {
     readonly label: string;
     readonly tooltip: string;
+    /** Added to the tooltip: the button can be dragged out of the way. */
+    readonly dragHint: string;
   };
   /** Toolbar embedded in the compose area. */
   readonly compose: {

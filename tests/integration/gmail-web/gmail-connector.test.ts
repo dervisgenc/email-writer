@@ -225,18 +225,25 @@ describe('Gmail connector — page and conversation', () => {
     });
   });
 
-  it('places the conversation button by the subject and a toolbar on each draft', () => {
+  it("places the conversation button in the subject row, before Gmail's own buttons, and a toolbar on each draft", () => {
     const anchors = connection.locateLauncherAnchors();
+    const [thread] = anchors;
+
     expect(anchors.map((anchor) => anchor.target.kind)).toEqual(['thread', 'composer', 'composer']);
-    expect(anchors[0]?.element.querySelector('h2')).not.toBeNull();
+    // The full-width subject row, not the heading's own container, which is only as wide as the subject.
+    expect(thread?.element).toBe(fixtureElement('subject-row'));
+    expect(thread?.obstacles).toHaveLength(2);
+    expect(thread?.obstacles?.[0]).toBe(fixtureElement('print-all'));
   });
 
   it('reports only match counts for selector verification', () => {
     const report = connection.selectorReport();
+    // Verified on a real Gmail account; collapsed messages are still a candidate.
     expect(report.find((entry) => entry.key === 'composeEditor')).toMatchObject({
-      status: 'candidate',
+      status: 'verified',
       matches: 2,
     });
+    expect(report.find((entry) => entry.key === 'collapsedMessage')).toMatchObject({ status: 'candidate' });
     expect(JSON.stringify(report)).not.toMatch(/Mehmet|Proje/);
   });
 });

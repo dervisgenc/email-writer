@@ -9,13 +9,22 @@ export interface MailLauncherAnchor {
   readonly key: string;
   readonly element: HTMLElement;
   readonly placement: 'top-end' | 'bottom-end';
+  /**
+   * The mail app's own controls at the end of the region (e.g. icon buttons at the right of a
+   * subject row). The button is placed before them instead of on top of them.
+   */
+  readonly obstacles?: readonly HTMLElement[];
   readonly target:
     | { readonly kind: 'thread'; readonly thread: ThreadRef }
     | { readonly kind: 'composer'; readonly composer: ComposerRef };
 }
 
 export interface AnchorSources {
-  readonly thread: { readonly ref: ThreadRef; readonly root: HTMLElement } | null;
+  readonly thread: {
+    readonly ref: ThreadRef;
+    readonly root: HTMLElement;
+    readonly obstacles?: readonly HTMLElement[];
+  } | null;
   readonly composers: readonly { readonly ref: ComposerRef; readonly editor: HTMLElement }[];
 }
 
@@ -31,6 +40,7 @@ export function locateLauncherAnchors(sources: AnchorSources): MailLauncherAncho
       key: `thread:${sources.thread.ref.threadKey}`,
       element: sources.thread.root,
       placement: 'top-end',
+      ...(sources.thread.obstacles === undefined ? {} : { obstacles: sources.thread.obstacles }),
       target: { kind: 'thread', thread: sources.thread.ref },
     });
   }

@@ -20,7 +20,13 @@ import {
 
 import { DEFAULT_WAIT_LIMIT_MS, detectPage } from './discovery/detect-page';
 import { locateComposers, readAccountHint } from './discovery/locate-composers';
-import { locateThread, messageBodies, threadSignature, type LocatedThread } from './discovery/locate-thread';
+import {
+  locateThread,
+  messageBodies,
+  subjectRowActions,
+  threadSignature,
+  type LocatedThread,
+} from './discovery/locate-thread';
 import { readPageTheme } from './discovery/read-page-theme';
 import {
   GMAIL_SELECTORS,
@@ -278,7 +284,10 @@ export function createGmailWebConnector(options: GmailWebOptions): GmailWebConne
         return [];
       }
       return locateLauncherAnchors({
-        thread: thread !== null && threadRef !== null ? { ref: threadRef, root: thread.anchor } : null,
+        thread:
+          thread !== null && threadRef !== null
+            ? { ref: threadRef, root: thread.anchor, obstacles: subjectRowActions(thread) }
+            : null,
         composers: composers.editors(),
       });
     },

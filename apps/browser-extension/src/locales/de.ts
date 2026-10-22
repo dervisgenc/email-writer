@@ -20,6 +20,7 @@ export const de: ExtensionText = {
     threadLauncher: {
       label: 'Antwort entwerfen',
       tooltip: 'Eine Antwort auf diese Unterhaltung entwerfen und den Kontext prüfen',
+      dragHint: 'Zum Verschieben ziehen.',
     },
     compose: {
       toolbarLabel: PRODUCT_NAME,

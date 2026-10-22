@@ -6,8 +6,10 @@ All notable changes to Writehand are recorded here. The extension and the helper
 
 ### Added
 
-- **Gmail on the web** (`mail.google.com`), for personal Google accounts and Google Workspace: the same toolbar, card and panel as in Outlook on the web, with the open conversation's expanded messages as context, inline replies and compose windows as drafts, and Gmail's signature and trimmed quote kept out of what is replaced. Gmail support is new: its page markers come from open-source Gmail extensions and have not yet been checked on a real Gmail account.
+- **Gmail on the web** (`mail.google.com`), for personal Google accounts and Google Workspace: the same toolbar, card and panel as in Outlook on the web, with the open conversation's expanded messages as context, inline replies and compose windows as drafts, and Gmail's signature and trimmed quote kept out of what is replaced. Gmail support is new: its page markers come from open-source Gmail extensions; reading a conversation and finding a compose window are checked on a real Gmail account, replies are not yet.
 - A switch per mail service in the settings (Outlook on the web, Gmail); the welcome wizard links to Gmail too.
+- On Gmail the extension looks like Gmail (Google Sans, Gmail's colors, rounded buttons), and the **Draft reply** button sits at the end of the subject row, next to Gmail's own buttons.
+- The **Draft reply** button can be dragged out of the way; its place is remembered per mail service, and dropping it near its first place puts it back.
 - `pnpm gmail:inspect` runs the extension's reading code on a live Gmail tab with masked output, for checking Gmail's page markers.
 - API keys work in the extension itself, without the helper app: connect a key from Groq, OpenRouter or OpenAI in the settings or the welcome wizard. Groq's free plan and OpenRouter's free models need no payment method; with Groq, OpenAI's free open-weight model `openai/gpt-oss-120b` is selected by itself.
 - Keys are checked with the provider before they are saved, stored encrypted in the browser (AES-GCM with a non-extractable key in the extension's own storage) and sent only to their provider. The browser asks for access to a provider's API only when you connect a key for it.

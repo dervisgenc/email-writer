@@ -8,7 +8,7 @@
 //
 // Usage: pnpm outlook:dev [--restart]     Ctrl+C removes the extension and stops the server.
 //        pnpm gmail:dev [--restart]       the same, opening Gmail if Firefox is started
-import { existsSync } from 'node:fs';
+import { existsSync, watch } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -66,8 +66,6 @@ if (firefox.started) {
 }
 
 const { createServer } = await loadWxt();
-/** On every build after the first install, the extension is reinstalled from disk. */
-let reinstallAfterBuild = () => {};
 
 const server = await createServer({
   root: extensionRoot,
@@ -75,9 +73,6 @@ const server = await createServer({
   manifestVersion: 3,
   webExt: { disabled: true },
   dev: { server: { port: devServerPort } },
-  hooks: {
-    'build:done': () => reinstallAfterBuild(),
-  },
 });
 await server.start();
 if (!existsSync(resolve(devOutput, 'manifest.json'))) {
@@ -92,16 +87,19 @@ console.log('The extension reloads itself as the code changes. Press Ctrl+C to s
 // WXT's content script reload is unreliable in Firefox: even after the tab reloads,
 // the previous content script can keep running. So after every build the extension is
 // reinstalled from disk; once the background script connects to the server, WXT
-// registers the content script and reloads the Outlook tab.
+// registers the content script and reloads the mail tab. WXT calls its `build:done` hook
+// only for full builds, not for the partial rebuilds of dev mode, so the output folder
+// itself is watched.
 let reinstallTimer = null;
-reinstallAfterBuild = () => {
+const reinstallAfterBuild = () => {
   clearTimeout(reinstallTimer);
   reinstallTimer = setTimeout(() => {
     installExtension()
       .then(() => console.log(`Extension reinstalled; reloading the ${mail} tab.`))
       .catch((error) => console.error(`Could not reinstall the extension: ${error.message}`));
-  }, 300);
+  }, 500);
 };
+const outputWatcher = watch(devOutput, { recursive: true }, reinstallAfterBuild);
 
 let stopping = false;
 async function stop() {
@@ -109,6 +107,7 @@ async function stop() {
     return;
   }
   stopping = true;
+  outputWatcher.close();
   // A temporary add-on also goes away when Firefox closes; if Firefox stays open, it is removed here.
   await uninstallExtension(extension).catch(() => {});
   await server.stop();

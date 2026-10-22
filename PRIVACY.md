@@ -35,7 +35,7 @@ Writehand never sends email. Results are shown as a preview first and are writte
 
 ### Settings
 
-Your preferences (interface language, translation languages, tone, standing instructions, theme) and your connection choice (method, API key provider and model) are stored in your browser's extension storage on your device. They are not synchronized or sent anywhere.
+Your preferences (interface language, translation languages, tone, standing instructions, theme, and where you dragged the **Draft reply** button) and your connection choice (method, API key provider and model) are stored in your browser's extension storage on your device. They are not synchronized or sent anywhere.
 
 ### Sign-in details and API keys
 

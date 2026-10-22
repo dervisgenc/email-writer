@@ -282,7 +282,7 @@ Current samples: `conversation-inline-reply.html` (the synthetic page behind the
 
 ## Gmail selectors
 
-`packages/mail-connectors/gmail-web/src/discovery/selectors.ts` is the single place for every Gmail-specific selector, with the same fields as the Outlook registry (`status`, `evidence`, `languageDependent`, `note`, `verifiedOn`). **Every Gmail selector is still a candidate:** none has been checked on a real Gmail account. The synthetic page `tests/fixtures/gmail/conversation-inline-reply.html` follows the structure the sources below target; passing tests on it does not prove that real Gmail works.
+`packages/mail-connectors/gmail-web/src/discovery/selectors.ts` is the single place for every Gmail-specific selector, with the same fields as the Outlook registry (`status`, `evidence`, `languageDependent`, `note`, `verifiedOn`). **Reading selectors and the compose window are verified; replies are not.** On 2026-10-23 the page, conversation, message, sender, date, body, subject row, compose editor, compose container and theme selectors matched on a personal account (English interface, Firefox 158 on macOS, no split pane) and carry a `verifiedOn` record. Collapsed messages, quotes, signatures, inline replies and the trimmed-quote toggle in a reply are still candidates. The synthetic page `tests/fixtures/gmail/conversation-inline-reply.html` follows the structure seen on the real page; passing tests on it does not prove the unverified parts.
 
 How the connector reads Gmail:
 
@@ -294,6 +294,8 @@ How the connector reads Gmail:
 - **Signature and quote:** `.gmail_signature_prefix` (the "-- " line), `.gmail_signature`, `[data-smartmail="gmail_signature"]`; `.gmail_quote_container`, `.gmail_quote`. These classes are part of the mail HTML Gmail sends, not of its interface.
 - **Writing:** the same `execCommand` writer as Outlook (`insertText`, `insertHTML`), which keeps Gmail's own undo history and input events; the write is verified by reading the editor again. None of the sources writes this way (InboxSDK inserts nodes and sends a synthetic key press), so this is the first thing to check on a real account.
 - **Theme:** the computed background of `.bkK > .nH`, then `role="main"`, as InboxSDK reads it. Gmail has no theme variables, so only light or dark and the background and text colours are taken.
+- **Look:** on Gmail the extension UI uses the Material skin (`packages/ui/src/styles/skin-material.css`, `data-skin="material"`): Google Sans, Gmail's blues, pill-shaped buttons and Material elevation. The connector's provider sets it (`MailPageProvider.skin`); Outlook keeps the Fluent skin.
+- **Conversation button:** it sits in the full-width subject row (`.V8djrc.byY`), lined up with and just before Gmail's own icon buttons there (`button.bHI`), which the anchor passes as obstacles. The user can drag it; the moved place is kept per mail service in `storage.local` (`launcherPositions`, a UI preference without mail content), and dropping it near its default place forgets it.
 
 Sources (read at their latest commits on 2026-10-23; the notes in `selectors.ts` say which source backs which selector):
 
@@ -378,7 +380,7 @@ These rules apply to every change. See also [SECURITY.md](../SECURITY.md) and [P
 | Area | Limitation |
 | --- | --- |
 | Outlook coverage | Selectors are verified for one configuration so far: work account, English interface, Firefox on macOS, reading pane showing the selected message. The editor, signature, collapsed-message and inline-reply selectors are still candidates. The multi-message conversation reading pane, personal Outlook.com accounts, other interface languages and other browsers still need a recorded check (see [Manual testing](./MANUAL_TESTING.md)) |
-| Gmail coverage | No Gmail selector has been verified on a real account. Until the checks in [Manual testing](./MANUAL_TESTING.md#4-gmail) are recorded, Gmail support is unverified; whether `execCommand` writes are saved by Gmail and how its new message header is marked are the first things to check |
+| Gmail coverage | Reading a conversation and finding a compose window are verified on one configuration (personal account, English, Firefox on macOS). Inline replies, quotes, signatures, collapsed messages, dark themes, other languages, Workspace accounts and Chromium browsers still need a recorded check ([Manual testing](./MANUAL_TESTING.md#4-gmail)); whether Gmail saves text written with `execCommand` is the first thing to check |
 | Gmail in Firefox | Gmail enforces Trusted Types; Firefox exempts content scripts only partly, which may affect writing rich content. Not yet checked |
 | Collapsed messages | Outlook: no reliable marker is known; the count may be reported as unknown. Gmail: collapsed and hidden messages are counted from candidate markers. Collapsed text is never added to the context |
 | Message dates | Only the displayed date text is read (Gmail: the date's tooltip); there is no machine-readable date, so messages keep their on-screen order |

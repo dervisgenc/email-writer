@@ -103,6 +103,8 @@ try {
   await withMailProbe(
     {
       tab: /^https:\/\/mail\.google\.com\/mail\//,
+      // A tab with a conversation open (a token at the end of the URL hash) comes first.
+      prefer: /#[^?]*\/[A-Za-z0-9_-]{16,}/,
       missing:
         'Gmail tab not found. Open https://mail.google.com/mail/ in the window of "pnpm outlook:firefox".',
       probe: resolve(import.meta.dirname, 'gmail-probe/probe.ts'),

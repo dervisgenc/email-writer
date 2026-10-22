@@ -20,6 +20,7 @@ export const fr: ExtensionText = {
     threadLauncher: {
       label: 'Préparer une réponse',
       tooltip: 'Préparer une réponse à cette conversation et vérifier le contexte',
+      dragHint: 'Faites glisser pour le déplacer.',
     },
     compose: {
       toolbarLabel: PRODUCT_NAME,

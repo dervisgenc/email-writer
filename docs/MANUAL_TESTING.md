@@ -145,7 +145,7 @@ Assess language, request direction, use of relevant context, factual fidelity an
 
 ## 4. Gmail
 
-Gmail support is new and **no Gmail selector has been verified on a real account yet**. Record every check here and in the selector registry (`verifiedOn`); until then Gmail support is unverified. Use a personal Google account and a Google Workspace account with made-up mail only. One connection method per run is enough; the API key method needs no helper app.
+Gmail support is new. Reading a conversation and finding a compose window are verified on one configuration (personal account, English interface, Firefox on macOS, 2026-10-23); everything else below still needs a recorded check. Record every check here and in the selector registry (`verifiedOn`). Use a personal Google account and a Google Workspace account with made-up mail only. One connection method per run is enough; the API key method needs no helper app.
 
 **Selectors (masked, read-only):** sign in with `pnpm gmail:firefox --sign-in` and quit that window, then run `pnpm gmail:dev`, which opens Gmail in the inspection window with the extension. With a made-up conversation of three or more messages open:
 
@@ -158,7 +158,8 @@ Gmail support is new and **no Gmail selector has been verified on a real account
 
 **Writing (the extension on Gmail):**
 
-- [ ] A **Draft reply** button appears by the open conversation's subject; it does not cover Gmail's buttons. The inline reply and every compose window get a Writehand toolbar; the search box gets none.
+- [ ] A **Draft reply** button appears at the end of the open conversation's subject row, lined up with and just before Gmail's print and new-window buttons; it covers neither them nor the subject. It looks like Gmail's tonal Compose button.
+- [ ] Drag the button elsewhere: it moves, the panel does not open, and after reloading Gmail it is still there. Drop it near its first place: it snaps back. A plain click still opens the panel. The inline reply and every compose window get a Writehand toolbar; the search box gets none.
 - [ ] **Draft reply** opens the panel with the expanded messages as context; senders show names, never addresses; collapsed messages are counted, not read.
 - [ ] **Write reply** in the inline reply: the result is applied above the signature; after closing and reopening the draft (Gmail saves it), the text is still there.
 - [ ] **Revise** a selected phrase in the reply: only that phrase changes. **Undo last apply** restores it.

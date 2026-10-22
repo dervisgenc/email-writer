@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { expect, GMAIL_FIXTURE_URL, test } from './extension-fixture';
+import { expect, FIXTURE_URL, GMAIL_FIXTURE_URL, test } from './extension-fixture';
 
 /** The toolbar of the inline reply: the one that offers "Yanıt yaz" (Write reply). */
 const replyToolbar = (page: Page) =>
@@ -119,4 +119,90 @@ test('Gmail: turning Gmail off in the settings removes the buttons from Gmail on
 
   await expect(page.locator('writehand-launcher')).toHaveCount(0);
   await expect(outlookSwitch).toBeChecked();
+});
+
+/** The skin attribute on the extension UI's root inside the first launcher's shadow root. */
+const launcherSkin = (page: Page) =>
+  page.evaluate(
+    () =>
+      (
+        document
+          .querySelector('writehand-launcher')
+          ?.shadowRoot?.querySelector('.ew-root') as HTMLElement | null
+      )?.dataset.skin ?? null,
+  );
+
+const center = (box: { x: number; y: number; width: number; height: number }) => ({
+  x: box.x + box.width / 2,
+  y: box.y + box.height / 2,
+});
+
+test('Gmail: the conversation button sits in the subject row before Gmail’s buttons, looks like Gmail, and can be dragged out of the way', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto(GMAIL_FIXTURE_URL);
+  const button = page.getByRole('button', { name: 'Bu konuşma için yanıt hazırla ve bağlamı incele' });
+  const panel = page.getByRole('dialog', { name: 'Yazma yardımcısı' });
+  await expect(button).toBeVisible();
+
+  // Default place: inside the subject row, right before Gmail's print and new-window buttons.
+  const row = (await page.locator('[data-fixture="subject-row"]').boundingBox())!;
+  const print = (await page.locator('[data-fixture="print-all"]').boundingBox())!;
+  const home = (await button.boundingBox())!;
+  expect(home.x + home.width).toBeLessThanOrEqual(print.x);
+  expect(print.x - (home.x + home.width)).toBeLessThan(24);
+  expect(home.y).toBeGreaterThanOrEqual(row.y);
+  expect(home.y + home.height).toBeLessThanOrEqual(row.y + row.height);
+  expect(await launcherSkin(page)).toBe('material');
+
+  // Dragging moves it and does not open the panel.
+  const start = center(home);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x - 300, start.y + 200, { steps: 8 });
+  await page.mouse.up();
+  await expect(panel).toHaveCount(0);
+  const moved = (await button.boundingBox())!;
+  expect(Math.abs(moved.x - (home.x - 300))).toBeLessThan(3);
+  expect(Math.abs(moved.y - (home.y + 200))).toBeLessThan(3);
+
+  // The place is remembered on this site after a reload.
+  await page.reload();
+  await expect(button).toBeVisible();
+  const reloaded = (await button.boundingBox())!;
+  expect(Math.abs(reloaded.x - moved.x)).toBeLessThan(3);
+  expect(Math.abs(reloaded.y - moved.y)).toBeLessThan(3);
+
+  // A plain click still opens the panel.
+  await button.click();
+  await expect(panel).toBeVisible();
+  await panel.press('Escape');
+  await expect(panel).toHaveCount(0);
+
+  // Dropped close to its default place, it snaps back there.
+  const from = center(reloaded);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 290, from.y - 190, { steps: 8 });
+  await page.mouse.up();
+  // The button settles in the next animation frame.
+  await expect
+    .poll(async () => {
+      const snapped = (await button.boundingBox())!;
+      return Math.max(Math.abs(snapped.x - home.x), Math.abs(snapped.y - home.y));
+    })
+    .toBeLessThan(3);
+  // …and stays there after a reload: the moved place was forgotten.
+  await page.reload();
+  await expect(button).toBeVisible();
+  const afterReload = (await button.boundingBox())!;
+  expect(Math.abs(afterReload.x - home.x)).toBeLessThan(3);
+});
+
+test('Outlook keeps its Fluent look', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto(FIXTURE_URL);
+  await expect(page.locator('writehand-launcher').first()).toBeAttached();
+  await expect.poll(() => launcherSkin(page)).toBe('fluent');
 });

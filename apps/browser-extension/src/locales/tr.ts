@@ -19,6 +19,7 @@ export const tr: ExtensionText = {
     threadLauncher: {
       label: 'Yanıt hazırla',
       tooltip: 'Bu konuşma için yanıt hazırla ve bağlamı incele',
+      dragHint: 'Taşımak için sürükleyin.',
     },
     compose: {
       toolbarLabel: PRODUCT_NAME,

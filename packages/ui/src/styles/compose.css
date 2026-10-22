@@ -290,6 +290,17 @@
   background: var(--ew-color-surface-hover);
 }
 
+/* The conversation button can be dragged out of the way; a drag must not select page text. */
+.ew-thread-launcher {
+  touch-action: none;
+  user-select: none;
+}
+
+[data-dragging='true'] .ew-thread-launcher {
+  cursor: grabbing;
+  box-shadow: var(--ew-shadow-16);
+}
+
 /* Result preview: a formatted result is shown as it will look in the email, on light "paper". */
 .ew-rich-preview {
   position: relative;

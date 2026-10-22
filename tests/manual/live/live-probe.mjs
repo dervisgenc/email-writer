@@ -45,9 +45,11 @@ async function bundleProbe(entry) {
   return (Array.isArray(output) ? output[0] : output).output[0].code;
 }
 
-async function findMailContext(bidi, tab, missing) {
+async function findMailContext(bidi, tab, missing, prefer) {
   const { contexts } = await bidi.send('browsingContext.getTree', { maxDepth: 0 });
-  const found = contexts.find((context) => tab.test(context.url));
+  const tabs = contexts.filter((context) => tab.test(context.url));
+  // With several mail tabs, the one that matches `prefer` (e.g. an open conversation) is used.
+  const found = tabs.find((context) => prefer?.test(context.url)) ?? tabs[0];
   if (found === undefined) {
     throw new Error(missing);
   }
@@ -82,12 +84,12 @@ function createProbeClient(bidi, context) {
 }
 
 /**
- * Finds the mail tab whose URL matches `tab`, installs the probe built from `probe` in its
- * sandbox and runs `work` with it.
+ * Finds the mail tab whose URL matches `tab` (preferring one that matches `prefer`), installs
+ * the probe built from `probe` in its sandbox and runs `work` with it.
  */
-export async function withMailProbe({ tab, missing, probe }, work) {
+export async function withMailProbe({ tab, prefer, missing, probe }, work) {
   await withBidiSession(LIVE_BIDI_PORT, async (bidi) => {
-    const context = await findMailContext(bidi, tab, missing);
+    const context = await findMailContext(bidi, tab, missing, prefer);
     const client = createProbeClient(bidi, context);
     await client.install(await bundleProbe(probe));
     await work(bidi, context, client);

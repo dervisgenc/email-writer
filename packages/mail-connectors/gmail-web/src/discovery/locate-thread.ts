@@ -5,11 +5,16 @@ import { closest, MISSING_ID_VALUES, queryAll, THREAD_ID_ATTRIBUTES } from './se
 export interface LocatedThread {
   /** The open conversation: its subject, its messages and its inline reply. */
   readonly root: HTMLElement;
-  /** Where the conversation's "Draft reply" button is placed: the subject heading's row. */
+  /** Where the conversation's "Draft reply" button is placed: the full-width subject row. */
   readonly anchor: HTMLElement;
   readonly key: string;
   /** Where the key came from; `local` is valid only for the current DOM instance. */
   readonly keySource: 'thread-id' | 'url' | 'local';
+}
+
+/** Gmail's own icon buttons at the end of the subject row, which the conversation's button must not cover. */
+export function subjectRowActions(thread: LocatedThread): HTMLElement[] {
+  return queryAll(thread.anchor, 'subjectRowActions').filter(isRenderedElement);
 }
 
 /** Expanded message bodies, outside draft editors; for nested matches the innermost is kept. */
@@ -65,7 +70,7 @@ export function locateThread(document: Document, registry: IdentityRegistry): Lo
   if (root === null || (messageBodies(root).length === 0 && collapsedMessages(root) === 0)) {
     return null;
   }
-  const anchor = subject.parentElement ?? subject;
+  const anchor = closest(subject, 'subjectRow') ?? subject.parentElement ?? subject;
   const id = threadId(subject);
   if (id !== null) {
     return { root, anchor, key: `thread-${opaqueHash(id)}`, keySource: 'thread-id' };

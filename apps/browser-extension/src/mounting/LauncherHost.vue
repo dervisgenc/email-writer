@@ -57,7 +57,12 @@ const busyOperation = computed<Operation | null>(() =>
 </script>
 
 <template>
-  <div class="ew-root" :data-theme="appearance.value.theme" :style="appearance.value.style">
+  <div
+    class="ew-root"
+    :data-theme="appearance.value.theme"
+    :data-skin="appearance.value.skin"
+    :style="appearance.value.style"
+  >
     <ThreadLauncher v-if="target.value.kind === 'thread'" @open="emit('open-thread')" />
     <div v-else class="ew-compose-anchor">
       <InlineAssistantHost v-if="cardOpen" :session="session" />
