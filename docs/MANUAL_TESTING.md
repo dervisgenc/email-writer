@@ -165,6 +165,7 @@ Gmail support is new. Reading a conversation and finding a compose window are ve
 - [ ] **Revise** a selected phrase in the reply: only that phrase changes. **Undo last apply** restores it.
 - [ ] **Revise** the whole reply with the quote trimmed and again after "Show trimmed content": the signature and the quote stay unchanged.
 - [ ] **Compose → Write:** the result goes into the empty body above the signature.
+- [ ] **Reply from the message list:** right-click a conversation in the inbox, choose **Reply** without opening it. The toolbar offers **Write reply**; pressing it shows the earlier message in the draft (Gmail's "•••" is pressed) and the card reports one context message. Apply a result: it goes above the quote, which stays unchanged.
 - [ ] **Change the result → Make a table**, then apply: the draft shows a table, and so does the saved draft in **Drafts**.
 - [ ] Note what **Ctrl+Z** (**Cmd+Z**) does right after an apply.
 - [ ] Gmail keyboard shortcuts (for example `c`, `r`, `/`) do not fire while typing in the panel or the card.

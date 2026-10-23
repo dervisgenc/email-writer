@@ -29,7 +29,7 @@ How the provider processes and retains your request is governed by its own terms
 
 Nothing is sent when you only open or read an email. To suggest context, the extension keeps the emails you open in memory while the Outlook or Gmail tab is open; they are never written to disk and are discarded when the tab is closed or reloaded.
 
-If a reply draft is already open and its earlier conversation was not captured, a recognized quote inside that draft can provide context instead. It is shown as partial context for review; the editable draft and the signature before the quote are excluded from that conversation context. It is sent only when you request generation, under the same rules as other selected context.
+If a reply draft is already open and its earlier conversation was not captured, a recognized quote inside that draft can provide context instead. In Gmail, when you reply from the message list without opening the email, Gmail hides the earlier message behind the draft's "•••" button; when you start writing the reply with Writehand, it presses that button so Gmail shows the earlier message in your draft, as it would if you pressed it yourself, and uses it as context. It is shown as partial context for review; the editable draft and the signature before the quote are excluded from that conversation context. It is sent only when you request generation, under the same rules as other selected context.
 
 Writehand never sends email. Results are shown as a preview first and are written into your draft only after you approve them; sending is always up to you.
 

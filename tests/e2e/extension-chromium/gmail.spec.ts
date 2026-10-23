@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { expect, FIXTURE_URL, GMAIL_FIXTURE_URL, test } from './extension-fixture';
+import { expect, FIXTURE_URL, GMAIL_FIXTURE_URL, GMAIL_LIST_REPLY_URL, test } from './extension-fixture';
 
 /** The toolbar of the inline reply: the one that offers "Yanıt yaz" (Write reply). */
 const replyToolbar = (page: Page) =>
@@ -205,4 +205,31 @@ test('Outlook keeps its Fluent look', async ({ context }) => {
   await page.goto(FIXTURE_URL);
   await expect(page.locator('writehand-launcher').first()).toBeAttached();
   await expect.poll(() => launcherSkin(page)).toBe('fluent');
+});
+
+test('Gmail: a reply opened from the message list gets the replied-to message as context and is written above it', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto(GMAIL_LIST_REPLY_URL);
+  const editor = page.locator('[data-fixture="list-reply-editor"]');
+
+  // No conversation is open, but the reply knows its conversation: the toolbar offers "Yanıt yaz".
+  await page
+    .getByRole('toolbar', { name: 'Writehand' })
+    .getByRole('button', { name: 'Yanıt yaz', exact: true })
+    .click();
+  const card = page.getByRole('dialog', { name: 'Yanıt taslağı' });
+  // Writehand pressed the draft's "•••", so Gmail loaded the quote; it is the context.
+  await expect(card.getByRole('button', { name: /Bağlam · 1 mesaj/ })).toBeVisible();
+  await expect(editor.locator('blockquote')).toContainText('Oda B-204');
+  await expect(card.locator('.ew-alert--warning')).toHaveCount(0);
+
+  await card.getByRole('textbox').fill('Teşekkür et, B-204 uygun de');
+  await card.getByRole('textbox').press('Enter');
+  await expect(card.getByLabel('Sonuç', { exact: true })).toHaveValue(/Mesajınız için teşekkürler/);
+  await card.getByRole('button', { name: 'Taslağa uygula' }).click();
+  await expect(card.getByRole('status')).toContainText('Metin taslağa yerleştirildi');
+  await expect(editor).toContainText('Mesajınız için teşekkürler');
+  await expect(editor.locator('blockquote')).toContainText('Oda B-204');
 });

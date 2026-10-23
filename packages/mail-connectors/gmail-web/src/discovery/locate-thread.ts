@@ -36,6 +36,14 @@ export function threadSignature(thread: LocatedThread): string {
   return `${bodies.length}:${collapsedMessages(thread.root)}:${length}`;
 }
 
+/**
+ * The key of a conversation with Gmail's id. The open conversation and a reply opened from the
+ * message list get the same key when they name the same conversation.
+ */
+export function threadKeyForId(id: string): string {
+  return `thread-${opaqueHash(id)}`;
+}
+
 /** Gmail's id of the conversation, from the subject heading. */
 function threadId(subject: HTMLElement): string | null {
   for (const attribute of THREAD_ID_ATTRIBUTES) {
@@ -73,7 +81,7 @@ export function locateThread(document: Document, registry: IdentityRegistry): Lo
   const anchor = closest(subject, 'subjectRow') ?? subject.parentElement ?? subject;
   const id = threadId(subject);
   if (id !== null) {
-    return { root, anchor, key: `thread-${opaqueHash(id)}`, keySource: 'thread-id' };
+    return { root, anchor, key: threadKeyForId(id), keySource: 'thread-id' };
   }
   const token = urlThreadToken(document);
   if (token !== null) {

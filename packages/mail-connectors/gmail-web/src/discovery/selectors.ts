@@ -94,6 +94,14 @@ export const MESSAGE_ID_ATTRIBUTES = ['data-message-id', 'data-legacy-message-id
 /** Values Gmail writes into id attributes and hidden inputs before an id exists. */
 export const MISSING_ID_VALUES: readonly string[] = ['', 'undefined', 'null'];
 
+/**
+ * Hidden inputs of a draft's form that name what it replies to. Seen on the real page in a reply
+ * opened from the message list: `lts` holds the conversation's legacy id (the same value as the
+ * list row's and the subject's `data-legacy-thread-id`), `rt` its permanent id (`#thread-f:…`)
+ * and `rm` the replied-to message's id (`#msg-f:…`, the same form as `data-message-id`).
+ */
+export const REPLY_FORM_INPUTS = { legacyThreadId: 'lts', threadId: 'rt', repliedMessageId: 'rm' } as const;
+
 export const GMAIL_SELECTORS = {
   /**
    * The mail app's main area. Gmail sets `role="main"` only once the app has loaded; `.aeF > .nH`
@@ -190,7 +198,7 @@ export const GMAIL_SELECTORS = {
    * Where earlier mail starts inside a message or editor: Gmail's own markers, which are part
    * of the mail HTML, then those of other mail clients whose messages Gmail shows.
    */
-  quoteStart: candidate(
+  quoteStart: verified(
     [
       '.gmail_quote_container',
       '.gmail_quote',
@@ -202,7 +210,8 @@ export const GMAIL_SELECTORS = {
       '.yahoo_quoted',
     ],
     'high',
-    '`div.gmail_quote > div.gmail_attr + blockquote.gmail_quote` in InboxSDK test data and FlowCrypt; Google’s Workspace CLI writes the outer `.gmail_quote_container`.',
+    '`div.gmail_quote > div.gmail_attr + blockquote.gmail_quote` in InboxSDK test data and FlowCrypt; Google’s Workspace CLI writes the outer `.gmail_quote_container`. On the real page the loaded quote of a reply was `div.gmail_quote.gmail_quote_container > div.gmail_attr + blockquote.gmail_quote`; the other clients’ markers are still candidates.',
+    [PERSONAL_EN_FIREFOX_COMPOSE],
   ),
 
   /** Signature block in a message or editor; `.gmail_signature_prefix` is its "-- " line. */
@@ -216,10 +225,11 @@ export const GMAIL_SELECTORS = {
    * The "Show trimmed content" toggle (three dots) that hides quoted text in a message or a
    * reply draft; its own content is not message text.
    */
-  trimmedContentToggle: candidate(
+  trimmedContentToggle: verified(
     ['.ajR', '.yj6qo'],
     'medium',
-    'InboxSDK and better-gmail click `.ajR` to show a reply’s quote; copy-as-markdown also skips `.yj6qo`. `.yj6qo` was seen in a received message on the real page; `.ajR` in a reply draft is not checked yet.',
+    'InboxSDK and better-gmail click `.ajR` to show a reply’s quote; copy-as-markdown also skips `.yj6qo`. On the real page `.yj6qo` sat in a received message, and `.ajR` in a reply opened from the message list, outside its editor: the quote was not in the page until `.ajR` was clicked, and a plain `click()` loaded it.',
+    [PERSONAL_EN_FIREFOX_READING, PERSONAL_EN_FIREFOX_COMPOSE],
   ),
 
   /** Draft editor: the compose body. */

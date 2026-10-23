@@ -12,6 +12,7 @@ const fixtures = resolve(import.meta.dirname, '../tests/fixtures');
 const pages = {
   '/mail/inbox': { file: 'outlook/conversation-inline-reply.html', title: 'Outlook sample page' },
   '/gmail/mail/u/0/': { file: 'gmail/conversation-inline-reply.html', title: 'Gmail sample page' },
+  '/gmail/mail/u/0/list': { file: 'gmail/reply-from-list.html', title: 'Gmail sample page' },
 };
 
 const server = createServer(async (request, response) => {

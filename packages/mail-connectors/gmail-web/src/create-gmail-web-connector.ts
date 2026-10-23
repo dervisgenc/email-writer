@@ -1,6 +1,7 @@
 import {
   appError,
   err,
+  isSameScope,
   type MailConnector,
   type MailEvent,
   type PageState,
@@ -19,11 +20,12 @@ import {
 } from '@writehand/mail-dom';
 
 import { DEFAULT_WAIT_LIMIT_MS, detectPage } from './discovery/detect-page';
-import { locateComposers, readAccountHint } from './discovery/locate-composers';
+import { locateComposers, readAccountHint, type LocatedComposer } from './discovery/locate-composers';
 import {
   locateThread,
   messageBodies,
   subjectRowActions,
+  threadKeyForId,
   threadSignature,
   type LocatedThread,
 } from './discovery/locate-thread';
@@ -37,7 +39,8 @@ import {
   type SelectorStatus,
 } from './discovery/selectors';
 import { createGmailClassifier } from './reading/gmail-classifier';
-import { messageContainerOf, messageKeyOf } from './reading/message-header';
+import { messageContainerOf, messageKeyForId, messageKeyOf } from './reading/message-header';
+import { readQuotedReply } from './reading/read-quoted-reply';
 import { readThread } from './reading/read-thread';
 
 export const GMAIL_PROVIDER_ID = 'gmail-web';
@@ -50,6 +53,8 @@ export const GMAIL_PROVIDER_ID = 'gmail-web';
 const WATCHED_ATTRIBUTES = ['aria-expanded', 'contenteditable'];
 
 const SETTLE_MS = 250;
+/** How long to wait for Gmail to load a reply's trimmed quote. */
+const QUOTE_WAIT_MS = 2_000;
 
 export interface GmailWebOptions {
   readonly document: Document;
@@ -63,6 +68,8 @@ export interface GmailWebOptions {
   /** Waits for the editor's next regular re-render after a write. */
   readonly settle?: () => Promise<void>;
   readonly waitLimitMs?: number;
+  /** How long to wait for Gmail to load a reply's trimmed quote after its toggle is pressed. */
+  readonly quoteWaitMs?: number;
 }
 
 export interface SelectorReportEntry {
@@ -114,6 +121,8 @@ export function createGmailWebConnector(options: GmailWebOptions): GmailWebConne
   let threadRevision = 1;
   let signature = '';
   let pageState: PageState = { support: 'waiting', scope: null, activeThread: null, composers: [] };
+  /** Replies opened from the message list, by the key of the conversation their form names. */
+  let quotedReplies = new Map<string, LocatedComposer>();
   let disposed = false;
 
   const emit = (event: MailEvent) => {
@@ -181,15 +190,25 @@ export function createGmailWebConnector(options: GmailWebOptions): GmailWebConne
     }
 
     const found = support === 'ready' ? locateComposers(document, ownUiSelector) : [];
+    const replies = new Map<string, LocatedComposer>();
     composers.sync(
-      found.map(({ editor, isReply, quoteOutsideEditor }) => ({
-        editor,
-        isReply,
-        quoteOutsideEditor,
-        // Only an inline reply inside the open conversation provably belongs to it.
-        threadKey: isReply && thread?.root.contains(editor) ? (threadRef?.threadKey ?? null) : null,
-      })),
+      found.map((composer) => {
+        const { editor, isReply, quoteOutsideEditor } = composer;
+        // An inline reply inside the open conversation belongs to it; any other reply belongs to
+        // the conversation its hidden form names (a reply opened from the message list).
+        const inOpenThread = isReply && thread !== null && thread.root.contains(editor);
+        const threadKey = inOpenThread
+          ? (threadRef?.threadKey ?? null)
+          : composer.threadId !== null
+            ? threadKeyForId(composer.threadId)
+            : null;
+        if (!inOpenThread && threadKey !== null && threadKey !== threadRef?.threadKey) {
+          replies.set(threadKey, composer);
+        }
+        return { editor, isReply, quoteOutsideEditor, threadKey };
+      }),
     );
+    quotedReplies = replies;
 
     const nextState: PageState = {
       support,
@@ -227,6 +246,28 @@ export function createGmailWebConnector(options: GmailWebOptions): GmailWebConne
 
     async readThread(ref, signal) {
       observer.flush();
+      // A reply opened from the message list: its conversation is not on the page, only its quote.
+      if (quotedReplies.has(ref.threadKey) && isSameScope(ref.scope, registry.scope())) {
+        return readQuotedReply(ref, signal, {
+          classify,
+          currentReply: () => {
+            observer.flush();
+            const reply = quotedReplies.get(ref.threadKey);
+            return reply === undefined || !reply.editor.isConnected
+              ? null
+              : {
+                  editor: reply.editor,
+                  container: reply.container,
+                  messageKey:
+                    reply.repliedMessageId === null ? null : messageKeyForId(reply.repliedMessageId),
+                };
+          },
+          threadRevision: () => 1,
+          now: () => now().toISOString(),
+          wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+          quoteWaitMs: options.quoteWaitMs ?? QUOTE_WAIT_MS,
+        });
+      }
       return readThread(ref, signal, {
         registry,
         classify,
@@ -271,6 +312,7 @@ export function createGmailWebConnector(options: GmailWebOptions): GmailWebConne
       clearTimeout(waitTimer);
       observer.dispose();
       composers.clear(false);
+      quotedReplies = new Map();
       registry.clear();
       listeners.clear();
     },

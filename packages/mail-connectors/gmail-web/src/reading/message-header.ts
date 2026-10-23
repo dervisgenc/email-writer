@@ -29,6 +29,11 @@ function messageId(container: HTMLElement): string | null {
   return null;
 }
 
+/** The key of a message with Gmail's id (`#msg-f:…`), as the conversation and a reply's form name it. */
+export function messageKeyForId(id: string): string {
+  return `msg-${opaqueHash(id)}`;
+}
+
 /**
  * The message's key. If Gmail's message id is on the page, an opaque hash of it is used, so the
  * same message keeps its key when the user opens the conversation again and is not counted
@@ -36,7 +41,7 @@ function messageId(container: HTMLElement): string | null {
  */
 export function messageKeyOf(container: HTMLElement, registry: IdentityRegistry): string {
   const id = messageId(container);
-  return id === null ? registry.keyFor(container, 'msg') : `msg-${opaqueHash(id)}`;
+  return id === null ? registry.keyFor(container, 'msg') : messageKeyForId(id);
 }
 
 /**
